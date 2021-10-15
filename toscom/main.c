@@ -5,9 +5,10 @@
  *   実行しても何もせず終了となる。
  */
 
-#include "com_if.h"
-#include "com_debug.h"
-#include "com_extra.h"
+#include "com_if.h"                 // toscom基本機能
+#include "com_extra.h"              // toscomエキストラ機能
+//#include "com_select.h"             // toscomセレクト機能
+//#include "com_window.h"             // toscomウィンドウ機能
 
 /* 独自処理があれば記述 ******************************************************/
 
