@@ -152,6 +152,10 @@ OBJS = main.o com.o
 # ネームリストファイル名 (com_custom.hの COM_NAMELISTと同じ内容にすること)
 NAMELIST = .namelist.toscom
 
+
+
+
+
 ########## コンパイル時はタグファイルも自動生成する ##########
 $(COMMAND): tags $(OBJS)
 	$(CC) $(CFLAGS) $(OPTION) $(OBJS) -o $(CHECKF)$@
@@ -166,10 +170,6 @@ com.o: $(SRC)/com_*.c $(SRC)/com_*.h
 	$(CC) $(CFLAGS) $(OPTION) -c $(wildcard $(SRC)/com_*.c)
 	$(LD) $(LDFLAGS) com_*.o -o $@
 
-smpl.o: $(SRC)/smpl_*.c $(SRC)/smpl_*.h $(COMMON_HEAD)
-	$(CC) $(CFLAGS) $(OPTION) -c $(wildcard $(SRC)/smpl_*.c)
-	$(LD) $(LDFLAGS) smpl_*.o -o $@
-
 # 新たに別モジュールを追加したい時は、smpl.oと同じように記述する。
 # (smpl.o は初期状態では OBJS に入っていないため、makeを打っても処理されない)
 #
@@ -181,11 +181,22 @@ smpl.o: $(SRC)/smpl_*.c $(SRC)/smpl_*.h $(COMMON_HEAD)
 # OBJS に オブジェクト名 (モジュール名.o) を追記することも必要。
 # またタグ生成の為、tagsにも モジュール名_*.? を追加するとよいだろう。
 
+smpl.o: $(SRC)/smpl_*.c $(SRC)/smpl_*.h $(COMMON_HEAD)
+	$(CC) $(CFLAGS) $(OPTION) -c $(wildcard $(SRC)/smpl_*.c)
+	$(LD) $(LDFLAGS) smpl_*.o -o $@
 
 
 
 
-########## 書式文字列チェックコンパイル (make checkf) ##########
+
+
+
+
+
+
+
+
+########## 書式文字列チェックコンパイル (make checkf) ########################
 # com_printf()の書式出力パラメータは printf()のようなチェックをコンパイラが
 # 実施しないため、正しくない記述でも警告/エラー無しとなってしまう。
 # そこで com_printf を printf に変換してコンパイルを実施できるようにする。
@@ -206,7 +217,7 @@ checkf: init
 
 
 
-########## リリース物件生成 (make rel) ##########
+########## リリース物件生成 (make rel) #######################################
 # リリース時はデバッグオプションを落とし、
 # ・CFLAGS: -Werror -Wmissing-declarations -O2
 # ・OPTIONS: -D_FORTIFY_SOURCE=1
@@ -257,30 +268,40 @@ rel: init
 
 
 
-########## まっさらテストコンパイル (make init) ##########
+
+
+
+
+
+########## まっさらテストコンパイル (make init) ##############################
 init: clean $(COMMAND)
 
-########## ビルドによる直接的生成物の削除 (make clean) ##########
+########## ビルドによる直接的生成物の削除 (make clean) #######################
 clean:
 	$(RM) -fr $(COMMAND) $(COMMAND).exe $(CHECK_PRE)$(COMMAND)
 	$(RM) -fr *.o ../tags $(RELEASE)* $(COMMAND)*.tar.gz $(NAMELIST)
 
-########## ログファイルやコアファイルを削除 (make logclean) ##########
+########## ログファイルやコアファイルを削除 (make logclean) ##################
 logclean: specclean
 	$(RM) -fr .$(COMMAND)* core.*
 
-########## プログラム固有のファイルを削除 (make specclean) ##########
+########## プログラム固有のファイルを削除 (make specclean) ###################
 # 何か削除する必要のあるものがあれば、削除文をここに追記する。
 specclean:
 
-########## 生成物やログを全て削除 (make allclean) ##########
+########## 生成物やログを全て削除 (make allclean) ############################
 allclean: clean logclean
 
 
 
 
 
-########## タグ生成 (make tags) ##########
+
+
+
+
+
+########## タグ生成 (make tags) ##############################################
 tags:
 	cd ..; ctags main*.? com_*.?
 
