@@ -472,8 +472,7 @@ typedef struct {
  * iNeedListを true にすると、入力された数値データを oStat->list に保持する。
  * false の場合 入力データの保持が必要なら呼び元で実施すること。
  *
- * その後、com_inputStat() で ひとつずつ数値を入力し、
- * com_calculateStat()で そこまでの統計データの計算を実施する。
+ * その後、com_inputStat() で ひとつずつ数値を入力し、その都度計算する。
  * 全ての処理が終わったら com_finishStat() で統計データのメモリ解放を実施する。
  *
  * 実際に算出されるデータが何かは com_calcStat_t型の説明を参照。
