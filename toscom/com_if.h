@@ -6066,9 +6066,9 @@ void com_dispFuncTrace( void );
 #define com_setFuncTrace( MODE ) \
     com_setFuncTraceReal( (MODE), COM_FILELOC )
 
-void com_setFuncTrace( BOOL iMode, COM_FILEPRM );
+void com_setFuncTraceReal( BOOL iMode, COM_FILEPRM );
 
-#else   // -DUSE_FUNCTRACE未指定時に、関数記述自体を消して、動作させなくする
+#else   // USE_FUNCTRACE未指定時に、関数記述自体を消して、動作させなくする
 
 #define com_dispFuncTrace()
 #define com_setFuncTrace( MODE )

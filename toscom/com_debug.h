@@ -493,10 +493,10 @@ void __cyg_profile_func_exit( void *iFunc, void *iCaller );
 
 #define COM_TRACER_SET( MODE ) \
     BOOL BKU_MODE_10394857 = gFuncTraceMode; \
-    gFuncTrace = (MODE); \
+    gFuncTraceMode = (MODE); \
     do{} while(0)
 
-#define COM_TRACER_RESUME( MODE ) \
-    gFuncTrace = BKU_MODE_10394857; \
+#define COM_TRACER_RESUME \
+    gFuncTraceMode = BKU_MODE_10394857; \
     do{} while(0)
 

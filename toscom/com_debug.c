@@ -1378,6 +1378,7 @@ static BOOL seekFuncName( com_seekFileResult_t *iInf )
     ulong addr = com_strtoul( iInf->line, 16, false );
     if( addr != (ulong)(data->addr) ) { return true; }
     (void)sscanf( iInf->line, "%*s %*s %s %s", gFileNameBuf, gFilePathBuf );
+    if( !strcmp( gFileNameBuf, ".text" ) ) { return true; }
     char fileName[COM_WORDBUF_SIZE] = {0};
     com_getFileName( fileName, sizeof(fileName), gFilePathBuf );
     com_connectString( gFileNameBuf, sizeof(gFileNameBuf), " (%s)", fileName );
@@ -1416,7 +1417,7 @@ static __thread BOOL gFuncTraceMode = true;
         COM_UNUSED( iFUNC ); \
     } while(0)
 
-__attribute_((no_instrument_function))
+__attribute__((no_instrument_function))
 void com_setFuncTraceReal( BOOL iMode, COM_FILEPRM )
 {
     static __thread long muteCount = 0;
@@ -1443,20 +1444,20 @@ static __thread com_ringBuf_t gFuncTracer = {
 };
 static __thread long gFuncNestCount = 0;
 
-__attribute_((no_instrument_function))
+__attribute__((no_instrument_function))
 void __cyg_profile_func_enter( void *iFunc, void *iCaller )
 {
     COM_UNUSED( iCaller );
     if( !gFuncTraceMode ) {return;}
     COM_TRACER_SET( false );
-    gFuncTracer.buf = gFuncTracerList;  // 初期化ではエラーになるのでここで設定
+    gFuncTracer.buf = gFuncTraceList;  // 初期化ではエラーになるのでここで設定
     com_pushRingBuf( &gFuncTracer,
                      &(com_funcTrace_t){ iFunc, gFuncNestCount++ },
                      sizeof( com_funcTrace_t ) );
     COM_TRACER_RESUME;
 }
 
-__attribute_((no_instrument_function))
+__attribute__((no_instrument_function))
 void __cyg_profile_func_exit( void *iFunc, void *iCaller )
 {
     COM_UNUSED( iFunc );
@@ -1465,23 +1466,23 @@ void __cyg_profile_func_exit( void *iFunc, void *iCaller )
     gFuncNestCount--;
 }
 
-__attribute_((no_instrument_function))
+__attribute__((no_instrument_function))
 static const char *getFuncName( void *iFunc )
 {
     const char* result = seekNameList( iFunc );
     if( result ) { return result; }
 
-    DL_info dli;
+    Dl_info dli;
     if( dladdr( iFunc, &dli ) ) {
-        if( dli.dli_name ) { return dli.dli_sname; }
+        if( dli.dli_fname ) { return dli.dli_sname; }
         return "<<internal function>>";
     }
     return "<<unknown>>";
 }
 
-static pthread_mutext_t gMutexFuncTrace = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t gMutexFuncTrace = PTHREAD_MUTEX_INITIALIZER;
 
-__attribute_((no_instrument_function))
+__attribute__((no_instrument_function))
 void com_dispFuncTrace( void )
 {
     com_mutexLock( &gMutexFuncTrace, __func__ );
