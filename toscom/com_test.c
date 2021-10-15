@@ -15,12 +15,11 @@
  */
 
 #include "com_if.h"
-#include "com_debug.h"
 
 #ifdef    USE_TESTFUNC
 void com_testCode( int iArgc, char **iArgv )
 {
-    // この関数はあくまでサンプルコードなので踏襲しなくて良い。
+    // この関数内容はあくまでサンプルコードなので踏襲しなくて良い。
 
     for( int i = 0;  i < iArgc;  i++ ) { com_printf( "%s\n", iArgv[i] ); }
 

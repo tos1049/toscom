@@ -22,6 +22,8 @@ static void initialize( int iArgc, char **iArgv )
 }
 
 /* 起動オプション判定 *******************************************************/
+// 新しいオプションを追加したい時は、オプション処理関数を作成後、
+// gOptions[]に定義を追加する。詳細は com_if.hの com_getOption()の説明を参照。
 
 static BOOL viewVersion( com_getOptInf_t *iOptInf )
 {
@@ -31,7 +33,7 @@ static BOOL viewVersion( com_getOptInf_t *iOptInf )
     return true;
 }
 
-#ifdef    USE_TESTFUNC
+#ifdef    USE_TESTFUNC    // テスト関数使用のコンパイルオプション
 static BOOL execTest( com_getOptInf_t *iOptInf )
 {
     com_testCode( iOptInf->argc, iOptInf->argv );
