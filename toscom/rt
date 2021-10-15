@@ -1,0 +1,12 @@
+#!/bin/bash
+. ./_test
+
+if [ ! -f $TESTTOS ]; then
+  echo "$TESTTOS not exists"
+  exit
+fi
+
+echo "### remove $TESTTOS"
+mv $TESTTOS $ORG_TESTTOS
+cp $ORG_TESTC $TESTC
+

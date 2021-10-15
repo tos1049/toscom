@@ -1,0 +1,12 @@
+#!/bin/bash
+. ./_test
+
+if [ -f $TESTTOS ]; then
+  echo "$TESTTOS already exists"
+  exit
+fi
+
+echo "### use $TESTTOS"
+cp $ORG_TESTTOS $TESTTOS
+rm $TESTC
+
