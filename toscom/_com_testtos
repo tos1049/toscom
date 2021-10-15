@@ -1365,7 +1365,7 @@ void test_config( void )
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
-static void test_baseFunctions( int iArgc, char **iArgv )
+static void exam_baseFunctions( int iArgc, char **iArgv )
 {
     COM_UNUSED( iArgc );  COM_UNUSED( iArgv );   // 警告対策
     // テストしたい関数のコメントアウトを外して再ビルドする
@@ -1435,10 +1435,10 @@ void com_testCode( int iArgc, char **iArgv )
     // と入れること。
 
     // 各機能のテスト関数実行
-    test_baseFunctions( iArgc, iArgv );
-    //test_extraFunctions( iArgc, iArgv );
-    //test_selectFunctions( iArgc, iArgv );
-    //test_windowFunctions( iArgc, iArgv );
+    exam_baseFunctions( iArgc, iArgv );
+    //exam_extraFunctions( iArgc, iArgv );
+    //exam_selectFunctions( iArgc, iArgv );
+    //exam_windowFunctions( iArgc, iArgv );
 
     com_printTag( "=", 79, COM_PTAG_CENTER, "TEST END" );
 
