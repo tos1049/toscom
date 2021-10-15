@@ -7,6 +7,7 @@
 
 #include "com_if.h"
 #include "com_debug.h"
+#include "com_extra.h"
 
 /* 独自処理があれば記述 ******************************************************/
 

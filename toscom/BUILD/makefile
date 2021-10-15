@@ -82,7 +82,7 @@ CFLAGS += $(COPT2)
 # 基本機能で使うライブラリ指定
 CFLAGS += -lpthread
 # com_extra.h(エキストラ機能)を使用する場合、このライブラリ使用が必要
-#CFLAGS += -lm
+CFLAGS += -lm
 # com_window.h(ウィンドウ機能）を使用する場合、このライブラリ使用が必要
 #CFLAGS += -lpanel -lncursesw
 # Electric Fenceを使ったデバッグがしたい時のみ入れるオプション
@@ -144,7 +144,7 @@ OPTION += -DWATCHFILE=COM_DEBUG_SILENT
 SRC := ..
 
 # 共通ヘッダファイル (依存関係の記述に使用)
-COMMON_HEAD := $(SRC)/com_if.h $(SRC)/com_custom.h $(SRC)/com_spec.h
+COMMON_HEAD := $(SRC)/com_*.h
 
 # オブジェクトファイル一式
 OBJS = main.o com.o
