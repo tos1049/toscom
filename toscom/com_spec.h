@@ -1,120 +1,120 @@
 /*
  *****************************************************************************
  *
- * $B6&DL%b%8%e!<%kMQ(B $BFH<+(BI/F$B@k8@(B by TOS
+ * 共通モジュール用 独自I/F宣言 by TOS
  *
- *  com_if.h $B$G%$%s%/%k!<%I$5$l$k$?$a!"4pK\E*$KA4%=!<%96&DL$H$J$k!#(B
- *  $B$=$l0J30$N%=!<%9$d%X%C%@$G!"K\%U%!%$%k$r%$%s%/%k!<%I$7$J$$$3$H!#(B
- *  com_spec.c $B$GDj5A$9$k4X?t$K$D$$$F!"K\%U%!%$%k$K5-:\$9$k!#(B
+ *  com_if.h でインクルードされるため、基本的に全ソース共通となる。
+ *  それ以外のソースやヘッダで、本ファイルをインクルードしないこと。
+ *  com_spec.c で定義する関数について、本ファイルに記載する。
  *
  *****************************************************************************
  */
 
 #pragma once
 
-/* $BFH<+%$%s%/%k!<%I%U%!%$%k(B ------------------------------------------------*/
+/* 独自インクルードファイル ------------------------------------------------*/
 
 
 
 
-/* $B4pK\(BI/f -----------------------------------------------------------------*/
+/* 基本I/f -----------------------------------------------------------------*/
 
-/* $B8DJL%(%i!<%3!<%I(B  $B!v$3$A$i$rJQ$($?$i!"O"F0%F!<%V%k(B gErrorNameSpec[] $B$bD>$9(B */
+/* 個別エラーコード  ＊こちらを変えたら、連動テーブル gErrorNameSpec[] も直す */
 enum {
-    /* $B3+H/$9$k%W%m%0%i%`$4$H$K<+M3$K@_Dj2DG=$J%(%i!<%3!<%I(B (001-899) */
-    COM_ERR_DUMMY      =   1,   // $B$3$l$O%5%s%W%k$J$N$G:o=|JQ99(BOK
+    /* 開発するプログラムごとに自由に設定可能なエラーコード (001-899) */
+    COM_ERR_DUMMY      =   1,   // これはサンプルなので削除変更OK
 };
 
 /*
- * $B8DJL%(%i!<%3!<%I@_Dj(BI/F
- *  COM$B%b%8%e!<%kFbIt$G8F$S=P$9$@$1$N$?$a!"FC$K?($l$kI,MW$O$J$$!#(B
- *  $B;H$&B&$O>e5-$N%(%i!<%3!<%I@k8@$H(B gErrorNameSpec[]$B$rJQ99$9$k$N$_$GNI$$(B
+ * 個別エラーコード設定I/F
+ *  COMモジュール内部で呼び出すだけのため、特に触れる必要はない。
+ *  使う側は上記のエラーコード宣言と gErrorNameSpec[]を変更するのみで良い
  */
 void com_registerErrorCodeSpec( void );
 
 /*
- * $B8DJLIt=i4|2=(B  com_initializeSpec()
+ * 個別部初期化  com_initializeSpec()
  * ---------------------------------------------------------------------------
- *   $B8=;~E@$G$O%(%i!<$OH/@8$7$J$$!#(B($B=hM}$r=$@5$7$?>l9g$O!"$3$NFbMF$b=$@5(B)
+ *   現時点ではエラーは発生しない。(処理を修正した場合は、この内容も修正)
  * ===========================================================================
- * $B$3$N=hM}$O(B com$B%b%8%e!<%k$N0lHV:G=i$N=hM}$GF0:n$9$k$h$&$K$J$C$F$$$k$?$a!"(B
- * $B%G%P%C%0%b!<%I$J$I:G=i$KJQ99$7$?$$$b$N$K$D$$$F!"5-=R$G$-$k!#(B
- * $B5/F0%*%W%7%g%s$r8+$?$$>l9g$O!"(Bcom_getCommandLine()$B$G<hF@$9$l$PNI$$!#(B
- * ($B$3$N(BI/F$B$O(B com_sepc.h$B$G@k8@$5$l$F$$$k(B)
+ * この処理は comモジュールの一番最初の処理で動作するようになっているため、
+ * デバッグモードなど最初に変更したいものについて、記述できる。
+ * 起動オプションを見たい場合は、com_getCommandLine()で取得すれば良い。
+ * (このI/Fは com_sepc.hで宣言されている)
  *
- * $B$3$N(BI/F$B$O%m%.%s%0$d%G%P%C%05!G=$NF0:n3+;OA0$K8F$P$l$k!#(B
- * $B$3$N$?$a!"(Bcom_if.h$B$N(B COMPRINT$B!&(BCOMDEBUG$B%;%/%7%g%s$N2hLL(B/$B%m%0=PNO$rH<$$(BI/F$B$O(B
- * $B;HMQ$G$-$J$$(B($BNc$($P!"(Bcom_printf()$B!&(Bcom_debug()$B!&(Bcom_error()$BEy(B)
- * $B$3$l$i$N(BI/F$B$OB>(BI/F$B$+$i$bB??t8F$P$l$k$?$a!"(Bcom_if.h$BFb$N0J2<(BI/F$B0J30$O(B
- * $B;H$o$J$$$h$&$K$7$?$[$&$,NI$$!#(B
- *   com_getAplName()$B!&(Bcom_getVersion()$B!&(Bcom_getCommandLine()
- *   com_setLogFile()$B!&(Bcom_setTitleForm()$B!&(Bcom_setErrorCodeForm()
+ * このI/Fはロギングやデバッグ機能の動作開始前に呼ばれる。
+ * このため、com_if.hの COMPRINT・COMDEBUGセクションの画面/ログ出力を伴いI/Fは
+ * 使用できない(例えば、com_printf()・com_debug()・com_error()等)
+ * これらのI/Fは他I/Fからも多数呼ばれるため、com_if.h内の以下I/F以外は
+ * 使わないようにしたほうが良い。
+ *   com_getAplName()・com_getVersion()・com_getCommandLine()
+ *   com_setLogFile()・com_setTitleForm()・com_setErrorCodeForm()
  *   com_setDebugPrint()
  *   com_setWatchMemInfo()
- *   com_debugMemoryErrorOn()$B!&(Bcom_debugMemoryErrorOff()
+ *   com_debugMemoryErrorOn()・com_debugMemoryErrorOff()
  *   com_setWatchFileInfo()
- *   com_debugFopenErrorOn()$B!&(Bcom_debugFopenErrorOff()
- *   com_debugFcloseErrorOn()$B!&(Bcom_debugFcloseErrorOff()
+ *   com_debugFopenErrorOn()・com_debugFopenErrorOff()
+ *   com_debugFcloseErrorOn()・com_debugFcloseErrorOff()
  *   com_noComDebugLog()
- * $B$3$l$i$N(BI/F$B$O<g$KK\(BI/F$B$OFb$G;HMQ$9$k$3$H$rA[Dj$7$?$b$N$,B?$$!#(B
+ * これらのI/Fは主に本I/Fは内で使用することを想定したものが多い。
  *
- * $B2hLL=PNO$,I,MW$J>l9g!"I8=`4X?t(B printf()$B$r;HMQ$9$k$3$H(B($B%m%0=PNO$OIT2D(B)$B!#(B
- * $B%W%m%0%i%`=*N;$,I,MW$J>l9g$O!"(Bexit()$B$r;HMQ$9$k$3$H!#(B
+ * 画面出力が必要な場合、標準関数 printf()を使用すること(ログ出力は不可)。
+ * プログラム終了が必要な場合は、exit()を使用すること。
  *
- * $B$b$A$m$sFH<+=hM}$KI,MW$J=i4|2==hM}$,$"$k$J$i!"K\(BI/F$B$K5-=R$9$Y$-$G$"$k!#(B
+ * もちろん独自処理に必要な初期化処理があるなら、本I/Fに記述すべきである。
  *
- * com_malloc()$B$N$h$&$J%a%b%j3NJ]$,I,MW$J=i4|@_Dj$r$7$?$$>l9g!"(B
- * $BK\(BI/F$BFb$G$O$=$&$7$?(BI/F$B$O;HMQIT2DG=$J$N$G!"=i4|@_DjMQ$N4X?t$rJLESMQ0U$7!"(B
- * com_initialize()$B$N8e$K8F$V$h$&$K$9$k$+!"?d>)$O$7$J$$$,!"K\(BI/F$BFb$G(B $BD>@\(B
- * malloc()$B$J$I$NI8=`4X?t$r;HMQ$9$k!#$=$N>l9g!"%G%P%C%05!G=$K$h$k%a%b%jIb$-$N(B
- * $B%A%'%C%/$O$G$-$J$/$J$k!#(B
+ * com_malloc()のようなメモリ確保が必要な初期設定をしたい場合、
+ * 本I/F内ではそうしたI/Fは使用不可能なので、初期設定用の関数を別途用意し、
+ * com_initialize()の後に呼ぶようにするか、推奨はしないが、本I/F内で 直接
+ * malloc()などの標準関数を使用する。その場合、デバッグ機能によるメモリ浮きの
+ * チェックはできなくなる。
  */
 void com_initializeSpec( void );
 
 /*
- * $B8DJLIt=*N;(B  com_finalizeSpec()
+ * 個別部終了  com_finalizeSpec()
  * ---------------------------------------------------------------------------
- *   $B8=;~E@$G$O%(%i!<$OH/@8$7$J$$!#(B($B=hM}$r=$@5$7$?>l9g$O!"$3$NFbMF$b=$@5(B)
+ *   現時点ではエラーは発生しない。(処理を修正した場合は、この内容も修正)
  * ===========================================================================
- * $B8DJLIt=hM}$NCf$G!"%W%m%0%i%`=*N;;~$KJRIU$1$,I,MW$J=hM}$,$"$l$P5-=R$G$-$k!#(B
- * $B$3$N(BI/F$B$O(B com_finalize()$B$NCf$G!"0lHV:G=i$K<B9T$5$l$k!#(B
+ * 個別部処理の中で、プログラム終了時に片付けが必要な処理があれば記述できる。
+ * このI/Fは com_finalize()の中で、一番最初に実行される。
  */
 void com_finalizeSpec( void );
 
 
-/* $BFH<+(BI/F -----------------------------------------------------------------*/
+/* 独自I/F -----------------------------------------------------------------*/
 
 /*
- * ($B%5%s%W%k(B) $B%(%s%G%#%"%sH=Dj(B  com_isBigEndian()$B!&(Bcom_isLittleEndian()
- *   $B%A%'%C%/@.H]$r(B true/false$B$GJV$9!#(B
+ * (サンプル) エンディアン判定  com_isBigEndian()・com_isLittleEndian()
+ *   チェック成否を true/falseで返す。
  * ---------------------------------------------------------------------------
- *   $B8=;~E@$G$O%(%i!<$OH/@8$7$J$$!#(B($B=hM}$r=$@5$7$?>l9g$O!"$3$NFbMF$b=$@5(B)
+ *   現時点ではエラーは発生しない。(処理を修正した場合は、この内容も修正)
  * ===========================================================================
- * $B<+?H$N=hM}7O$N%(%s%G%#%"%s$r%A%'%C%/$7!"$=$N7k2L$rJV$9!#(B
- * $B%S%C%0%(%s%G%#%"%s$G$J$1$l$P!"<+F0E*$K%j%H%k%(%s%G%#%"%s$H8@$($k$@$m$&!#(B
- * $B$=$N5U$bF1MM$H$J$k!#(B
+ * 自身の処理系のエンディアンをチェックし、その結果を返す。
+ * ビッグエンディアンでなければ、自動的にリトルエンディアンと言えるだろう。
+ * その逆も同様となる。
  *
- * $BK\(BI/F$B$O$"$/$^$G8DJL=hM}5-=R$N%5%s%W%k$J$N$G!"$h$jE,@Z$J%3!<%I$,$"$k$J$i$P(B
- * $B$=$N%3!<%I$K=q$-49$($?$[$&$,NI$$$@$m$&!#(B
+ * 本I/Fはあくまで個別処理記述のサンプルなので、より適切なコードがあるならば
+ * そのコードに書き換えたほうが良いだろう。
  */
 BOOL com_isBigEndian( void );
 BOOL com_isLittleEndian( void );
 
 /*
- * ($B%5%s%W%k(B) 32bit/64bit OS$BH=Dj(B  com_is32bitOS()$B!&(Bcom_is64bitOS()
- *   $B%A%'%C%/@.H]$r(B true/false$B$GJV$9!#(B
+ * (サンプル) 32bit/64bit OS判定  com_is32bitOS()・com_is64bitOS()
+ *   チェック成否を true/falseで返す。
  * ---------------------------------------------------------------------------
- *   $B8=;~E@$G$O%(%i!<$OH/@8$7$J$$!#(B($B=hM}$r=$@5$7$?>l9g$O!"$3$NFbMF$b=$@5(B)
+ *   現時点ではエラーは発生しない。(処理を修正した場合は、この内容も修正)
  * ===========================================================================
- * $B<+?H$N(B OS$B$,(B 32bit $B$^$?$O(B 64bit $B$+$I$&$+$r%A%'%C%/$7!"$=$N7k2L$rJV$9!#(B
- * $B:#$N$H$3$m!"$3$N(B2$B$D$OBP$G$"$j!"(Bfalse$B$G$"$l$PB>J}$G$"$k$HH=CG$G$-$k!#(B
- * (com_is32bitOS()$B$,(B false$B$rJV$7$?!a(B64bit OS$B!"$H8@$($k$H$$$&$3$H$G$"$k(B)
+ * 自身の OSが 32bit または 64bit かどうかをチェックし、その結果を返す。
+ * 今のところ、この2つは対であり、falseであれば他方であると判断できる。
+ * (com_is32bitOS()が falseを返した＝64bit OS、と言えるということである)
  *
- * $BH=Dj7?$K$O(B long$B7?$H(B int$B7?$N%5%$%:$,Ey$7$1$l$P(B 32bit$B!"0[$J$l$P(B 64bit$B!"(B
- * $B$H$$$&O@M}$r;HMQ$7$F$$$k!#(B
+ * 判定型には long型と int型のサイズが等しければ 32bit、異なれば 64bit、
+ * という論理を使用している。
  *
- * $BK\(BI/F$B$O$"$/$^$G8DJL=hM}5-=R$N%5%s%W%k$J$N$G!"$h$jE,@Z$J%3!<%I$,$"$k$J$i$P(B
- * $B$=$N%3!<%I$K=q$-49$($?$[$&$,NI$$$@$m$&!#(B
+ * 本I/Fはあくまで個別処理記述のサンプルなので、より適切なコードがあるならば
+ * そのコードに書き換えたほうが良いだろう。
  */
 BOOL com_is32bitOS( void );
 BOOL com_is64bitOS( void );
