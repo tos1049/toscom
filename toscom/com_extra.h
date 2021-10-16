@@ -914,6 +914,8 @@ BOOL com_writePackDirect(
  *    *ioSize :    com_packElm_t の .size
  *     iVarSize :  com_packElm_t の .varSize
  *   ioSizeは期待するサイズを設定した変数のアドレスを渡す。
+ *   (この型が com_writePackDirect() の iSizeと異なっていることに注意。
+ *    サイズの値で初期化した変数のアドレスを渡すことを想定している)
  *   iVarSizeが true の場合 データからサイズを読み込み *ioSize を変更する。
  *   iDataにNULLを指定した場合 メモリ確保を行うが、そのアドレスについては
  *   I/Fの返り値で返す。返り値の型が BOOL ではないことに注意すること。

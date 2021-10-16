@@ -1364,6 +1364,143 @@ void test_config( void )
     }
 }
 
+
+#ifdef USING_COM_EXTRA    // エキストラ機能を使うテストコード
+
+// test_writePack() //////////////////////////////////////////////////////////
+
+// 読み書きどちらでもベースとなるデータパッケージ設定
+static com_packInf_t gPackInf = {
+    .filename = "./packTest4523",   .byText = true,
+    .useZip = true,
+    .archive = "packtest",  .key = "test",  .noZip = true,  .delZip = false
+};
+
+// 実際のデータ型
+typedef struct {
+    char*   name;
+    long    age;
+    long    score;
+} testPack_t;
+
+enum { ELMCNT = 3 };
+
+static com_packElm_t *setElmList( testPack_t *iTarget )
+{
+    static com_packElm_t  elm[ELMCNT];
+    if( iTarget->name ) {
+        elm[0] = (com_packElm_t){
+            iTarget->name, strlen(iTarget->name) + 1, true
+        };
+    }
+    else {
+        elm[0] = (com_packElm_t){ iTarget->name, 0, true };
+    }
+    elm[1] = (com_packElm_t){ &iTarget->age,   sizeof(iTarget->age),   false };
+    elm[2] = (com_packElm_t){ &iTarget->score, sizeof(iTarget->score), false };
+    return elm;
+}
+
+#define WRITEPACK( ELM, COUNT ) \
+    do { \
+        if( !com_writePack( &wInf, (ELM), (COUNT) ) ) { \
+            com_finishPack( &wInf, false ); \
+            return; \
+        } \
+    } while(0)
+
+enum { FIX_TEXTLEN = 16 };
+
+// ファイル保存時はデータ数を最初に書き込み、
+// その後にデータを順番に書き出す。
+
+
+// false で試験をしたい時はこれをコメントアウト
+#define SET_VARSIZE_TRUE
+
+void test_writePack( void )
+{
+    startFunc( __func__ );
+    testPack_t tList[] = {
+        {"ALPHA", 26, 70}, {"BETA", 32, 84}, {"GAMMA", 14, 40}
+    };
+    com_packInf_t  wInf = gPackInf;
+    wInf.writeFile = true;
+    if( !com_readyPack( &wInf, "same file exist, overwrite OK? " ) ) {return;}
+    size_t num = COM_ELMCNT( tList );
+    if( com_writePackDirect( &wInf, &num, sizeof(num), false ) ) {
+        for( size_t i = 0;  i < 3;  i++ ) {
+            com_packElm_t* elmList = setElmList( &(tList[i]) );
+            WRITEPACK( elmList, ELMCNT );
+        }
+    }
+    char test[FIX_TEXTLEN] = "TEXT END";
+#ifdef SET_VARSIZE_TRUE   // .varSizeを true設定する場合
+    (void)com_writePackDirect( &wInf, test, strlen(test)+1, true );
+#else                     // .varSizeを false設定する場合
+    (void)com_writePackDirect( &wInf, test, sizeof(test), false );
+#endif
+    com_finishPack( &wInf, true );
+}
+// 作ったデータファイルは そのまま com_readPack()で読み出し確認出来る。
+
+// test_readPack() ///////////////////////////////////////////////////////////
+
+#define READPACK( ELM, COUNT ) \
+    do { \
+        if( !com_readPack( &rInf, (ELM), (COUNT) ) ) { \
+            com_finishPack( &rInf, false ); \
+            return; \
+        } \
+    } while(0)
+
+static void dispReadData( testPack_t *iData ) 
+{
+    com_printf( "  name = %s\n",  iData->name );
+    com_printf( "   age = %ld\n", iData->age );
+    com_printf( " score = %ld\n", iData->score );
+    com_repeat( "-", 40, true );
+}
+
+// test_writePack() で作ったデータファイルを読み込む
+// その後、作成したデータファイルは削除する
+void test_readPack( void )
+{
+    startFunc( __func__ );
+    com_packInf_t rInf = gPackInf;
+    if( !com_readyPack( &rInf, NULL ) ) { return; }
+    testPack_t  result[5];
+    memset( result, 0, sizeof(result) );
+    size_t num = 0;
+    size_t numSize = sizeof(num);
+    if( com_readPackDirect( &rInf, &num, &numSize, false ) ) {
+        com_printf( "found %zd items\n", num );
+        for( size_t i = 0;  i < num;  i++ ) {
+            com_packElm_t* elmList = setElmList( &(result[i]) );
+            READPACK( elmList, ELMCNT );
+            // com_readPack()で捕捉したメモリを使うようにする。
+            result[i].name = elmList[0].data;
+            dispReadData( &(result[i]) );
+        }
+    }
+    char test[FIX_TEXTLEN] = {0};
+    size_t testSize = sizeof(test);
+#ifdef SET_VARSIZE_TRUE   // .varSizeを true設定する場合
+    (void)com_readPackDirect( &rInf, &test, &testSize, true );
+#else                     // .varSizeを false設定する場合
+    (void)com_readPackDirect( &rInf, &test, &testSize, false );
+#endif
+    com_printf( "********* %s (%zu) **********\n", test, testSize );
+
+    remove( rInf.archive );    // データファイルの削除
+    com_finishPack( &rInf, true );
+    for( size_t i = 0;  i < num;  i++ ) { com_free( result[i].name ); }
+}
+
+#endif // USING_COM_EXTRA
+
+
+
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -1415,11 +1552,14 @@ static void exam_baseFunctions( int iArgc, char **iArgv )
     //test_config();                  // コンフィグ機能
 }
 
-static void exam_extraFunctions( int iArgc, char **iArgv )
+static void exam_extraFunctions( void )
 {
-    COM_UNUSED( iArgc );  COM_UNUSED( iArgv );   // 警告対策
+#ifdef USING_COM_EXTRA
     // テストしたい関数のコメントアウトを外して再ビルドする
 
+    //test_writePack();               // データ保存
+    //test_readPack();                // データ読込
+#endif // USING_COM_EXTRA
 }
 
 
@@ -1448,7 +1588,7 @@ void com_testCode( int iArgc, char **iArgv )
 
     // 各機能のテスト関数実行
     exam_baseFunctions( iArgc, iArgv );
-    exam_extraFunctions( iArgc, iArgv );
+    exam_extraFunctions();
     //exam_selectFunctions( iArgc, iArgv );
     //exam_windowFunctions( iArgc, iArgv );
 
