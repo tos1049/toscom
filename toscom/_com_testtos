@@ -1408,7 +1408,7 @@ enum { FIX_TEXTLEN = 16 };
 
 
 // false で試験をしたい時はこれをコメントアウト
-//#define SET_VARSIZE_TRUE
+#define SET_VARSIZE_TRUE
 
 static void writePack( com_packInf_t *ioInf, testPack_t *iList )
 {
