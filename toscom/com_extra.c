@@ -307,8 +307,7 @@ static BOOL readPackBin( com_packInf_t *ioInf, com_packElm_t *ioElm )
 static BOOL readDataSize( com_packInf_t *ioInf, com_packElm_t *ioElm )
 {
     ushort len = 0;
-    size_t size = sizeof(len);
-    if( !com_readPackDirect( ioInf, &len, &size, false ) ) { return false; }
+    if( !com_readPackFix( ioInf, &len, sizeof(len) ) ) { return false; }
     ioElm->size = len;
     return true;
 }
@@ -347,14 +346,23 @@ BOOL com_readPack( com_packInf_t *ioInf, com_packElm_t *iElm, long iCount )
     return true;
 }
 
-void *com_readPackDirect(
-        com_packInf_t *ioInf, void *iAddr, size_t *ioSize, BOOL iVarSize )
+BOOL com_readPackFix( com_packInf_t *ioInf, void *iAddr, size_t iSize )
 {
-    if( !ioInf ) {COM_PRMNG(false);}
-    com_packElm_t tmp = { iAddr, *ioSize, iVarSize };
-    if( !com_readPack( ioInf, &tmp, 1 ) ) { return NULL; }
+    if( !ioInf || !iAddr ) {COM_PRMNG(false);}
+    com_packElm_t tmp = { iAddr, iSize, false };
+    if( !com_readPack( ioInf, &tmp, 1 ) ) { return false; }
+    return true;
+}
+
+BOOL com_readPackVar( com_packInf_t *ioInf, void *ioAddr, size_t *ioSize )
+{
+    if( !ioInf || !ioAddr || !ioSize ) {COM_PRMNG(false);}
+    char** adr = ioAddr;
+    com_packElm_t tmp = { *adr, *ioSize, true };
+    if( !com_readPack( ioInf, &tmp, 1 ) ) { return false; }
+    *adr    = tmp.data;
     *ioSize = tmp.size;
-    return tmp.data;
+    return true;
 }
 
 

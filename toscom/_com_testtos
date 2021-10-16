@@ -1401,14 +1401,6 @@ static com_packElm_t *setElmList( testPack_t *iTarget )
     return elm;
 }
 
-#define WRITEPACK( ELM, COUNT ) \
-    do { \
-        if( !com_writePack( &wInf, (ELM), (COUNT) ) ) { \
-            com_finishPack( &wInf, false ); \
-            return; \
-        } \
-    } while(0)
-
 enum { FIX_TEXTLEN = 16 };
 
 // ファイル保存時はデータ数を最初に書き込み、
@@ -1416,7 +1408,22 @@ enum { FIX_TEXTLEN = 16 };
 
 
 // false で試験をしたい時はこれをコメントアウト
-#define SET_VARSIZE_TRUE
+//#define SET_VARSIZE_TRUE
+
+static void writePack( com_packInf_t *ioInf, testPack_t *iList )
+{
+    for( size_t i = 0;  i < 3;  i++ ) {
+        com_packElm_t* elmList = setElmList( &(iList[i]) );
+        if( !com_writePack( ioInf, elmList, ELMCNT ) ) {return;}
+    }
+
+    char test[FIX_TEXTLEN] = "TEXT END";
+#ifdef SET_VARSIZE_TRUE   // .varSizeを true設定する場合
+    (void)com_writePackDirect( ioInf, test, strlen(test)+1, true );
+#else                     // .varSizeを false設定する場合
+    (void)com_writePackDirect( ioInf, test, sizeof(test), false );
+#endif
+}
 
 void test_writePack( void )
 {
@@ -1429,37 +1436,45 @@ void test_writePack( void )
     if( !com_readyPack( &wInf, "same file exist, overwrite OK? " ) ) {return;}
     size_t num = COM_ELMCNT( tList );
     if( com_writePackDirect( &wInf, &num, sizeof(num), false ) ) {
-        for( size_t i = 0;  i < 3;  i++ ) {
-            com_packElm_t* elmList = setElmList( &(tList[i]) );
-            WRITEPACK( elmList, ELMCNT );
-        }
+        writePack( &wInf, tList );
     }
-    char test[FIX_TEXTLEN] = "TEXT END";
-#ifdef SET_VARSIZE_TRUE   // .varSizeを true設定する場合
-    (void)com_writePackDirect( &wInf, test, strlen(test)+1, true );
-#else                     // .varSizeを false設定する場合
-    (void)com_writePackDirect( &wInf, test, sizeof(test), false );
-#endif
     com_finishPack( &wInf, true );
 }
 // 作ったデータファイルは そのまま com_readPack()で読み出し確認出来る。
 
 // test_readPack() ///////////////////////////////////////////////////////////
 
-#define READPACK( ELM, COUNT ) \
-    do { \
-        if( !com_readPack( &rInf, (ELM), (COUNT) ) ) { \
-            com_finishPack( &rInf, false ); \
-            return; \
-        } \
-    } while(0)
-
 static void dispReadData( testPack_t *iData ) 
 {
     com_printf( "  name = %s\n",  iData->name );
     com_printf( "   age = %ld\n", iData->age );
     com_printf( " score = %ld\n", iData->score );
+    com_free( iData->name );
     com_repeat( "-", 40, true );
+}
+
+static void readPack( com_packInf_t *ioInf ) {
+    size_t num = 0;
+    if( com_readPackFix( ioInf, &num, sizeof(num) ) ) {
+        com_printf( "found %zd items\n", num );
+        for( size_t i = 0;  i < num;  i++ ) {
+            testPack_t testElm = { NULL, 0, 0 };
+            com_packElm_t* elmList = setElmList( &testElm );
+            size_t dmy;
+            if( !com_readPackVar( ioInf, &(testElm.name), &dmy ) ) { return; }
+            if( !com_readPack( ioInf, elmList + 1, 2 ) ) { return; }
+            dispReadData( &testElm );
+        }
+    }
+    char test[FIX_TEXTLEN] = {0};
+    size_t testSize = sizeof(test);
+#ifdef SET_VARSIZE_TRUE   // .varSizeを true設定する場合
+    char* dmyAddr = test;
+    (void)com_readPackVar( ioInf, &dmyAddr, &testSize );
+#else                     // .varSizeを false設定する場合
+    (void)com_readPackFix( ioInf, test, testSize );
+#endif
+    com_printf( "********* %s (%zu) **********\n", test, testSize );
 }
 
 // test_writePack() で作ったデータファイルを読み込む
@@ -1469,32 +1484,9 @@ void test_readPack( void )
     startFunc( __func__ );
     com_packInf_t rInf = gPackInf;
     if( !com_readyPack( &rInf, NULL ) ) { return; }
-    testPack_t  result[5];
-    memset( result, 0, sizeof(result) );
-    size_t num = 0;
-    size_t numSize = sizeof(num);
-    if( com_readPackDirect( &rInf, &num, &numSize, false ) ) {
-        com_printf( "found %zd items\n", num );
-        for( size_t i = 0;  i < num;  i++ ) {
-            com_packElm_t* elmList = setElmList( &(result[i]) );
-            READPACK( elmList, ELMCNT );
-            // com_readPack()で捕捉したメモリを使うようにする。
-            result[i].name = elmList[0].data;
-            dispReadData( &(result[i]) );
-        }
-    }
-    char test[FIX_TEXTLEN] = {0};
-    size_t testSize = sizeof(test);
-#ifdef SET_VARSIZE_TRUE   // .varSizeを true設定する場合
-    (void)com_readPackDirect( &rInf, &test, &testSize, true );
-#else                     // .varSizeを false設定する場合
-    (void)com_readPackDirect( &rInf, &test, &testSize, false );
-#endif
-    com_printf( "********* %s (%zu) **********\n", test, testSize );
-
+    readPack( &rInf );
     remove( rInf.archive );    // データファイルの削除
     com_finishPack( &rInf, true );
-    for( size_t i = 0;  i < num;  i++ ) { com_free( result[i].name ); }
 }
 
 #endif // USING_COM_EXTRA

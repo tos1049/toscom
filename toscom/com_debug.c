@@ -1199,7 +1199,7 @@ static void dispFileInfo(
         const char *iPre, COM_FILE_OPR_t iType, const com_watchInfo_t *oInfo,
         COM_DEBUG_MODE_t iMode, COM_FILEPRM )
 {
-    char* type[] = { "open", "close" };
+    char* type[] = { "fopen", "fclose" };
 
     COM_CLEAR_BUF( gLogBuff );
     // iTypeだけは iIndo->typeと異なる可能性があるため、別入力

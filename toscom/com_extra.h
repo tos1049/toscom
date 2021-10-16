@@ -824,13 +824,17 @@ typedef struct {
  * データパッケージ書込  com_writePack()・com_writePackDirect()
  *   処理成否を true/false で返す。
  * ---------------------------------------------------------------------------
- *   COM_ERR_DEBUGNG: [com_prmNG] !ioInf
+ *   COM_ERR_DEBUGNG: [com_prmNG] !ioInf || !iElm || !iCount  (com_writePack)
+ *                                !ioInf || iAddr       (com_writePackDigest)
  * ===========================================================================
  *   スレッドのことは現状無考慮。
  *   ただ複数スレッドで同一ファイルを操作することがなければ、問題ない想定。
  * ===========================================================================
  * com_readyPack()で初期化済みの ioInfによって開かれたデータファイルに対して
- * データ書き込みを実施する。書き込むデータの指定方法でI/Fが２つある。
+ * データ書き込みを実施する。
+ * 初期化する時は ioInf->writeText を true にすることが必須となる。
+ *
+ * 書き込むデータの指定方法でI/Fが２つある。
  *
  * com_writePack()
  *   iElm で書き込むデータを指定する(配列構造で複数指定が可能)。
@@ -877,7 +881,7 @@ BOOL com_writePackDirect(
         com_packInf_t *ioInf, void *iData, size_t iSize, BOOL iVarSize );
 
 /*
- * データパッケージ読込  com_readPack()・com_readPackDirect()
+ * データパッケージ読込  com_readPack()・com_readPackFix()・com_readPackVar()
  *   com_readPack()は処理成否を true/false で返す。
  *
  *   com_readPackDirect()は 読み込んだデータを保存したアドレスを返す。
@@ -886,42 +890,71 @@ BOOL com_writePackDirect(
  *    iVarSizeが true で iData が 非NULLなら それもそのまま返る。
  *    iVarSizeが true で iData が NULLの場合 確保したアドレスが返る）
  * ---------------------------------------------------------------------------
- *   COM_ERR_DEBUGNG: [com_prmNG] !ioInf
+ *   COM_ERR_DEBUGNG: [com_prmNG] !ioInf || !oElm || !coun        (com_readPack)
+ *                                !ioInf || !iAddr             (com_readPackFix)
+ *                                !ioInf || !ioAddr || !ioSize (com_readPackVar)
  *   com_malloc()によるエラー
  * ===========================================================================
  *   スレッドのことは現状無考慮。
  *   ただ複数スレッドで同一ファイルを操作することがなければ、問題ない想定。
  * ===========================================================================
  * com_readyPack()で初期化済みの ioInfによって開かれたデータファイルに対して
- * データ読み込みを実施する。読み込むデータの指定方法でI/Fが２つある。
+ * データ読み込みを実施する。
+ * 初期化する時は ioInf->writeText を false にすることが必須となる。
+ *
+ * 読み込むデータの指定方法でI/Fが２つある。
  *
  * com_readPack()
- *   oElm で読み込むデータを指定する(配列構造で複数指定が可能)。
+ *    oElm で読み込むデータを指定する(配列構造で複数指定が可能)。
  *     .data : データの先頭アドレス(読み込みたいデータ変数名に & を付ける想定)
+ *             読み込んだデータを格納する。
  *             ただしポインタ変数(&は付けない)でデータを指定したい場合
- *             .varSize を true にしてデータサイズも書き込ませること。
+ *             .varSize を true にしてデータサイズも読み込ませること。
  *             NULLを許容し、その場合はデータサイズ分メモリを確保して、
  *             そのアドレスで上書きする。
- *     .size : データサイズ (.varSizeが trueの場合読み込んだサイズで上書き)
+ *     .size : データサイズ
+ *             .varSizeが trueの場合、読み込んだサイズで値を上書きするので、
+ *             最初の設定値は何でも構わない。
  *     .varSize: trueの場合、データ書込時にデータサイズが含まれていると期待し
  *               そのサイズ分データ読込を実施する。
  *   iCount は読み込むデータの個数を指定する。
- *   返り値はもたない。
+ *   書込と異なり .data・.sizeは変更の可能性があることに注意すること。
+ *   特に .dataの内容が変わる(＝NULL指定して動的確保する)場合は、
+ *   読込後、書き換わったアドレスをどこかに保持する必要があるだろう。
  *
- * com_readPackDirect()
- *   com_writePack()の iElm の内容を直接個別に設定する。
- *     iData :     com_packElm_t の .data
- *    *ioSize :    com_packElm_t の .size
- *     iVarSize :  com_packElm_t の .varSize
- *   ioSizeは期待するサイズを設定した変数のアドレスを渡す。
- *   (この型が com_writePackDirect() の iSizeと異なっていることに注意。
- *    サイズの値で初期化した変数のアドレスを渡すことを想定している)
- *   iVarSizeが true の場合 データからサイズを読み込み *ioSize を変更する。
- *   iDataにNULLを指定した場合 メモリ確保を行うが、そのアドレスについては
- *   I/Fの返り値で返す。返り値の型が BOOL ではないことに注意すること。
+ * com_readPackFix()
+ *   com_readPack()の iElm の内容を直接個別に設定するが、機能が限定される。
+ *     iData :      com_packElm_t の .data    (NULLは非許容)
+ *     iSize :      com_packElm_t の .size
+ *     false固定 :  com_packElm_t の .varSize
+ *   iData(data格納先)に NULLは指定できない。すなわち com_readPack()のように
+ *   格納先のメモリを動的に確保することに対応しない。
+ *   .varSize は false固定のため、これを trueにして書き込んだデータの読込は
+ *   できない。
+ *   (これらの制限は引数の指定と処理を複雑にすることを防ぐ目的となる。
  *
- * つまり com_readPack()は複数データを一度に指定できるが、
- * com_readPackDirect()は一つのデータのみを指定する、ということになる。
+ * com_readPackVar()
+ *   com_readPackFix() と逆に .varSize が true固定で読み込む。
+ *   その代わりに引数の型が com_writePack～系と少し異なる結果となった。
+ *     ioData :   com_packElm_t の .data は *ioData  (NULLも許容）
+ *                データアドレスを保持するポインタ変数に & を付けたもの
+ *                NULLを格納したポインタ変数に & を付ける事が可能で、
+ *                その場合は メモリを動的確保し、そのアドレスを格納する。
+ *     ioSize :   com_packElm_t の .size は *ioSize
+ *                データサイズを保持する変数に & を付けたもの。
+ *                iVarSizeが true でサイズを読み込むとその内容で上書きする。
+ *     true固定 : com_packElm_tの .varSize
+ *   *ioData と *ioSize が実際のデータとなり、I/F内で内容の変更がある得る。
+ *   動的確保時(*ioData に NULL格納時)、*ioData は呼び元でメモリ解放が必要な
+ *   点も忘れずに。
+ *   ioData に配列変数を指定したい場合、単純に & を付けるだけでは不可能。
+ *   配列変数 sample[] の場合、sample と &sample は同じ先頭アドレスの為で
+ *        char* dummy = sample;   // char sample[] で定義されている場合
+ *   というダミー変数を定義し &dummy を ioDataに指定する、という方法はある。
+ *
+ * つまり com_readPack()は複数データを一度に指定できてメモリ動的確保に対応し
+ * com_readPackFix()・com_readPackVar()は一つのデータのみを限定的に扱う、
+ * ということになる。
  *
  * ioInfの内容は書込時と同じになっている必要がある。ただし
  *   .writeFile は 書込時は true だが 読込時は false と値が変わる
@@ -930,15 +963,14 @@ BOOL com_writePackDirect(
  *
  * 読み込んだデータを保持する場所は動的な確保を可能としているので、
  * 書き込み時と全く同じになるとは限らないが、書き込んだのと同じ順番で
- * 同じ形のデータを読み込むようにしなければ、うまく行かないだろう。
+ * 同じ形のデータを読み込むようにしなければ、うまくいかなくなる。
  *
- * 保持する箇所を動的確保する場合、そのアドレスを各I/Fに沿った方法で返すので
- * そのアドレスを別のポインタ変数を用意して保持することになるだろう。
- * またそのメモリ解放も必要になることを忘れないように。
+ * 保持する箇所を動的確保する場合、捕捉したアドレスは本来保持すべき場所に
+ * コピーする必要があるはずであり、メモリ解放も必要になることを忘れずに。
  */
 BOOL com_readPack( com_packInf_t *ioInf, com_packElm_t *oElm, long iCount );
-void *com_readPackDirect(
-        com_packInf_t *ioInf, void *iData, size_t *ioSize, BOOL iVarSize );
+BOOL com_readPackFix( com_packInf_t *ioInf, void *iData,  size_t iSize );
+BOOL com_readPackVar( com_packInf_t *ioInf, void *ioData, size_t *ioSize );
 
 
 
