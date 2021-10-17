@@ -147,7 +147,6 @@ BOOL com_askYesNo( const com_actFlag_t *iFlag, const char *iFormat, ... )
 
 
 
-
 // データパッケージ関連 ------------------------------------------------------
 
 #define ARCHLEN  COM_LINEBUF_SIZE
@@ -312,10 +311,10 @@ static BOOL readDataSize( com_packInf_t *ioInf, com_packElm_t *ioElm )
     return true;
 }
 
-static BOOL allocMemory( com_packInf_t *ioInf, com_packElm_t *ioElm )
+static BOOL allocPackMemory( com_packInf_t *ioInf, com_packElm_t *ioElm )
 {
     if( ioElm->data ) { return true; }
-    ioElm->data = com_malloc( ioElm->size, "allocate data from %s",
+    ioElm->data = com_malloc( ioElm->size, "allocate data pack from %s",
                               ioInf->filename );
     return (ioElm->data != NULL);
 }
@@ -323,7 +322,7 @@ static BOOL allocMemory( com_packInf_t *ioInf, com_packElm_t *ioElm )
 static BOOL readPackData( com_packInf_t *ioInf, com_packElm_t *ioElm )
 {
     if( ioElm->varSize ) {if( !readDataSize( ioInf, ioElm ) ) { return false; }}
-    if( !allocMemory( ioInf, ioElm ) ) { return false; }
+    if( !allocPackMemory( ioInf, ioElm ) ) { return false; }
     if( ioInf->byText ) { return readPackText( ioInf, ioElm ); }
     return readPackBin( ioInf, ioElm );
 

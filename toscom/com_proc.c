@@ -185,9 +185,9 @@ static com_getOpt_t *searchOpt( char *iPrm, ulong iIdx, BOOL iLong )
     return opt;
 }
 
-static BOOL shortWithArg( com_getOpt_t *iOptInf, ulong cnt )
+static BOOL shortWithArg( com_getOpt_t *iOptInf, ulong iCnt )
 {
-    if( iOptInf->argvCnt > 0 && cnt > 1 ) {
+    if( iOptInf->argvCnt > 0 && iCnt > 1 ) {
         com_error( COM_ERR_PARAMNG,
                    "'%c' can't be used in multiple options",
                    (int)iOptInf->shortOpt);
@@ -415,13 +415,13 @@ static BOOL returnRealloct( void *iAddr, BOOL iResult )
 
 static BOOL procRealloct(
         void *ioAddr, size_t iUnit, long *ioCount, long iResize,
-        const char *iFormat, COM_FILEPRM, va_list ap )
+        const char *iFormat, COM_FILEPRM, va_list iAp )
 {
     if( !iResize ) { return true; }
     if( iResize < 0 && -iResize >= *ioCount ) { iResize = -(*ioCount); }
     com_mutexLock( &gMutexMem, "realloct(%p)", ioAddr );
     COM_CLEAR_BUF( gMemLog );
-    vsnprintf( gMemLog, sizeof(gMemLog), iFormat, ap );
+    vsnprintf( gMemLog, sizeof(gMemLog), iFormat, iAp );
     char** dmy = ioAddr;   // ioAddrはダブルポインタが渡されていることを想定
     if( (*ioCount + iResize) == 0 ) {
         com_mutexUnlock( &gMutexMem, NULL );
@@ -2142,27 +2142,27 @@ static BOOL resizeSortTable( COM_FILEPRM, com_sortTable_t *oTable, long iMod )
 }
 
 // 二分検索(見つからない場合、追加されるべき位置を特定)
-static BOOL binarySearchPos( com_sortTable_t *iTable, long key, long *oPos )
+static BOOL binarySearchPos( com_sortTable_t *iTable, long iKey, long *oPos )
 {
     com_sort_t* tbl = iTable->table;
     long posMax = iTable->count - 1;
     long posMin = 0;
-    if( tbl[posMin].key > key ) { *oPos = posMin;  return false; }
-    if( tbl[posMax].key < key ) { *oPos = posMax + 1;  return false; }
+    if( tbl[posMin].key > iKey ) { *oPos = posMin;  return false; }
+    if( tbl[posMax].key < iKey ) { *oPos = posMax + 1;  return false; }
 
     *oPos = posMax / 2;
     BOOL hit = false;
     while(1) {
-        if( tbl[*oPos].key > key ) { posMax = *oPos - 1; }
-        else if( tbl[*oPos].key < key ) { posMin = *oPos + 1; }
+        if( tbl[*oPos].key > iKey ) { posMax = *oPos - 1; }
+        else if( tbl[*oPos].key < iKey ) { posMin = *oPos + 1; }
         else { hit = true;  break; }
 
         if( posMin > posMax ) { break; }
         *oPos = posMin + (posMax - posMin) / 2;
     }
-    if( !hit ) { if( tbl[*oPos].key < key ) { (*oPos)++; } }
+    if( !hit ) { if( tbl[*oPos].key < iKey ) { (*oPos)++; } }
     // 同一キーが複数ある場合に備え、その先頭データを探す
-    for( ; *oPos > 0; (*oPos)-- ) {if( tbl[*oPos-1].key != key ) { break; }}
+    for( ; *oPos > 0; (*oPos)-- ) {if( tbl[*oPos-1].key != iKey ) { break; }}
     return hit;
 }
 

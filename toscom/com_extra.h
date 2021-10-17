@@ -948,8 +948,8 @@ BOOL com_writePackDirect(
  *   動的確保時(*ioData に NULL格納時)、*ioData は呼び元でメモリ解放が必要な
  *   点も忘れずに。
  *   ioData に配列変数を指定したい場合、単純に & を付けるだけでは不可能。
- *   配列変数 sample[] の場合、sample と &sample は同じ先頭アドレスの為で
- *        char* dummy = sample;   // char sample[] で定義されている場合
+ *   例えば char sample[] の場合、sample と &sample は同じアドレスになる為で
+ *        char* dummy = sample;
  *   というダミー変数を定義し &dummy を ioDataに指定する、という方法はある。
  *
  * つまり com_readPack()は複数データを一度に指定できてメモリ動的確保に対応し
@@ -962,11 +962,8 @@ BOOL com_writePackDirect(
  * 書き込み時と同じ com_packElm_t の設定を同じ順番で指定すれば読み込める。
  *
  * 読み込んだデータを保持する場所は動的な確保を可能としているので、
- * 書き込み時と全く同じになるとは限らないが、書き込んだのと同じ順番で
- * 同じ形のデータを読み込むようにしなければ、うまくいかなくなる。
- *
- * 保持する箇所を動的確保する場合、捕捉したアドレスは本来保持すべき場所に
- * コピーする必要があるはずであり、メモリ解放も必要になることを忘れずに。
+ * com_packElm_t型の入力データの内容は書込時と全く同じになるとは限らないが、
+ * 書き込んだのと同じ順番で同じサイズのデータを読み込む必要がある。
  */
 BOOL com_readPack( com_packInf_t *ioInf, com_packElm_t *oElm, long iCount );
 BOOL com_readPackFix( com_packInf_t *ioInf, void *iData,  size_t iSize );
