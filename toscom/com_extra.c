@@ -451,7 +451,7 @@ BOOL com_isPrime( ulong iNumber )
 // マルチスレッドに耐えられるよう srandom_r() と random_r() を使う
 static __thread BOOL gSetSeed = false;
 
-#ifdef LINUXOS    // Linux用はリエントラントな関数群を使用する
+#ifdef LINUXOS    // Linux用はリエントラントな関数群を使用を試みる
 static __thread struct random_data gRandomBuf;
 enum { STATE_SIZE = 64 };
 static __thread char gRandomState[STATE_SIZE];
@@ -554,6 +554,85 @@ int com_rollDice( int iDice, int iSide, int iAdjust, BOOL iDisp )
 }
 
 // シグナルハンドラー関連 ----------------------------------------------------
+
+static __thread com_sortTable_t  gSigOldAct;
+static __thread BOOL gInitSigOldAct = false;
+
+static void initializeSigOldAct( void )
+{
+    gInitSigOldAct = true;
+    com_initializeSortTable( &gSigOldAct, COM_SORT_SKIP );
+}
+
+static long countSignals( const com_sigact_t *iSigList )
+{
+    if( !iSigList ) { return 0; }
+    long count = 0;
+    for( ; iSigList->signal != COM_SIGACT_END;  iSigList++ ) { count++; }
+    return count;
+}
+
+static BOOL procSigaction( long iCount, const com_sigact_t *iSigList )
+{
+    for( long i = 0;  i < iCount;  i++ ) {
+        const com_sigact_t* tmp = &(iSigList[i]);
+        if( tmp->signal > INT_MAX ) {
+            com_error( COM_ERR_DEBUGNG,
+                       "signal code (%ld) is too large", tmp->signal );
+            return false;
+        }
+        struct sigaction oldact;
+        if( 0 > sigaction( (int)tmp->signal, &(tmp->action), &oldact ) ) {
+            com_error( COM_ERR_SIGNALING, "fail to regist sigaction(%ld/%d)",
+                       tmp->signal, errno );
+            return false;
+        }
+        BOOL isCol = false;
+        BOOL result = com_addSortTableByKey( &gSigOldAct, tmp->signal,
+                                             &oldact, sizeof(oldact), &isCol );
+        if( !result ) { return false; }
+        if( isCol ) {  // 上書き発生時エラーは出すが、処理は続行する
+            com_error( COM_ERR_DEBUGNG,
+                       "same signal already registered (%kd)", tmp->signal );
+            isCol = false;
+        }
+    }
+    return true;
+}
+
+BOOL com_setSignalAction( const com_sigact_t *iSigList )
+{
+    long count = countSignals( iSigList );
+    if( !count ) { return true; }
+    if( !gInitSigOldAct ) { initializeSigOldAct(); }
+    com_skipMemInfo( true );
+    BOOL result = procSigaction( count, iSigList );
+    if( !result ) { com_resumeSignalAction( COM_SIGACT_ALL ); }
+    com_skipMemInfo( false );
+    return result;
+}
+
+void com_resumeSignalAction( long iSignum )
+{
+    if( iSignum > INT_MAX ) {COM_PRMNG();}
+    BOOL resumed = false;
+    for( long i = 0;  i < gSigOldAct.count;  i++ ) {
+        com_sigact_t* tmp = gSigOldAct.table[i].data;
+        if( iSignum == COM_SIGACT_ALL || iSignum == tmp->signal ) {
+            (void)sigaction( (int)tmp->signal, &(tmp->action), NULL );
+            resumed = true;
+        }
+    }
+    if( !resumed && iSignum != COM_SIGACT_ALL ) {
+        com_error( COM_ERR_DEBUGNG, "no such signal registered (%ld)",iSignum );
+        return;
+    }
+    com_skipMemInfo( true );
+    if( iSignum == COM_SIGACT_ALL ) { com_freeSortTable( &gSigOldAct ); }
+    else { com_deleteSortTableByKey( &gSigOldAct, iSignum ); }
+    com_skipMemInfo( false );
+}
+
 
 
 // データパッケージ関連 ------------------------------------------------------
@@ -787,7 +866,7 @@ static void finalizeExtra( void )
 {
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
     com_free( gMenuList );
-    //if( gSigOldAct.count ) { com_freeSortTable( &gSigOldAct ); }
+    if( gSigOldAct.count ) { com_freeSortTable( &gSigOldAct ); }
     COM_DEBUG_AVOID_END( COM_PROC_ALL );
 }
 
