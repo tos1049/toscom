@@ -2050,7 +2050,7 @@ BOOL com_addSortTableByKeyFunc(
         BOOL *oCollision, COM_FILEPRM );
 
 /*
- * ソートデータ変更  com_setSortData()
+ * ソートテーブルデータ変更  com_setSortData()
  *   処理の成否を true/false で返す。
  * ---------------------------------------------------------------------------
  *   COM_ERR_DEBUGNG [com_prmNG] !oTarget || !iData
@@ -3284,7 +3284,7 @@ BOOL com_strncpy(
     com_strncpy( (TARGET), sizeof(TARGET), (SOURCE), strlen(SOURCE) )
 
 /*
- * 長さ指定文字列連結  com_strncpy()
+ * 長さ指定文字列連結  com_strncat()
  *   バッファサイズを超す連結が発生した時に falseを返す。
  * ---------------------------------------------------------------------------
  *   COM_ERR_DEBUGNG [com_prmNG]
@@ -4209,7 +4209,7 @@ BOOL com_pipeCommand(
         void *ioUserData, char *oBuf, size_t iBufSize );
 
 /*
- * テキスト行単位走査  com_seekTextLine()
+ * テキスト行走査  com_seekTextLine()
  *   テキストを最後まで走査できたら trueを返す。
  *   コールバック関数で falseが返ったら、falseを返す。
  * ---------------------------------------------------------------------------
@@ -5329,7 +5329,7 @@ void com_printfLogOnly( const char *iFormat, ... );
 #endif
 
 /*
- * ロギングのみ  com_printfDispOnly()
+ * 画面出力のみ  com_printfDispOnly()
  * ---------------------------------------------------------------------------
  *   エラーは発生しない。
  * ===========================================================================
