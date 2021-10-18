@@ -102,6 +102,7 @@ toscom grimoire Ver3.00
    com_registerCfg()           コンフィグ登録
    com_registerCfgDigit()      コンフィグ登録(long型版)
    com_registerCfgUDigit()     コンフィグ登録(ulong型版)
+
    com_addCfgValidator()       コンフィグ設定チェック関数登録
    com_valDigit()              long型数値チェック
     com_valDigitCondCopy()      long型数値チェック条件コピー
@@ -123,9 +124,11 @@ toscom grimoire Ver3.00
    com_valBool()               TRUE/FALSEチェック
    com_valYesNo()              YES/NOチェック
    com_valOnOff()              ON/OFFチェック
+
    com_setCfg()                コンフィグ設定
    com_setCfgDigit()           コンフィグ設定(long型版)
    com_setCfgUDigit()          コンフィグ設定(ulong型版)
+
    com_isEmptyCfg()            コンフィグ未設定チェック
    com_getCfg()                コンフィグ取得
    com_getCfgDigit()           コンフィグ取得(long型変換)
@@ -137,6 +140,7 @@ toscom grimoire Ver3.00
    ********** COMCONV:データ変換関連 **********
    com_convertUpper()          大文字変換
    com_convertLower()          小文字変換
+
    com_strtoul()               文字列-数値変換(strtoul)
    com_strtol()                文字列-数値変換(strtol)
    com_strtof()                文字列-数値変換(strtof)
@@ -145,6 +149,7 @@ toscom grimoire Ver3.00
    com_atol()                  文字列-数値変換(atol)
    com_atof()                  文字列-数値変換(atof)
    com_strtooct()              文字列-バイナリ数値列変換
+
    com_ltostr()                数値-文字列変換(long型)
    COM_LTOSTR()                数値-文字列変換(long型) (格納変数定義マクロ)
    com_ultostr()               数値-文字列変換(ulong型)
