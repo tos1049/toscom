@@ -18,8 +18,8 @@ toscom grimoire Ver3.00
    COM_ELMCNT()                配列の要素数計算マクロ
    COM_CHECKBIT()              ビットパターン判定マクロ
    COM_RELAY()                 3つのデータ受け渡しマクロ
-   LIKELY()                    条件式が真になることを明示するマクロ
-   UNLIKELY()                  条件式が偽になることを明示するマクロ
+   LIKELY()                    条件式がほぼ真になることを明示するマクロ
+   UNLIKELY()                  条件式がほぼ偽になることを明示するマクロ
 
    ********** COMBASE:基本 **********
    com_initialize()            共通処理モジュール初期化
