@@ -23,8 +23,11 @@
 
 !!!!! 使い方 !!!!!
 
+    (最新の情報は、上記の Wikiで御確認を御願いします)
+
     アーカイブファイルを展開すると、toscom/ がディレクトリ生成されます。
     実際のビルドは BUILD/に移動し、makeを打つことで実行できます。
+    
     > cd toscom/BUILD
     > make
 
@@ -33,9 +36,15 @@
     ただし ncurses・ncurses-devel・ncurses-libs がインストールされていない場合
     コンパイルに失敗します。これについては、toscom/BUILD/makefile を開き、
     「CFLAGS += -lpanel -lncursesw」という行の先頭に # を付けてコメントアウトし
-    main.cの「#include "com_window.h"」もコメントアウトすれば、とりあえず
+    更に main.cの「#include "com_window.h"」もコメントアウトすれば、とりあえず
     コンパイルは出来るはずです。
     
+    toscom/main.c に main()があるので、そこに処理を書いていけば良いですが、
+    toscom/配下で色々ファイルを修正するのは、出来るだけ避ける方が望ましいです。
+    
+    newenv.tar.gz を使用することで、別のディレクトリに開発環境を構築出来るので
+    その利用をお勧めします。これについては上記に示した Wiki内の「3.各種シェル」の
+    「開発環境作成シェル」で使い方を御確認下さい。
 
 !!!!! grimoire? !!!!!
 
