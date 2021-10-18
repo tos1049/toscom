@@ -18,11 +18,23 @@
     Windows上の Cygwin 及び Linux(Cent OS 5.x～7.x)での動作を確認しています。
     (ただし幾つか導入が必要なパッケージは存在します)
     
-    以下の Wikiにて使用方法などをまとめようとしています。
+    以下の Wikiにて使用方法などをまとめているので必ず御確認下さい。
        https://github.com/tos1049/toscom/wiki
 
 !!!!! 使い方 !!!!!
 
+    アーカイブファイルを展開すると、toscom/ がディレクトリ生成されます。
+    実際のビルドは BUILD/に移動し、makeを打つことで実行できます。
+    > cd toscom/BUILD
+    > make
+
+    これにより test (Cygwinの場合は test.exe)が生成されます。
+
+    ただし ncurses・ncurses-devel・ncurses-libs がインストールされていない場合
+    コンパイルに失敗します。これについては、toscom/BUILD/makefile を開き、
+    「CFLAGS += -lpanel -lncursesw」という行の先頭に # を付けてコメントアウトし
+    main.cの「#include "com_window.h"」もコメントアウトすれば、とりあえず
+    コンパイルは出来るはずです。
     
 
 !!!!! grimoire? !!!!!
