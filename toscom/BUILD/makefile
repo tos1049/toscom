@@ -283,7 +283,7 @@ clean:
 
 ########## ログファイルやコアファイルを削除 (make logclean) ##################
 logclean: specclean
-	$(RM) -fr .$(COMMAND)* core.*
+	$(RM) -fr .$(COMMAND)* core.* *.stackdump
 
 ########## プログラム固有のファイルを削除 (make specclean) ###################
 # 何か削除する必要のあるものがあれば、削除文をここに追記する。

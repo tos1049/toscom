@@ -1367,6 +1367,268 @@ void test_config( void )
 
 #ifdef USING_COM_EXTRA    // エキストラ機能を使うテストコード
 
+// test_multiThread() ////////////////////////////////////////////////////////
+// スレッドは基本機能だが、乱数を使いたいため、エキストラ機能での実行とする
+
+static pthread_mutex_t gMutexTest = PTHREAD_MUTEX_INITIALIZER;
+
+static void *procThread( void *ioInf )
+{
+    com_threadInf_t* inf = ioInf;
+    int* userData = inf->data;
+    int waitSec = com_rand(9);
+    pid_t pid = getpid();
+
+    com_readyThread( ioInf );
+    for( int s = 0;  s < waitSec;  s++ ) {
+        sleep( 1 );
+        com_mutexLock( &gMutexTest, "procThread" );
+        com_printf( "[%d]thread%ld ", pid, inf->thId );
+        if( com_checkChance( 5 ) ) {
+            com_printf( "aborted\n" );
+            com_mutexUnlock( &gMutexTest, "procThread" );
+            return NULL;   // 敢えて com_finishThread() を使わない
+        }
+        (*userData)++;
+        com_printf( "%d/%ld %d%d\n", pid, inf->thId, s, waitSec );
+        com_mutexUnlock( &gMutexTest, "procThread" );
+    }
+    return com_finishThread( ioInf );
+}
+
+static void notifyThread( com_threadInf_t *iInf )
+{
+    int* userData = iInf->data;
+    com_printf( "*** thread%ld finished... result = %02d\n",
+                iInf->thId, *userData );
+}
+
+#define THREAD_TEST  10
+
+void test_multiThread( void ) {
+    startFunc( __func__ );
+    int userData = 0;
+    pthread_t ptid[THREAD_TEST];
+    BOOL ret = false;
+
+    com_printf( "--multi thread test--\n" );
+    for( int i = 0;  i < THREAD_TEST;  i++ ) {
+        userData = i * 10;
+        ret = com_createThread( &ptid[i], procThread,
+                                &userData, sizeof(userData),
+                                notifyThread, "thread%d", i );
+        if( !ret ) { return; }
+    }
+    while( com_watchThread( true ) ) { usleep( 500 ); }
+    for( int i = 0;  i < THREAD_TEST;  i++ ) {
+        int* data = com_getThreadUserData( ptid[i] );
+        if( data ) { com_printf( "%02d", *data ); }
+        else { com_printf( " --" ); }
+        if( !com_freeThread( ptid[i] ) ) { com_printf( "***" ); }
+    }
+    com_printLf();
+}
+
+// test_comInputVar() ////////////////////////////////////////////////////////
+
+void test_comInputVar( void )
+{
+    startFunc( __func__ );
+#define TESTSIZE 5
+    char* val = NULL;
+    char* text = com_malloc( TESTSIZE, "test text" );
+    com_actFlag_t flags = { true, false };
+    size_t len = com_inputVar( text, TESTSIZE, NULL, &flags, "text > " );
+    com_printf( "%-5s (length=%zu)\n", text, len );
+    com_free( text );
+
+    while(1) {
+        int randMax = com_rand( 100 );
+        flags = (com_actFlag_t){ false, false };
+        com_valFunc_t valRand = {
+            com_valDigit,
+            &(com_valCondDigit_t){ .min = 1, .max = randMax }
+        };
+        com_input( &val, &valRand, &flags, "value(1-%d): ", randMax );
+        if( com_askYesNo( false, "answer = %ld, OK? ", com_atol(val) ) ) {
+            break;
+        }
+    }
+}
+
+// test_random() /////////////////////////////////////////////////////////////
+
+void test_random( void )
+{
+    startFunc( __func__ );
+    int succeed = 0;
+
+    for( int i = 0;  i < 10;  i++ ) { com_printf( "%3d ", com_rand( 20 ) ); }
+    for( int i = 0;  i < 100; i++ ) {if( com_checkChance(50) ) { succeed++; }}
+    com_printf( "\n succeed = %d\n", succeed );
+}
+
+// test_stat() ///////////////////////////////////////////////////////////////
+
+static BOOL inputValue( com_calcStat_t *oStat, int iData )
+{
+    com_printf( " input -> %d\n", iData );
+    if( !com_inputStat( oStat, iData ) ) {
+        com_printf( "   *** FAILED ***\n" );
+        return false;
+    }
+    com_printf( "   total: %5.2f   sqtotal = %10.2f\n",
+                oStat->total, oStat->sqtotal );
+    return true;
+}
+
+static void calcStat( int *iList, int iCount, BOOL iNeed )
+{
+    com_calcStat_t statInf;
+    com_readyStat( &statInf, iNeed );
+    for( int i = 0;  i < iCount;  i++ ) {
+        if( !inputValue( &statInf, iList[i] ) ) { return; }
+    }
+    com_repeat( "-", 40, true );
+    com_printf( " count = %3ld\n", statInf.count );
+    if( statInf.needList ) {
+        for( int i = 0;  i < statInf.count;  i++ ) {
+            com_printf( "%ld ", statInf.list[i] );
+        }
+        com_printLf();
+    }
+    com_printf( "     max = %5ld\n", statInf.max );
+    com_printf( "     min = %5ld\n", statInf.min );
+    com_printf( " ari.avr = %10.4f\n", statInf.average );
+    com_printf( " geo.avr = %10.4f\n", statInf.geoavr );
+    com_printf( " hrm.avr = %10.4f\n", statInf.hrmavr );
+    com_printf( "     var = %10.4f\n", statInf.variance );
+    com_printf( " std.dev = %10.4f\n", statInf.stddev );;
+    com_printf( "      cv = %10.4f\n", statInf.coevar );
+    com_printf( "      sk = %10.4f\n", statInf.skewness );
+    com_printf( "      ku = %10.4f\n", statInf.kurtosis );
+    com_repeat( "-", 40, true );
+    com_finishStat( &statInf );
+}
+
+void test_stat( void )
+{
+    startFunc( __func__ );
+    int data1[] = { 21, 16,  9, 43, 24, 30, 17, 12, 25, 28 };
+    int data2[] = { 30, 34,  9, 43, 35, 30, 11, 12,  8, 10 };
+    int data3[] = { 21, 26, 29, 23, 24, 20, 27, 22, 25, 28 };
+    int data4[] = {  9,  5,  2,  9,  5,  3,  7,  5 };
+
+    calcStat( data1, COM_ELMCNT( data1 ), true );
+    calcStat( data2, COM_ELMCNT( data2 ), false );
+    calcStat( data3, COM_ELMCNT( data3 ), false );
+    calcStat( data4, COM_ELMCNT( data4 ), false );
+    com_printf( " *DBL_MAX = %f\n", DBL_MAX );
+}
+
+// test_randStat() ///////////////////////////////////////////////////////////
+
+void test_randStat( void )
+{
+    startFunc( __func__ );
+    int randList[100];
+
+    for( size_t i = 0;  i < COM_ELMCNT( randList );  i++ ) {
+        randList[i] = com_rand(10000);
+    }
+    calcStat( randList, COM_ELMCNT( randList ), false );
+}
+
+// test_menu() ///////////////////////////////////////////////////////////////
+
+static BOOL menuItem( long iCode )
+{
+    com_printf( "item%ld!\n", iCode );
+    return true;
+}
+
+static BOOL menuCancel( long iCode )
+{
+    COM_UNUSED( iCode );
+    return false;   // 無条件で非表示にする
+}
+
+static com_selector_t gTestMenu[] = {
+    { 1, "item1", NULL,       menuItem },
+    { 2, "item2", menuCancel, menuItem },
+    { 3, "item3", NULL,       menuItem },
+    { 0, NULL, NULL, NULL }
+};
+
+void test_menu( void )
+{
+    startFunc( __func__ );
+    com_selPrompt_t prompt = { NULL, "\n> ", 5, "##" };
+    com_actFlag_t flags = { true, false };
+
+    if( com_execSelector( gTestMenu, &prompt, &flags ) ) {
+        com_printf( "---> OK\n" );
+    }
+    else {
+        com_printf( "---> NG\n" );
+    }
+}
+
+// test_searchPrime() ////////////////////////////////////////////////////////
+
+static void searchPrime( uint iStart, uint iEnd )
+{
+    com_stopwatch_t swinf;
+    struct timeval* tmp = &(swinf.passed);
+
+    com_printf( "prime number (%u-%u)\n", iStart, iEnd );
+    com_startStopwatch( &swinf );
+    for( uint i = iStart;  i <= iEnd;  i++ ) {
+        if( com_isPrime( i ) ) { com_printf( "%u ", i ); }
+    }
+    com_printLf();
+    com_checkStopwatch( &swinf );
+    com_printf( " passed: %ld.%06ldsec\n", tmp->tv_sec, tmp->tv_usec );
+}
+
+void test_searchPrime( void )
+{
+    startFunc( __func__ );
+    searchPrime( 0, 5000 );
+    searchPrime( 1000, 6000 );
+    searchPrime( 1000000, 1005000 );
+    searchPrime( 100000000, 100005000 );
+}
+
+// test_dice() ///////////////////////////////////////////////////////////////
+
+void test_dice( void )
+{
+    startFunc( __func__ );
+    const int trial = 100000;
+    int sum1 = 0;
+    int sum2 = 0;
+    int sum3 = 0;
+    BOOL disp = false;
+    for( int i = 0;  i < trial;  i++ ) {
+        disp = false;
+        if( i % (trial / 10) == 0 ) {
+            disp = true;
+            com_printf( "--Trial %d--\n", i );
+        }
+        if( disp ) { com_printf( "*1 " ); }
+        sum1 += com_rollDice( 2, 6, 2, disp );
+        if( disp ) { com_printf( "*2 " ); }
+        sum2 += com_rollDice( 2, 10, 0, disp );
+        if( disp ) { com_printf( "*3 " ); }
+        sum3 += com_rollDice( 1, 20, 0, disp );
+    }
+    com_printf( "---- average ----\n" );
+    com_printf( "3d6+2 = %2.1f\n", (double)sum1 / trial );
+    com_printf( "2d10  = %2.1f\n", (double)sum2 / trial );
+    com_printf( "1d20  = %2.1f\n", (double)sum3 / trial );
+}
+
 // test_writePack() //////////////////////////////////////////////////////////
 
 // 読み書きどちらでもベースとなるデータパッケージ設定
@@ -1549,6 +1811,15 @@ static void exam_extraFunctions( void )
 #ifdef USING_COM_EXTRA
     // テストしたい関数のコメントアウトを外して再ビルドする
 
+    //test_multiThread();             // マルチスレッド
+        // マルチスレッドは基本機能だが、テストコードにエキストラ機能が必要
+    //test_comInputVar();             // データ入力
+    //test_random();                  // 乱数生成
+    //test_stat();                    // 統計計算
+    //test_randStat();                // 乱数統計計算
+    //test_menu();                    // メニュー生成
+    //test_searchPrime();             // 素数判定
+    //test_dice();                    // ダイス判定
     //test_writePack();               // データ保存
     //test_readPack();                // データ読込
 #endif // USING_COM_EXTRA

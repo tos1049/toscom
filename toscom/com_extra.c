@@ -25,6 +25,91 @@ BOOL com_isYes( const char *iData )
     return false;
 }
 
+BOOL com_valOnlyEnter( char *ioData, void *iCond )
+{
+    COM_UNUSED( iCond );
+    if( strlen( ioData ) ) { return false; }
+    return true;
+}
+
+BOOL com_valSaveFile( char *ioData, void *iCond )
+{
+    com_valCondSave_t* cond = iCond;
+    if( !com_checkExistFile( ioData ) ) { return true; }
+    if( cond ) {
+        if( cond->forceRetry ) { return false; }
+        if( cond->forceOverwrite ) { return true; }
+    }
+    com_actFlag_t flags = { .clear = false,  .enterSkip = false };
+    char* form = "%s already exist. are you sure to overwrite?\n";
+    if( cond ) { if(cond->fileExist) { form = cond->fileExist; } }
+    return com_askYesNo( &flags, form, ioData );
+}
+BOOL com_valSaveFileCondCopy( void **oCond, void *iCond )
+{
+    com_valCondSave_t* source = iCond;
+    com_valCondSave_t* tmp = com_malloc( sizeof( com_valCondSave_t ),
+                                         "copy save file condition" );
+    if( !tmp ) { return false; }
+    *tmp = *source;
+    if( !(tmp->fileExist = com_strdup( source->fileExist, NULL )) ) {
+        com_free( tmp );
+        return false;
+    }
+    *oCond = tmp;
+    return true;
+}
+void com_valSaveFileCondFree( void **oCond )
+{
+    com_valCondSave_t* target = *oCond;
+    if( target ) { com_free( target->fileExist ); }
+}
+
+BOOL com_valLoadFile( char *ioData, void *iCond )
+{
+    com_valCondLoad_t* cond = iCond;
+    char* cancel = "-";
+    if( cond ) { if( cond->cancel ) { cancel = cond->cancel; } }
+    if( !strcmp( ioData, cancel ) ) { return true; }
+    if( !com_checkExistFile( ioData ) ) {
+        char* form = "%s not exist...\n";
+        if( cond ) {
+            if( cond->noDisp ) { return false; }
+            if( cond->noFile ) { form = cond->noFile; }
+        }
+        com_printf( form, ioData );
+        return false;
+    }
+    return true;
+}
+BOOL com_valLoadFileCondCopy( void **oCond, void* iCond )
+{
+    com_valCondLoad_t* source = iCond;
+    com_valCondLoad_t* tmp = com_malloc( sizeof( com_valCondLoad_t),
+                                         "copy load file condition" );
+    if( !tmp ) { return false; }
+    *tmp = *source;
+    if( !(tmp->cancel = com_strdup( source->cancel, NULL )) ) {
+        com_free( tmp );
+        return false;
+    }
+    if( !(tmp->noFile = com_strdup( source->noFile, NULL )) ) {
+        com_free( tmp->cancel );
+        com_free( tmp );
+        return false;
+    }
+    *oCond = tmp;
+    return true;
+}
+void com_valLoadFileCondFree( void **oCond )
+{
+    com_valCondLoad_t* target = *oCond;
+    if( target ) {
+        com_free( target->cancel );
+        com_free( target->noFile );
+    }
+}
+
 
 
 // データ入力処理 ------------------------------------------------------------
@@ -145,6 +230,330 @@ BOOL com_askYesNo( const com_actFlag_t *iFlag, const char *iFormat, ... )
     return com_isYes( tmp );
 }
 
+void com_waitEnter( const char *iFormat, ... )
+{
+    com_actFlag_t flags = { .clear = false,  .enterSkip = true };
+    INPUTWRAP( "   --- HIT ENTER KEY ---\n", com_valOnlyEnter, &flags );
+}
+
+
+
+// 入力メニュー生成処理 ------------------------------------------------------
+
+// 入力メニュー共通ルーチン処理
+static char gMenuBuff[COM_DATABUF_SIZE];
+static int  gTimingLf = -1;
+
+static size_t gMenuCount = 0;     // メニューリストバッファのカウント
+static long*  gMenuList = NULL;   // メニューリストバッファ(終了処理で解放)
+
+static void setListBuffer( const com_selector_t *iSelector )
+{
+    size_t count = 0;
+    for( ;  iSelector->code > 0;  iSelector++ ) { count++; }
+    // 確保済みサイズに足りるなら何もしない
+    if( count <= gMenuCount ) { return; }
+    gMenuList = com_reallocf( gMenuList, sizeof(int) * count, "gMenuList" );
+    // メモリ不足の場合、処理続行不可能
+    if( !gMenuList ) { com_exit( COM_ERR_NOMEMORY ); }
+    gMenuCount = count;
+    return;
+}
+
+static void checkList( long iCount, long iCode )
+{
+    for( long i = 0;  i < iCount;  i++ ) {
+        // メニュー番号に被りがあったら、その場で終了(バグなので要修正)
+        if( gMenuList[i] == iCode ) {
+            com_errorExit( COM_ERR_DEBUGNG,
+                           "menu code conflict (%ld)\n", iCode );
+        }
+    }
+}
+
+#define ADD_MENU_BUFF( ... ) \
+    (void)com_connectString( gMenuBuff, sizeof(gMenuBuff), __VA_ARGS__ )
+
+static void addWithPrompt( const char *iText, const char *iPrompt )
+{
+    ADD_MENU_BUFF( iText );
+    if( iPrompt ) { ADD_MENU_BUFF( iPrompt ); }
+}
+
+static void addMenu(
+        const com_selector_t *iMenu, long *ioCount, int iBorderLf,
+        const char *iPrompt )
+{
+    // 作業データ初期化
+    if( gTimingLf < 0 ) {
+        addWithPrompt( "", iPrompt );
+        gTimingLf = 0;
+    }
+    // 改行タイミングか判定
+    long code = iMenu->code;
+    if( gTimingLf != (code / iBorderLf) ) { addWithPrompt( "\n", iPrompt ); }
+    // メニューを実際に出すかチェック
+    if( iMenu->check ) { if( !(iMenu->check)( code ) ) { code = 0; } }
+    if( code > 0 ) {
+        ADD_MENU_BUFF( "  %2ld:%s", code, iMenu->label );
+        checkList( *ioCount, code );
+        gMenuList[(*ioCount)++] = code;
+    }
+    else { ADD_MENU_BUFF( "     %*s", (int)strlen( iMenu->label ), " " ); }
+    gTimingLf = iMenu->code / iBorderLf;
+}
+
+static void makeMenu(
+        const com_selector_t *iSelector, const com_selPrompt_t *iPrompt,
+        long *oCount )
+{
+    COM_CLEAR_BUF( gMenuBuff );
+    gTimingLf = -1;    // 負数を入れて addMenu()に初期化を促す
+
+    if( iPrompt->head ) { (void)com_strcat( gMenuBuff, iPrompt->head ); }
+    setListBuffer( iSelector );
+    for( const com_selector_t* tmp = iSelector;  tmp->code > 0;  tmp++ ) {
+        addMenu( tmp, oCount, iPrompt->borderLf, iPrompt->prompt );
+    }
+    if( iPrompt->foot ) { (void)com_strcat( gMenuBuff, iPrompt->foot ); }
+}
+
+static BOOL callMenuFunc( long iCode, const com_selector_t *iSelector )
+{
+    while( iSelector->code != iCode ) { iSelector++; }
+    BOOL result = true;
+    if( iSelector->func ) { result = (iSelector->func)( iCode ); }
+    return result;
+}
+
+BOOL com_execSelector(
+        const com_selector_t *iSelector, const com_selPrompt_t *iPrompt,
+        const com_actFlag_t *iFlag )
+{
+    if( !iSelector ) {COM_PRMNG(false);}
+    long count = 0;
+    makeMenu( iSelector, iPrompt, &count );
+    com_valCondDgtList_t cond = { count, gMenuList };
+    com_valFunc_t val = { .func = com_valDgtList,  .cond = &cond };
+    char key[10] = {0};
+    com_inputVar( key, sizeof(key), &val, iFlag, gMenuBuff );
+    return callMenuFunc( com_atol(key), iSelector );
+}
+
+
+
+// 統計情報計算処理 ----------------------------------------------------------
+
+void com_readyStat( com_calcStat_t *oStat, BOOL iNeedList )
+{
+    if( !oStat ) {COM_PRMNG();}
+    *oStat = (com_calcStat_t){
+        .needList = iNeedList,  .existNegative = false,  .list = NULL,
+        .max = COM_VAL_NO_MIN,  .min = COM_VAL_NO_MAX
+    };
+}
+
+static BOOL addInputData( com_calcStat_t *oStat, long iData )
+{
+    if( !(oStat->needList) ) { return true; }
+    oStat->list = com_reallocf( oStat->list, sizeof(long) * (uint)oStat->count,
+                                "stat list (%ld)", oStat->count );
+    if( !(oStat->list) ) { return false; }
+    oStat->list[oStat->count - 1] = iData;
+    return true;
+}
+
+static BOOL checkOverflow( double *oTarget, double iInput )
+{
+    if( DBL_MAX - *oTarget < iInput ) { return false; }
+    *oTarget += iInput;
+    return true;
+}
+
+static double calcSkewness(
+        double iCbT, double iSqT, double iAvr, double iDev, int iCnt )
+{
+    return ( iCbT / iCnt - 3 * iAvr * iSqT / iCnt + 2 * pow( iAvr, 3 ) )
+           / pow( iDev, 3 );
+}
+
+static double calcKurtosis(
+        double iFoT, double iCbT, double iSqT, double iAvr, double iDev,
+        int iCnt )
+{
+    return ( iFoT / iCnt - 4 * iAvr * iCbT / iCnt
+             + 6 * iAvr * iAvr * iSqT / iCnt - 3 * pow( iAvr, 4 ) )
+           / pow( iDev, 4 );
+}
+
+static void calcStat( com_calcStat_t *oStat )
+{
+    int cnt = oStat->count;
+    oStat->average = oStat->total / cnt;
+    oStat->geoavr = oStat->existNegative ? 0 : exp( oStat->lgtotal / cnt );
+    oStat->hrmavr = oStat->existNegative ? 0 : 1 / ( oStat->rvtotal / cnt );
+
+    oStat->variance = oStat->sqtotal / cnt - pow( oStat->average, 2 );
+    oStat->stddev = sqrt( oStat->variance );
+    oStat->coevar = oStat->stddev / oStat->average;
+
+    oStat->skewness = calcSkewness( oStat->cbtotal, oStat->sqtotal,
+                                    oStat->average, oStat->stddev, cnt );
+    oStat->kurtosis = calcKurtosis( oStat->fototal, oStat->cbtotal,
+                                    oStat->sqtotal, oStat->average,
+                                    oStat->stddev, cnt );
+}
+
+BOOL com_inputStat( com_calcStat_t *oStat, long iData )
+{
+    if( !oStat ) {COM_PRMNG(false);}
+    double tmp = (double)iData;
+    (oStat->count)++;
+    if( iData < 0 ) { oStat->existNegative = true; }
+    if( !addInputData( oStat, iData ) ) { return false; }
+    if( iData > oStat->max ) { oStat->max = iData; }
+    if( iData < oStat->min ) { oStat->min = iData; }
+    if( !checkOverflow( &(oStat->total), tmp ) ) { return false; }
+    if( !checkOverflow( &(oStat->sqtotal), tmp * tmp ) ) { return false; }
+    if( !checkOverflow( &(oStat->cbtotal), pow(tmp,3) ) ) { return false; }
+    if( !checkOverflow( &(oStat->fototal), pow(tmp,4) ) ) { return false; }
+    if( !checkOverflow( &(oStat->lgtotal), log(tmp) ) ) { return false; }
+    if( !checkOverflow( &(oStat->rvtotal), 1 / tmp ) ) { return false; }
+    calcStat( oStat );
+    return true;
+}
+
+void com_finishStat( com_calcStat_t *oStat )
+{
+    if( !oStat ) {COM_PRMNG();}
+    if( oStat->needList ) { com_free( oStat->list ); }
+}
+
+
+
+// 数学計算 ------------------------------------------------------------------
+
+BOOL com_isPrime( ulong iNumber )
+{
+    if( iNumber < 2 ) { return false; }
+    long sqrtNum = lrint( sqrt( (double)iNumber ) );
+    if( sqrtNum < 2 ) { return true; }
+    for( long i = 2;  i <= sqrtNum;  i++ ) {
+        if( !(iNumber % i) ) { return false; }
+    }
+    return true;
+}
+
+
+
+// 乱数関連 ------------------------------------------------------------------
+
+// マルチスレッドに耐えられるよう srandom_r() と random_r() を使う
+static __thread BOOL gSetSeed = false;
+
+#ifdef LINUXOS    // Linux用はリエントラントな関数群を使用する
+static __thread struct random_data gRandomBuf;
+enum { STATE_SIZE = 64 };
+static __thread char gRandomState[STATE_SIZE];
+
+static BOOL setSeed( void )
+{
+    static uint adjust = 0; // 同じ時間帯に複数呼ばれても seedが変わるように
+    uint seed = (uint)time(0) + adjust;
+    adjust++;
+    // srandom_r()を呼ぶ前に gRandomBuf の内容を初期化
+    if( initstate_r( seed, gRandomState, sizeof(gRandomState), &gRandomBuf ) ) {
+        com_error( COM_ERR_RANDOMIZE, "initstate_r() NG" );
+        return false;
+    }
+    if( srandom_r( seed, &gRandomBuf ) ) {
+        com_error( COM_ERR_RANDOMIZE, "srandom_r() NG" );
+        return false;
+    }
+    return true;
+}
+
+// random_r()の結果が int型なので、int型をベースにした処理となる
+int com_rand( int iMax )
+{
+    if( iMax == 0 ) { return 0; }
+    BOOL negative = false;
+    if( iMax < 0 ) { iMax = abs( iMax );  negative = true; }
+    if( !gSetSeed ) { if( !(gSetSeed = setSeed()) ) { return 0; } }
+    int result = 0;
+    if( !random_r( &gRandomBuf, &result ) ) {
+        result = result % iMax + 1;
+        if( negative ) { result *= -1; }
+    }
+    else { com_error( COM_ERR_RANDOMIZE, "random_r() NG" ); }
+    return result;
+}
+#else   // LINUXOS  (Windows版は こちらの一般的な標準関数で)
+static BOOL setSeed( void )
+{
+    static uint adjust = 0; // 同じ時間帯に複数呼ばれても seedが変わるように
+    uint seed = (uint)time(0) + adjust;
+    adjust++;
+    srandom( seed );
+    return true;
+}
+
+// Linux版とあわせるため int型で処理をすすめる
+int com_rand( int iMax )
+{
+    if( iMax == 0 ) { return 0; }
+    BOOL negative = false;
+    if( iMax < 0 ) { iMax = abs( iMax );  negative = true; }
+    if( !gSetSeed ) { if( !(gSetSeed = setSeed()) ) { return 0; } }
+    long randomValue = random();
+    int result = randomValue % iMax + 1;
+    if( negative ) { result *= -1; }
+    return result;
+}
+#endif  // LINUXOS
+
+BOOL com_checkChance( int iChance )
+{
+    int dice = com_rand( 100 );
+    if( dice > iChance ) { return false; }
+    return true;
+}
+
+static void dispAdjust( int iAdjust )
+{
+    if( iAdjust ) {
+        if( iAdjust > 0 ) { com_printf( " +%d", iAdjust ); }
+        else { com_printf( " %d", iAdjust ); }
+    }
+}
+
+int com_rollDice( int iDice, int iSide, int iAdjust, BOOL iDisp )
+{
+    if( iDisp ) {
+        com_printf( "%dd%d", iDice, iSide );
+        dispAdjust( iAdjust );
+        com_printf( ": " );
+    }
+    int result = 0;
+    for( int i = 0;  i < iDice;  i++ ) {
+        int dice = com_rand( iSide );
+        if( iDisp ) {
+            if( i > 0 ) { com_printf( "+" ); }
+            com_printf( "%d", dice );
+        }
+        result += dice;
+    }
+    if( iDisp && iDice > 1 ) { com_printf( " = %d", result ); }
+    result += iAdjust;
+    if( iDisp ) {
+        dispAdjust( iAdjust );
+        if( iAdjust ) { com_printf( " = %d", result ); }
+        com_printLf();
+    }
+    return result;
+}
+
+// シグナルハンドラー関連 ----------------------------------------------------
 
 
 // データパッケージ関連 ------------------------------------------------------
@@ -377,6 +786,8 @@ static com_dbgErrName_t gErrorNameExtra[] = {
 static void finalizeExtra( void )
 {
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
+    com_free( gMenuList );
+    //if( gSigOldAct.count ) { com_freeSortTable( &gSigOldAct ); }
     COM_DEBUG_AVOID_END( COM_PROC_ALL );
 }
 
