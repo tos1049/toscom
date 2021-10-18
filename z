@@ -1,0 +1,213 @@
+#!/bin/bash
+
+# toscomのアーカイブを作ったりするシェル
+#  toscom.*.tar.gz    リリースアーカイブ
+#  toscomall.tar.gz   開発用シェル込アーカイブ
+#
+# ./z → ./c でリリースファイルの各種ビルドチェック実施
+# 問題なければリリース
+
+##### バージョン指定
+aplver="3.0"
+isBeta=1
+
+# $aplver はファイル名に続く文字列そのものになる
+# toscom/aboutIf.txt の冒頭のバージョン数は手動で上記 $aplver に合わせること。
+# $isBeta は修正中は 1 にし、正式版を作る時は 0 にする。
+# 2 にすると、単純に正式版アーカイブファイルを作ってコピーするだけになる。
+
+# 新たなバージョンのベータ版を作る時は $aplverを上げて、$isBetaを 1にする
+# だけでなく、toscom/下で ./resetTxt を実施し、aboutIf.txtの内容をクリアする。
+# 元の aboutIf.txtは HISTORY/下にコピーされているので、それをsvn登録する。
+
+##### 旧バージョンを入れる場所
+OPACK="oldPackages"
+
+echo
+echo "======= アーカイブ作業 開始 ======="
+
+CDIR="toscom"
+RDIR="resetTxt"
+SDIR="smplComm"
+ADIR="analyzer"
+FDIR="proto"
+
+##### 編集中のファイルがあった場合は中断する
+function checkSwp() {
+  if [ "xzx$1" = "xzx." ]; then
+    swptmp=($(find $1 -name ".?.swp"))
+  else
+    if [ ! -d $1 ]; then return; fi   # 存在しないディレクトリは何もしない
+    swptmp=($(find $1 -name ".*.swp"))
+  fi
+  if (( ${#swptmp[0]} == 0 )); then return; fi
+  echo "--- スワップファイルを発見(編集中では？) ---"
+  for swp in ${swptmp[0]}; do echo $swp; done
+  echo
+  exit
+}
+checkSwp "."
+checkSwp $CDIR
+checkSwp $RDIR
+checkSwp $SDIR
+checkSwp $ADIR
+checkSwp $FDIR
+echo "--- スワップファイルなし(編集中ファイルは多分なし) ---"
+
+##### コメントアウトしてないテスト関数があったら中断する
+if [ -f $CDIR/com_testtos.c ]; then
+  testcheck="com_testtos.c"
+else
+  testcheck="_com_testtos"
+fi
+testFunc=$(grep "^\s*test_" $CDIR/$testcheck)
+if [ -n "$testFunc" ]; then
+  echo "--- $testcheck: コメントアウトされていないテスト関数があるのでは？"
+  echo "$testFunc"
+  exit
+fi
+echo "--- $testcheck: 全てのテスト関数がコメントアウト済み ---"
+
+##### sample1の状態になっていたら中断する
+if [ -d $SDIR ]; then
+  if [ ! -f $SDIR/com_window.c ] || [ ! -f $SDIR/com_window.h ]; then
+    echo "--- sample1の状態になっている。$SDIR/下で ./xs2の実行を ---"
+    exit
+  fi
+fi
+
+##### ファイル名生成
+if (( $isBeta == 1 )); then
+  echo "--- ベータ版をこれから作成 ---"
+  # ベータ版の場合は バージョン名に beta を付与
+  aplver="${aplver}beta"
+fi
+relfile="toscom.${aplver}.tar.gz"
+
+rm -fr $relfile
+
+if (( $isBeta == 0 )); then
+  # oldPackages にリリースアーカイブを退避
+  if [ ! -e $OPACK ]; then mkdir $OPACK; fi
+  mv toscom.*.tar.gz $OPACK
+  # ベータ版は削除
+  rm -fr $OPACK/toscom.*beta.tar.gz
+fi
+if (( $isBeta != 1 )); then
+  # aboutIf.txtを HISTORYにバックアップ
+  about=$CDIR/aboutIf.txt
+  if [ -e $about ]; then
+    if [ ! -e $CDIR/HISTORY ]; then mkdir $CDIR/HISTORY; fi
+    cp $about $CDIR/HISTORY/aboutIf.$aplver.txt
+    echo "--- リリース版アーカイブを作成 ---"
+  fi
+fi
+
+echo "--- アーカイブファイル名 = $relfile ---"
+tartemp=""
+
+##### プロトタイプのアーカイブ (現状処理省略)
+
+##### resetTextのアーカイブ (.svnはアーカイブから除外する)
+if [ -e $RDIR ]; then
+  echo "--- resetTxt.tar.gz を作成 ---"
+  cd $DIR/BUILD
+  make allclean >& /dev/null
+  cd ../..
+  tar --exclude .svn -zvcf resetTxt.tar.gz $RDIR >& /dev/null
+  tartemp+="resetTxt.tar.gz "
+fi
+
+##### smplCommのアーカイブ
+if [  -e $SDIR ]; then
+  echo "--- smplcomm.tar.gz を作成 ---"
+
+  # smplComm全体を別口で取っておく
+  tar --exclude .svn -zcvf smplComm.tar.gz $SDIR >& /dev/null
+  tartemp+="smplComm.tar.gz "
+fi
+
+##### Analyzerのアーカイブ
+if [ -e $ADIR ]; then
+  echo "--- analyzer.tar.gz を作成 ---"
+
+  # analyzer全体を別口で取っておく
+  tar --exclude .svn -zcvf Analyzer.tar.gz $ADIR >& /dev/null
+  tartemp+="Analyzer.tar.gz "
+fi
+
+##### toscomのアーカイブ
+cd $CDIR
+
+# まずは com_testtos.c をアーカイブ
+. ./_test
+if [ -f $TESTTOS ]; then
+  echo "--- $TESTTOS をアーカイブ後 $ORG_TESTTOS にリネーム"
+else
+  echo "--- $ORG_TESTTOS を $TESTTOS としてアーカイブ後、再リネーム"
+  cp $ORG_TESTTOS $TESTTOS
+fi
+tar cvfz com_testtos.tar.gz $TESTTOS >& /dev/null
+./rt >& /dev/null
+
+cd BUILD
+make allclean >& /dev/null
+
+cd ../..
+
+# 新規環境作成キットのアーカイブ
+echo "--- newenv.tar.gz を作成 ---"
+NDIR="NEWENV"
+NBDIR="${NDIR}/BUILD"
+cd $CDIR
+cp com_custom.h $NDIR
+cp com_spec.h $NDIR
+cp com_spec.c $NDIR
+cp com_test.c $NDIR
+cp main.c $NDIR
+patch $NDIR/main.c $NDIR/main.diff
+cp BUILD/makefile $NBDIR/makefile
+patch $NBDIR/makefile $NBDIR/makefile.diff
+NEWFILES="$NBDIR/makefile $NDIR/com_* $NDIR/main.c"
+tar cvfz newenv.tar.gz $NEWFILES $NDIR/newenv
+rm -fr $NEWFILES
+cd ..
+
+# リリースファイルのアーカイブ
+echo "--- $relfile を作成 ---"
+cp README.md $CDIR/README.md
+
+docfiles="$CDIR/README.md $CDIR/about*.txt"
+#docfiles+=" $CDIR/HISTORY/about*.txt"
+#docfiles+=" $CDIR/IF_NOT_UTF8"
+
+comfiles="$CDIR/com_if.h $CDIR/com_proc.c $CDIR/com_procThread.c"
+comfiles+=" $CDIR/com_debug.h $CDIR/com_debug.c"
+comfiles+=" $CDIR/com_extra.h $CDIR/com_extra.c"
+comfiles+=" $CDIR/com_select.h" # $CDIR/com_select.c"
+comfiles+=" $CDIR/com_window.h" # $CDIR/com_window.c"
+#comfiles+=" $CDIR/com_signal.h $CDIR/com_signal.c"
+#comfiles+=" $CDIR/com_signalCom.h $CDIR/com_signalCom.c"
+#comfiles+=" $CDIR/com_signalPrt1.h $CDIR/com_signalPrt1.c"
+#comfiles+=" $CDIR/com_signalPrt2.h $CDIR/com_signalPrt2.c"
+#comfiles+=" $CDIR/com_signalPrt3.h $CDIR/com_signalPrt3.c"
+
+specfiles="$CDIR/com_custom.h $CDIR/com_spec.h $CDIR/com_spec.c"
+specfiles+=" $CDIR/com_test.c $CDIR/main.c"
+#specfiles+=" $CDIR/xconv $CDIR/xname"
+
+tarfiles="$CDIR/newenv.tar.gz $CDIR/com_testtos.tar.gz"
+#tarfiles+=" $CDIR/smplcomm.tar.gz $CDIR/analyzer.tar.gz"
+
+romfiles="${docfiles} ${comfiles} ${tarfiles}"
+chmod 444 $romfiles
+tar cvfz $relfile $CDIR/BUILD/makefile $romfiles $specfiles
+chmod 644 $romfiles
+
+echo "--- 不要なファイルを削除 ---"
+rm -f $CDIR/README.md $tarfiles
+
+echo "======= アーカイブ作業 終了 ======="
+echo
+ls -ltr
+
