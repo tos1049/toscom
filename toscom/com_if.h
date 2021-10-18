@@ -4694,6 +4694,10 @@ int com_mutexUnlock( pthread_mutex_t *ioMutex, const char *iFormat, ... );
 // com_createThread()でスレッドを作ると、最終的に このディレクトリを読む処理が
 // 必ず動作するので、現状 Cygwin上では使用できない、という結論になる。
 //
+// com_createThread()で生成したスレッドも、動作自体は確認できている。
+// ただ、その後 toscomはいずれ強制終了するので、スレッドを使いたい場合は
+// この I/Fは使わず pthread_create() を直接使えば、目的は達せられると思われる。
+//
 //＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊
 
 /*
