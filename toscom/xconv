@@ -1,0 +1,96 @@
+#!/bin/bash
+
+CHANGETO="EUCJP"
+
+ISUTF8=`file -i aboutIf.txt | grep utf-8`
+if [ -n "$ISUTF8" ]; then
+  echo "UTF-8 -> $CHANGETO"
+  CODE_F="UTF-8"
+  CODE_T="$CHANGETO"
+else
+  echo "$CHANGETO -> UTF-8"
+  CODE_F="$CHANGETO"
+  CODE_T="UTF-8"
+fi
+
+function fileconv() {
+  if [ $2 = 1 ]; then chmod 664 $1; fi
+  cp $1 $1.tmp
+  iconv -f ${CODE_F} -t ${CODE_T} $1.tmp > $1
+  echo "  $1"
+  rm $1.tmp
+  if [ $2 = 1 ]; then chmod 444 $1; fi
+}
+
+function fileconv0() {
+  for file in "$@"; do fileconv $file 0; done
+}
+
+function fileconv1() {
+  for file in "$@"; do fileconv $file 1; done
+}
+
+function convArcFile() {
+  echo " $1"
+  chmod 664 $1
+  tmpdir=tmp.$1
+  mkdir $tmpdir
+  cd $tmpdir
+  tar xvfz ../$1 > /dev/null
+  fileconv0 $2
+  tar cvfz ../$1 $2 > /dev/null
+  cd ..
+  rm -fr $tmpdir
+  chmod 444 $1
+}
+
+function convSrc() {
+  fileconv0 BUILD/makefile
+  #fileconv1 HISTORY/*.txt
+  fileconv1 com_if.h com_proc*.c com_debug.*
+  fileconv1 com_extra.* com_select.* com_window.*
+  #fileconv1 com_signal*
+  fileconv0 main.c com_custom.h com_spec.* com_test.c
+  #fileconv0 xname
+}
+
+function convArcDir() {
+  echo " $1"
+  chmod 664 $1
+  tar xvfz $1 > /dev/null
+  cd $2
+  fileconv0 $3
+  cd ..
+  tar cvfz $1 $2 > /dev/null
+  rm -fr $2
+  chmod 444 $1
+}
+
+function convArcSmpl() {
+  echo " $1"
+  chmod 664 $1
+  tar xvfz $1 > /dev/null
+  cd $2
+  fileconv0 $3
+  spec="smpl_spec.h smpl_spec.c BUILD/makefile"
+  chmod 664 smpl_spec*.tar.gz
+  tar cvfz smpl_spec2.tar.gz $spec > /dev/null
+  convArcFile smpl_spec1.tar.gz "$spec"
+  chmod 444 smpl_spec*.tar.gz
+  cd ..
+  tar cvfz $1 $2 > /dev/null
+  rm -fr $2
+  chmod 444 $1
+}
+
+echo " toscom/"
+fileconv1 README* *.txt
+convSrc
+convArcFile com_testtos.tar.gz "com_testtos.c"
+convArcDir newenv.tar.gz NEWENV \
+       "BUILD/makefile *.c *.h newenv"
+#convArcDir analyzer.tar.gz analyzer \
+#       "BUILD/makefile anlz_* com_spec.* com_test.c main.c newenv"
+#convArcSmpl smplcomm.tar.gz smplComm \
+##       "BUILD/makefile com_spec.* com_test.c smpl_*.c smpl_*.h main.c newenv"
+
