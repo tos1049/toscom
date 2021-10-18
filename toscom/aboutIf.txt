@@ -1,0 +1,326 @@
+toscom grimoire Ver3.00
+
+現在、使用可能なI/Fの一覧です。
+アップデートがあった場合、前版から差分のあるI/Fには以下のマークを付します。
+    +   新たに追加したI/F
+    @   構造は変わらないが、処理が変わったI/F
+    !   構造(返り値や引数)が変化したI/F (＝前版を使っていた場合、要修正)
+    -   削除したI/F
+
+
+
+===== 基本機能 (com_if.h) ====================================================
+
+   ********** COMDEF:共通データ宣言 **********
+   COM_UNUSED()                未使用引数の明示マクロ
+   COM_CLEAR_BUF()             バッファクリアマクロ
+   COM_SET_IF_EXIST()          ポインタ設定ありで値設定するマクロ
+   COM_ELMCNT()                配列の要素数計算マクロ
+   COM_CHECKBIT()              ビットパターン判定マクロ
+   COM_RELAY()                 3つのデータ受け渡しマクロ
+   LIKELY()                    条件式が真になることを明示するマクロ
+   UNLIKELY()                  条件式が偽になることを明示するマクロ
+
+   ********** COMBASE:基本 **********
+   com_initialize()            共通処理モジュール初期化
+   COM_INITIALIZE()            toscom初期化マクロ (使用を強く推奨)
+   com_getAplName()            アプリ名取得
+   com_getVersion()            バージョン取得
+   com_getCommandLine()        起動コマンドライン取得
+   com_getOption()             起動オプション取得
+   com_exit()                  プログラムの強制終了
+   com_system()                システムコマンド実行
+
+   ********** COMMEM:メモリ関連 **********
+   com_malloc()                メモリ捕捉
+   com_realloc()               メモリ再捕捉
+   com_reallocf()              メモリ再捕捉(失敗時、元メモリ解放)
+   com_realloct()              メモリ再捕捉(テーブル拡縮)
+   com_reallocAddr()           メモリ再捕捉(位置の指定+アドレス返却)
+   com_strdup()                文字列複製
+   com_strndup()               文字列複製(サイズ指定あり)
+   com_free()                  メモリ解放
+
+   ********** COMBUF:文字列バッファ関連 **********
+   com_createBuffer()          文字列バッファ生成
+   com_initBuffer()            文字列バッファ初期化
+   com_setBuffer()             文字列バッファ格納
+   com_setBufferSize()         文字列バッファ格納(サイズ指定あり)
+   com_addBuffer()             文字列バッファ追加
+   com_addBufferSize()         文字列バッファ追加(サイズ指定あり)
+   com_copyBuffer()            文字列バッファコピー
+   com_clearBuffer()           文字列バッファクリア
+   com_resetBuffer()           文字列バッファリセット
+   com_freeBuffer()            文字列バッファ解放
+
+   ********** COMCHAIN:文字列チェーンデータ関連 **********
+   com_addChainData()          文字列チェーンデータ登録
+   com_sortAddChainData()      文字列チェーンデータ登録(ソートあり)
+   com_searchChainData()       文字列チェーンデータ検索
+   com_deleteChainData()       文字列チェーンデータ削除
+   com_pushChainData()         文字列チェーンデータプッシュ(スタック疑似)
+   com_popChainData()          文字列チェーンデータポップ(スタック疑似)
+   com_spreadChainData()       文字列チェーンデータ展開
+   com_freeChainData()         文字列チェーンデータ解放
+
+   com_addChainNum()           数値チェーンデータ登録
+   com_sortAddChainData()      数値チェーンデータ登録(ソートあり)
+   com_searchChainNum()        数値チェーンデータ検索
+   com_deleteChainNum()        数値チェーンデータ削除
+   com_pushChainNum()          数値チェーンデータプッシュ(スタック疑似)
+   com_popChainNum()           数値チェーンデータポップ(スタック疑似)
+   com_spreadChainNum()        数値チェーンデータ展開
+   com_freeChainNum()          数値チェーンデータ解放
+
+   ********** COMHASH:ハッシュデータ関連 **********
+   com_registerHash()          ハッシュテーブル登録
+   com_cancelHash()            ハッシュテーブル解放
+   com_checkHash()             ハッシュテーブル有効性確認
+   com_addHash()               ハッシュデータ追加
+   com_searchHash()            ハッシュデータ検索
+   com_deleteHash()            ハッシュデータ削除
+
+   ********** COMSORT:ソートテーブル関連 **********
+   com_initializeSortTable()   ソートテーブルデータ初期化
+   com_addSortTable()          ソートテーブルデータ追加
+   com_addSortTableByKey()     ソートテーブルデータ追加(キー指定)
+   com_setSortData()           ソートテーブルデータ変更
+   com_searchSortTable()       ソートテーブルデータ検索
+   com_searchSortTableByKey()  ソートテーブルデータ検索(キー指定)
+   com_deleteSortTable()       ソートテーブルデータ削除
+   com_deleteSortTableByKey()  ソートテーブルデータ削除(キー指定)
+   com_freeSortTable()         ソートテーブルデータ解放
+
+   ********** COMRING:リングバッファ関連 **********
+   com_createRinfBuf()         リングバッファ生成
+   com_pushRingBuf()           リングバッファデータ登録
+   com_popRingBuf()            リングバッファデータ取り出し
+   com_getRestRingBuf()        リングバッファ残りデータ数取得
+   com_freeRingBuf()           リングバッファ解放
+
+   ********** COMCFG:コンフィグ関連 **********
+   com_registerCfg()           コンフィグ登録
+   com_registerCfgDigit()      コンフィグ登録(long型版)
+   com_registerCfgUDigit()     コンフィグ登録(ulong型版)
+   com_addCfgValidator()       コンフィグ設定チェック関数登録
+   com_valDigit()              long型数値チェック
+    com_valDigitCondCopy()      long型数値チェック条件コピー
+   com_valDgtList()            long型数値リストチェック
+    com_valDgtListCondCopy()    long型数値リストチェック条件コピー
+    com_valDgtListCondFree()    long型数値リストチェック条件解放
+   com_valUDigit()             ulong型数値チェック
+    com_valUDigitCondCopy()     ulong型数値チェック条件コピー
+   com_valUDgtList()           ulong型数値リストチェック
+    com_valUDgtListCondCopy()   ulong型数値リストチェック条件コピー
+    com_valUDgtListCondFree()   ulong型数値リストチェック条件解放
+   com_valHex()                16進数値チェック
+   com_valHexList()            16進数値リストチェック
+   com_valString()             文字列チェック
+    com_valStringCondCopy()     文字列チェック条件コピー
+   com_valStrList()            文字列リストチェック
+    com_valStrListCondCopy()    文字列リストチェック条件コピー
+    com_valStrListCondCopy()    文字列リストチェック条件解放
+   com_valBool()               TRUE/FALSEチェック
+   com_valYesNo()              YES/NOチェック
+   com_valOnOff()              ON/OFFチェック
+   com_setCfg()                コンフィグ設定
+   com_setCfgDigit()           コンフィグ設定(long型版)
+   com_setCfgUDigit()          コンフィグ設定(ulong型版)
+   com_isEmptyCfg()            コンフィグ未設定チェック
+   com_getCfg()                コンフィグ取得
+   com_getCfgDigit()           コンフィグ取得(long型変換)
+   com_getCfgDigit()           コンフィグ取得(ulong型変換)
+   com_getCfgHex()             コンフィグ取得(16進数変換)
+   com_getCfgBool()            コンフィグ取得(TRUE/YES/ON判定)
+   com_getCfgAll()             コンフィグ全取得
+
+   ********** COMCONV:データ変換関連 **********
+   com_convertUpper()          大文字変換
+   com_convertLower()          小文字変換
+   com_strtoul()               文字列-数値変換(strtoul)
+   com_strtol()                文字列-数値変換(strtol)
+   com_strtof()                文字列-数値変換(strtof)
+   com_strtod()                文字列-数値変換(strtod)
+   com_atoi()                  文字列-数値変換(atoi)
+   com_atol()                  文字列-数値変換(atol)
+   com_atof()                  文字列-数値変換(atof)
+   com_strtooct()              文字列-バイナリ数値列変換
+   com_ltostr()                数値-文字列変換(long型)
+   COM_LTOSTR()                数値-文字列変換(long型) (格納変数定義マクロ)
+   com_ultostr()               数値-文字列変換(ulong型)
+   COM_ULTOSTR()               数値-文字列変換(ulong型) (格納変数定義マクロ)
+   com_bintohex()              数値-文字列変換(16進数)
+   COM_BINTOHEX()              数値-文字列変換(16進数) (格納変数定義マクロ)
+   com_octtostr()              バイナリ数値列-文字列変換
+
+   ********** COMUSTR:文字列ユーティリティ **********
+   com_strncpy()               長さ指定文字列コピー
+   com_strcpy()                文字列コピーマクロ
+   com_strncat()               長さ指定文字列連結
+   com_strcat()                文字列連結マクロ
+   com_connectString()         書式指定文字列追加
+   com_searchString()          文字列検索
+   com_replaceString()         文字列置換
+   com_compareString()         文字列比較
+   com_topString()             先頭文字列位置
+   com_checkString()           複合文字チェック
+   com_getString()             書式指定文字列-文字列ポインタ
+   com_searchStrList()         文字列リスト検索
+
+   ********** COMUTIME:時間ユーティリティI/F **********
+   com_getCurrentTime()        日時取得
+   com_getCurrentTimeGmt()     日時取得(GMT版)
+   com_gettimeofday()          gettimeofday代替関数
+   com_setTime()               任意時間データ整形(time_t型)
+   com_setTimeGmt()            任意時間データ整形(time_t型、GMT版)
+   com_setTimeval()            任意時間データ整形(timeval型)
+   com_setTimevalGmt()         任意時間データ整形(timeval型、GMT版)
+   com_startStopwatch()        時間計測開始
+   com_checkStopwatch()        経過時間計測
+   com_convertSecond()         秒-日時+時間変換
+   com_getDotw()               曜日計算
+   com_strDotw()               曜日文字列取得
+
+   ********** COMFILE:ファイル/ディレクトリ関連 **********
+   com_fopen()                 ファイルオープン
+   com_fclose()                ファイルクローズ
+   com_checkExistFile()        ファイル存在チェック
+   com_checkExistFiles()       ファイル存在チェック(複数対応)
+   com_getFileInfo()           ファイル情報取得
+   com_getFileName()           ファイル名文字列取得
+   com_getFilePath()           ファイルパス文字列取得
+   com_getFileExt()            ファイル拡張子文字列取得
+
+   com_seekFile()              ファイル行走査
+   com_seekBinary()            ファイルのバイナリ読込
+   com_pipeCommand()           コマンド実行結果走査
+   com_seekTextLine()          テキスト行走査
+
+   com_checkIsDir()            ディレクトリ存在チェック
+   com_makeDir()               ディレクトリ作成
+   com_removeDir()             ディレクトリ削除
+   com_seekDir()               ディレクトリ走査
+   com_seekDir2()              ディレクトリ走査(軽量版)
+   com_scanDir()               ディレクトリ直走査
+   com_freeScanDir()           ディレクトリ直走査情報解放
+   com_countFiles()            ディレクトリ内ファイル数カウント
+
+   com_zipFile()               ファイル圧縮
+   com_unzipFile()             ファイル展開
+
+   ********** COMTHRD:スレッド関連 **********
+   com_mutexLock()             排他ロック
+   com_mutexUnlock()           排他アンロック
+
+   com_createThread()          [Linuxのみ] 子スレッド生成
+   com_readyThread()           [Linuxのみ] 子スレッド開始通知
+   com_finishThread()          [Linuxのみ] 子スレッド終了通知
+   com_checkThread()           [Linuxのみ] 子スレッド状態取得
+   com_watchThread()           [Linuxのみ] 子スレッド監視
+   com_getThreadUserData()     [Linuxのみ] 子スレッドユーザーデータ取得
+   com_freeThread()            [Linuxのみ] 子スレッド解放
+
+   ********** COMPRINT:画面出力＆ロギング関連 **********
+   com_setLogFile()            デバッグログファイル名設定
+   com_setTitleForm()          タイトルの書式設定
+   com_setErrorCodeForm()      エラーコード書式設定
+   com_printf()                画面出力＆ロギング
+   com_repeat()                文字の複数入力
+   com_printLf()               改行のみ出力
+   com_printCr()               カーソル復帰後、画面出力
+   com_printBack()             画面出力後カーソル後退
+   com_printTag()              セパレータタグ文字列出力
+   com_printBinary()           バイナリデータ出力
+   com_clear()                 画面クリア
+   com_printfLogOnly()         ロギングのみ
+   com_printfDispOnly()        画面出力のみ
+ 
+   ********** COMDEBUG:デバッグ関連 **********
+   com_setDebugPrint()         デバッグ表示設定
+   com_getDebugPrint()         デバッグ表示設定取得
+   com_debug()                 デバッグ出力
+   com_debugFunc()             実行位置付きのデバッグ出力
+   com_dump()                  バイナリダンプのデバッグ出力
+   com_noComDebugLog()         comモジュールデバッグログ抑制
+
+   com_setWatchMemInfo()       メモリ監視設定
+   com_getWatchMemInfo()       メモリ監視設定取得
+   com_debugMemoryErrorOn()    メモリ捕捉NG発生ON
+   com_debugMemoryErrorOff()   メモリ捕捉NG発生OFF
+
+   com_setWatchFileInfo()      ファイル監視設定
+   com_getWatchFileInfo()      ファイル監視設定取得
+   com_debugFopenErrorOn()     ファイルオープンNG発生ON
+   com_debugFopenErrorOff()    ファイルオープンNG発生OFF
+   com_debugFcloseErrorOn()    ファイルクローズNG発生ON
+   com_debugFcloseErrorOff()   ファイルクローズNG発生OFF
+
+   com_registerErrorCode()     エラーコード登録
+   com_error()                 エラーメッセージ出力
+   com_errorExit()             エラーメッセージ出力後 強制終了
+   com_errorSelect()           エラーメッセージ出力後 条件付き強制終了
+   com_useStdErr()             エラー出力先切り替え
+   com_getLastError()          最新エラーコード取得
+   com_resetLastError()        最新エラーコード初期化
+   com_strerror()              エラー文字列取得
+   com_hookError()             エラーフック
+   com_getErrorCount()         個別エラーカウント取得
+   com_outputErrorCount()      現在のエラーカウント出力
+
+   com_dispFuncTrace()         関数呼出トレース情報出力
+   com_setFuncTrace()          関数呼出トレース機能ON/OFF
+   com_seekNameList()          ネームリストアドレス検索
+
+   ********** COMTEST:テスト関連 **********
+   com_testCode()              テストコードモード
+
+
+
+===== エキストラ機能 (com_extra.h) ===========================================
+
+   ********** COMEXBASE:基本 **********
+   com_initializeExtra()       エキストラ機能初期化
+
+   ********** COMEXINPUT:キー入力関連 **********
+   com_valOnlyEnter()          エンターのみ入力チェック
+   com_valSaveFile()           保存ファイル名チェック
+    com_valSaveFileCondCopy()   保存ファイル名チェック条件コピー
+    com_valSaveFileCondFree()   保存ファイル名チェック条件解放
+   com_valLoadFile()           読込ファイル名チェック
+    com_valLoadFileCondCopy()   読込ファイル名チェック条件コピー
+    com_valLoadFileCondFree()   読込ファイル名チェック条件解放
+
+   com_input()                 文字列入力
+   com_inputVar()              文字列入力(格納バッファ指定版)
+   com_inputMultiLine()        複数行テキスト入力
+   com_isYes()                 Yes文字列判定
+   com_askYesNo()              共通用Yes/No文字列入力
+   com_waitEnter()             共通用エンター待機
+   com_execSelector()          セレクター動作
+
+   ********** COMEXSTAT:統計情報・数学計算I/F **********
+   com_readyStat()             統計データ計算開始
+   com_inputStat()             統計データ入力＆計算
+   com_finishStat()            統計データ計算終了
+   com_isPrime()               素数判定
+
+   ********** COMEXRAND:乱数関連 **********
+   com_rand()                  乱数生成
+   com_checkChance()           確率判定
+   com_rollDice()              ダイスロール
+
+   ********** COMEXSIG:シグナル関連 **********
+   com_setSignalAction()       シグナルハンドラー設定
+   com_resumeSignalAction()    シグナルハンドラー復旧
+
+   ********** COMEXPACK:データパッケージ関連 **********
+   com_readyPack()             データパッケージ開始
+   com_finishPack()            データパッケージ終了
+   com_writePack()             データパッケージ書込
+   com_writePackDirect()       データパッケージ書込(直接指定)
+   com_readPack()              データパッケージ読込
+   com_readPackFix()           データパッケージ読込(固定長限定)
+   com_readPackVar()           データパッケージ読込(可変長限定)
+
+
+

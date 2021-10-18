@@ -1,0 +1,4 @@
+9,11d8
+< #include "com_extra.h"              // toscomエキストラ機能
+< #include "com_select.h"             // toscomセレクト機能
+< #include "com_window.h"             // toscomウィンドウ機能

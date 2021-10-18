@@ -1,0 +1,102 @@
+#!/bin/bash
+
+# toscomから開発環境を作成するスクリプト
+# (1)toscom/ があるディレクトリで newenv.tar.gz を展開する。
+#       tar xvfz toscom/newenv.tar.gz
+# (2)新たに NEWENV というディレクトリが展開されるので入る。
+#       cd NEWENV
+# (3)本ファイルの内容を適宜更新後、実行する。
+#       ./newenv
+# (4)ディレクトリ名 NEWENV はその後 適宜リネームして問題ない。
+#
+# 本スクリプトを実行すると ../toscom/ からファイルをコピーする。
+# カスタマイズ不可のものはコピーではなくシンボリックリンクを生成する。
+# toscomに更新があった場合、新しい toscom.tar.gz を既存の toscomに
+# 上書き展開するだけで、開発環境下のファイルもアップデートされる想定。
+#
+# カスタマイズ可能なファイル(com_spec.cなど)は上書きされずに残せる。
+# このように独自のコードを壊すことが無いように考慮している。
+# ただし toscom側のバージョンアップで com_custom.h に手動で修正が必要に
+# なる可能性はあるので、アップデート内容を確認はすること。
+#
+# 本スクリプトを修正無しで実行すると、基本機能しか取り込まない。
+# オプション機能も必要な場合は、コメントアウトを外してから実行すること。
+# 既に開発環境作成済みでも、修正して再実行しても問題ない。
+#
+# オプション機能を取り込むことにした場合、その機能の初期化処理も実行が必要。
+# 開発環境に入っていた main.c を使っているのであれば、そのファイルに
+# オプション機能のヘッダファイルのインクルード記述を追加すること。
+# そうでない場合も COM_INITILIZE() を使っているソースでインクルードすること。
+
+#####################################################
+### toscom/xconv を使ったモジュール名変更実施時は ###
+### NEWMODULEの内容を同じ名前に変更すること。     ###
+#####################################################
+NEWMODULE="com"
+
+#####################################################
+### シンボリックリンク作成                        ###
+### 必要に応じてコメントアウトを外すこと          ###
+#####################################################
+function makeLink() {
+  # 基本セットの取り込み (削除も変更もしないこと)
+  ln -s ../toscom/${NEWMODULE}_if.h
+  ln -s ../toscom/${NEWMODULE}_proc.c
+  ln -s ../toscom/${NEWMODULE}_procThread.c
+  ln -s ../toscom/${NEWMODULE}_debug.h
+  ln -s ../toscom/${NEWMODULE}_debug.c
+
+  # エキストラ機能を使う場合、以下2つのコメントアウトを外す
+  #ln -s ../toscom/${NEWMODULE}_extra.h
+  #ln -s ../toscom/${NEWMODULE}_extra.c
+  # 更に BUILD/makefile の「-lm」の行もコメントアウトを外すこと
+
+  # セレクト機能を使う場合、以下2つのコメントアウトを外す
+  #ln -s ../toscom/${NEWMODULE}_select.h
+  #ln -s ../toscom/${NEWMODULE}_select.c
+
+  # ウィンドウ機能を使う場合、以下2つのコメントアウトを外す
+  #ln -s ../toscom/${NEWMODULE}_window.h
+  #ln -s ../toscom/${NEWMODULE}_window.c
+  # 更に BUILD/makefile の「-lpanel -lncursesw」の行もコメントアウトを外すこと
+  # これを正常にコンパイルするためには ncurses系のパッケージインストールが必要。
+
+  # シグナル機能を使う場合、以下6つのコメントアウトを外す
+  #ln -s ../toscom/${NEWMODULE}_signal.h
+  #ln -s ../toscom/${NEWMODULE}_signal.c
+  #ln -s ../toscom/${NEWMODULE}_signalCom.h
+  #ln -s ../toscom/${NEWMODULE}_signalCom.c
+  #ln -s ../toscom/${NEWMODULE}_signalPrt1.h
+  #ln -s ../toscom/${NEWMODULE}_signalPrt1.c
+
+  # No.7系を使いたいときは、更に以下2つのコメントアウトを外す
+  #ln -s ../toscom/${NEWMODULE}_signalPrt2.h
+  #ln -s ../toscom/${NEWMODULE}_signalPrt2.c
+
+  # IP系の対応をさらに増やしたいときは、更に以下2つのコメントアウトを外す
+  #ln -s ../toscom/${NEWMODULE}_signalPrt3.h
+  #ln -s ../toscom/${NEWMODULE}_signalPrt3.c
+}
+
+
+
+
+########################################
+### 以後の処理は何も手を加えないこと ###
+########################################
+
+# モジュール名が "com" から変更されている場合は何もしない
+if [ "x$NEWMODULE" != "xcom" ]; then
+  rm -fr com_if.h com_proc*.c com_debug.?
+  rm -fr com_extra.? com_select.? com_window.? com_signal*.?
+  ln -s ../toscom/xname
+  ./xname
+  rm -fr xname
+fi
+
+makeLink
+
+rm -fr *.txt
+ln -s ../toscom/aboutIf.txt
+ln -s ../toscom/aboutUpgrade.txt
+
