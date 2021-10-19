@@ -37,13 +37,15 @@ static com_dbgErrName_t gErrorNameSelect[] = {
     { COM_ERR_END,          "" }  // 最後は必ずこれで
 };
 
-static void finalizeSelect( void ) {
+static void finalizeSelect( void )
+{
     COM_DEBUG_AVOID_START( COM_NO_SKIPMEM );
     com_skipMemInfo( true );
     COM_DEBUG_AVOID_END( COM_PROC_ALL );
 }
 
-void com_initializeSelect( void ) {
+void com_initializeSelect( void )
+{
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
     atexit( finalizeSelect );
     com_registerErrorCode( gErrorNameSelect );

@@ -40,3 +40,27 @@
 #include <wchar.h>
 #include <wctype.h>
 
+/*
+ *****************************************************************************
+ * COMWINBASE:ウィンドウ機能基本I/F
+ *****************************************************************************
+ */
+
+// ウィンドウ機能エラーコード宣言  ＊連動テーブルは gErrorNameWindow[]
+enum {
+    COM_ERR_WINDOWNG     = 950,    // ウィンドウ関連NG
+};
+
+void com_initializeWindow( void );
+
+
+
+
+// ウィンドウ機能 導入フラグ
+#define USING_COM_WINDOW
+// ウィンドウ機能 初期化関数マクロ  ＊COM_INITIALIZE()で使用
+#ifdef  COM_INIT_WINDOW
+#undef  COM_INIT_WINDOW
+#endif
+#define COM_INIT_WINDOW  com_initializeWindow()
+
