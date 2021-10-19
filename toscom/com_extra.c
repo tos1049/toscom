@@ -593,7 +593,7 @@ static BOOL procSigaction( long iCount, const com_sigact_t *iSigList )
         if( !result ) { return false; }
         if( isCol ) {  // 上書き発生時エラーは出すが、処理は続行する
             com_error( COM_ERR_DEBUGNG,
-                       "same signal already registered (%kd)", tmp->signal );
+                       "same signal already registered (%ld)", tmp->signal );
             isCol = false;
         }
     }

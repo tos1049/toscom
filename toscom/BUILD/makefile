@@ -209,9 +209,9 @@ CHECKF_PRE := _CHECKF_
 
 checkf: CFLAGS += -Werror
 checkf: CFLAGS += -DCHECK_PRINT_FORMAT
-checkf: CHECKF := $(CHECK_PRE)
+checkf: CHECKF := $(CHECKF_PRE)
 checkf: init
-	chmod 666 $(CHECK_PRE)$(COMMAND)
+	chmod 666 $(CHECKF)$(COMMAND)
 
 
 
