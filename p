@@ -18,5 +18,7 @@ fi
 cd ${DIR}/BUILD
 make allclean
 cd ../..
-tar --exclude .svn -zcvf ${DIR}.tar.gz ${DIR}
+tarname="${DIR,,}"
+if [ "x$2" != "x" ]; then tarname+="_${2}"; fi
+tar --exclude .svn -zcvf ${tarname}.tar.gz ${DIR}
 

@@ -110,12 +110,9 @@ tartemp=""
 
 ##### resetTextのアーカイブ (.svnはアーカイブから除外する)
 if [ -e $RDIR ]; then
-  echo "--- resetTxt.tar.gz を作成 ---"
-  cd $DIR/BUILD
-  make allclean >& /dev/null
-  cd ../..
-  tar --exclude .svn -zvcf resetTxt.tar.gz $RDIR >& /dev/null
-  tartemp+="resetTxt.tar.gz "
+  echo "--- resettxt.tar.gz を作成 ---"
+  ./p resetTxt all >& /dev/null
+  tartemp+="resettxt_all.tar.gz "
 fi
 
 ##### smplCommのアーカイブ
@@ -123,8 +120,8 @@ if [  -e $SDIR ]; then
   echo "--- smplcomm.tar.gz を作成 ---"
 
   # smplComm全体を別口で取っておく
-  tar --exclude .svn -zcvf smplComm.tar.gz $SDIR >& /dev/null
-  tartemp+="smplComm.tar.gz "
+  ./p smplComm all >& /dev/null
+  tartemp+="smplcomm_all.tar.gz "
 fi
 
 ##### Analyzerのアーカイブ
@@ -132,8 +129,8 @@ if [ -e $ADIR ]; then
   echo "--- analyzer.tar.gz を作成 ---"
 
   # analyzer全体を別口で取っておく
-  tar --exclude .svn -zcvf Analyzer.tar.gz $ADIR >& /dev/null
-  tartemp+="Analyzer.tar.gz "
+  ./p Analyzer all >& /dev/null
+  tartemp+="analyzer_all.tar.gz "
 fi
 
 ##### toscomのアーカイブ
@@ -202,7 +199,7 @@ tarfiles="$CDIR/newenv.tar.gz $CDIR/com_testtos.tar.gz"
 
 romfiles="${docfiles} ${comfiles} ${tarfiles}"
 chmod 444 $romfiles
-tar cvfz $relfile $CDIR/BUILD/makefile $romfiles $specfiles
+tar cvfz $relfile $CDIR/BUILD/makefile $comfiles $specfiles $docfiles $tarfiles
 chmod 644 $romfiles
 
 echo "--- 不要なファイルを削除 ---"
