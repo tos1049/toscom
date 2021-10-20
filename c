@@ -81,6 +81,12 @@ fi
 echo 
 echo 
 cd ../../toscom
+./xconv
+checker "$tarfile (convert to EUC)" "rel" "$testfile" "toscom"
+
+echo 
+echo 
+cd ../../toscom
 ./xname
 checker "$tarfile (module rename)" "rel" "$testfile" "toscom"
 
@@ -103,6 +109,7 @@ if [ -e toscom/analyzer.tar.gz ]; then
   ./newenv
   checker "analyzer.tar.gz (module rename)" "rel" "$anlzfile" "analyzer"
 fi
+
 
 # 全チェック終了
 cat<< CHECKOK

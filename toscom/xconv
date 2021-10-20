@@ -50,8 +50,8 @@ function convSrc() {
   fileconv1 com_if.h com_proc*.c com_debug.*
   fileconv1 com_extra.* com_select.* com_window.*
   #fileconv1 com_signal*
-  fileconv0 main.c com_custom.h com_spec.* com_test.c
-  #fileconv0 xname
+  fileconv0 main.c com_custom.h com_spec.* com_test*.c
+  fileconv0 xname
 }
 
 function convArcDir() {
