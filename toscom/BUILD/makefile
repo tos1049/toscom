@@ -202,7 +202,7 @@ smpl.o: $(SRC)/smpl_*.c $(SRC)/smpl_*.h $(COMMON_HEAD)
 # そこで com_printf を printf に変換してコンパイルを実施できるようにする。
 # 書式指定に問題がある場合は警告が出て -Werror指定することでそれをエラーと
 # して結果を出す。定期的にこのビルドでチェックをすることを推奨する。
-# make checkf により生成されるバイナリは CHECK_PRE に定義された文字列を
+# make checkf により生成されるバイナリは CHECKF_PRE に定義された文字列を
 # ファイル名の前に付与し、実行属性を落としたものになる。
 #
 CHECKF_PRE := _CHECKF_
@@ -278,7 +278,7 @@ init: clean $(COMMAND)
 
 ########## ビルドによる直接的生成物の削除 (make clean) #######################
 clean:
-	$(RM) -fr $(COMMAND) $(COMMAND).exe $(CHECK_PRE)$(COMMAND)
+	$(RM) -fr $(COMMAND) $(COMMAND).exe $(CHECKF_PRE)$(COMMAND)
 	$(RM) -fr *.o ../tags $(RELEASE)* $(COMMAND)*.tar.gz $(NAMELIST)
 
 ########## ログファイルやコアファイルを削除 (make logclean) ##################
