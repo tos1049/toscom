@@ -118,7 +118,6 @@ fi
 ##### smplCommのアーカイブ
 if [  -e $SDIR ]; then
   echo "--- smplcomm.tar.gz を作成 ---"
-
   # smplComm全体を別口で取っておく
   ./p smplComm all >& /dev/null
   tartemp+="smplcomm_all.tar.gz "
@@ -127,7 +126,6 @@ fi
 ##### Analyzerのアーカイブ
 if [ -e $ADIR ]; then
   echo "--- analyzer.tar.gz を作成 ---"
-
   # analyzer全体を別口で取っておく
   ./p Analyzer all >& /dev/null
   tartemp+="analyzer_all.tar.gz "

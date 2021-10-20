@@ -235,7 +235,7 @@ toscom grimoire Ver3.00
    com_setTitleForm()          タイトルの書式設定
    com_setErrorCodeForm()      エラーコード書式設定
    com_printf()                画面出力＆ロギング <printf代替>
-   com_repeat()                文字の複数入力
+   com_repeat()                文字列の複数連続出力
    com_printLf()               改行のみ出力
    com_printCr()               カーソル復帰後、画面出力
    com_printBack()             画面出力後カーソル後退
