@@ -5094,7 +5094,7 @@ void com_setErrorCodeForm( const char *iError );
  * make checkfと打ってビルドすると、com_printf()のほか、幾つかの出力用I/Fを
  * printf()に置換してコンパイルを試みる。これにより使っている出力書式に対して
  * コンパイラが持つ上記のチェックを実際に掛けることが可能となる。開発中も
- * 図氏子の方法でコンパイルし、エラーにならないようにすることを推奨する。
+ * 随時この方法でコンパイルし、エラーにならないようにすることを推奨する。
  * 以下のI/Fが置換される：
  *   com_printf()・com_printCr()・com_printBack()・com_printTag()・
  *   com_printfLogOnly()・com_printfDispOnly()・com_debug()・com_debugFunc()・
@@ -5133,7 +5133,7 @@ void com_printf( const char *iFormat, ... );
 #endif
 
 /*
- * 文字の複数入力  com_repeat()
+ * 文字列の複数連続出力  com_repeat()
  * ---------------------------------------------------------------------------
  *   COM_ERR_DEBUGNG: [com_prmNG] !iSource
  * ===========================================================================
