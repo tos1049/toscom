@@ -105,7 +105,7 @@ typedef enum {
     COM_MOD_DROP,               // データ受信がフィルタリングにより破棄
     COM_MOD_CLOSE,              // 自分で close()実施
     COM_MOD_CLOSED,             // 対向からのTCPクローズ
-    COM_MOD_STDIDON,            // 標準入力受付登録
+    COM_MOD_STDINON,            // 標準入力受付登録
     COM_MOD_STDIN,              // 標準入力受付
     COM_MOD_STDINOFF,           // 標準入力受付解除
     COM_MOD_TIMERON,            // タイマー起動
@@ -864,7 +864,294 @@ BOOL com_resetTimer( com_selectId_t iId, long iTimer )
 
 // イベント待受処理 ----------------------------------------------------------
 
+static void addFdList(
+        int iFd, fd_set *oFds, int *oMax, int *oFdList, int *ioCount )
+{
+    FD_SET( iFd, oFds );
+    if( *oMax < iFd ) { *oMax = iFd; }
+    oFdList[*ioCount] = iFd;
+    (*ioCount)++;
+}
 
+static int createFdList( fd_set *oFds, int *oMax, int *oFdList )
+{
+    for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
+        oFdList[id] = NO_EVENTS;
+    }
+    FD_ZERO( oFds );
+    int count = 0;
+    for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
+        com_eventInf_t* tmp = &(gEventInf[id]);
+        if( !tmp->isUse ) { continue; }
+        if( tmp->sockId == COM_NO_SOCK ) { continue; }
+        addFdList( tmp->sockId, oFds, oMax, oFdList, &count );
+    }
+    return count;
+}
+
+static com_selectId_t gWaitingId = COM_NO_SOCK;
+
+static void getTimeValue(
+        long *oTimer, struct timeval *iNow, com_selectId_t iId )
+{
+    long restTime = calculateRestTime( iId, iNow );
+    if( restTime <= 0 ) { restTime = 0; }
+    if( gWaitingId == COM_NO_SOCK || restTime < *oTimer ) {
+        gWaitingId = iId;
+        *oTimer = restTime;
+    }
+}
+
+static struct timeval *checkNextTimer( struct timeval *iTm )
+{
+    gWaitingId = COM_NO_SOCK;
+    struct timeval now;
+    if( !com_gettimeofday( &now, "time for next timer" ) ) { return NULL; }
+
+    long count = 0;
+    long timer = 0;
+    for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
+        com_eventInf_t* tmp = &(gEventInf[id]);
+        if( !tmp->isUse ) { continue; }
+        if( tmp->timer == COM_NO_SOCK ) { continue; }
+        getTimeValue( &timer, &now, id );
+        count++;
+    }
+    if( !count ) { return NULL; }
+    *iTm = (struct timeval){ timer / TIMEUNIT, timer & TIMEUNIT };
+    return iTm;
+}
+
+static com_selectId_t searchId( int iFd )
+{
+    for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
+        com_eventInf_t* tmp = &(gEventInf[id]);
+        if( tmp->isUse && tmp->sockId == iFd ) { return id; }
+    }
+    return FD_ERROR;
+}
+
+static int getRecvId(
+        fd_set *iFds, int iCount, int *iWait, com_selectId_t *oRecv )
+{
+    int count = 0;
+    for( int i = 0;  i < iCount;  i++ ) {
+        if( FD_ISSET( iWait[i], iFds ) ) {
+            oRecv[count++] = searchId( iWait[i] );
+        }
+    }
+    return count;
+}
+
+static BOOL acceptSocket(
+        int *oAccFd, int iSockId, com_sockaddr_t *ioAddr, BOOL iNonBlock )
+{
+    memset( ioAddr, 0, sizeof(*ioAddr) );
+    ioAddr->len = sizeof(ioAddr->addr);
+
+    if( iNonBlock ) { fcntl( iSockId, F_SETFL, O_NONBLOCK ); }
+    else { fcntl( iSockId, F_SETFL, O_SYNC ); }
+
+    *oAccFd = accept( iSockId, (struct sockaddr*)(&ioAddr->addr),
+                      &ioAddr->len );
+    if( *oAccFd  < 0 ) {
+        if( checkNoRecv( iNonBlock, errno ) ) { return false; }
+        com_error( COM_ERR_ACCEPTNG,
+                   "fail to accept tcp connection [%s]", com_strerror(errno) );
+        return false;
+    }
+    return true;
+}
+
+static void setAcceptInf(
+        com_selectId_t iAcc, com_selectId_t iListen,
+        com_sockEventCB_t iEventFunc, int iAccSd, com_sockaddr_t *iFrom )
+{
+    com_eventInf_t* tmp = &(gEventInf[iAcc]);
+    *tmp = gEventInf[iListen];   // まず listenソケットの設定をコピー
+    // 構造体リテラルを使うと指定しないものが 0になるため、個別に設定する
+    tmp->isListen = false;
+    if( iEventFunc ) { tmp->eventFunc = iEventFunc; }
+    tmp->sockId = iAccSd;
+    tmp->dstInf = *iFrom;
+}
+
+com_selectId_t com_acceptSocket(
+        com_selectId_t iListen, BOOL iNonBlock, com_sockEventCB_t iEventFunc )
+{
+    com_eventInf_t* tmp = checkSocketInf( iListen, false );
+    if( !tmp ) {COM_PRMNG(COM_NO_SOCK);}
+    if( !tmp->isListen ) {COM_PRMNG(COM_NO_SOCK);}
+
+    int accSd = COM_NO_SOCK;
+    com_sockaddr_t fromAddr;
+    if( !acceptSocket( &accSd, tmp->sockId, &fromAddr, iNonBlock ) ) {
+        return COM_NO_SOCK;
+    }
+    // 確立したTCP接続用の管理IDを取得し、情報設定
+    com_skipMemInfo( true );
+    com_selectId_t accId = getEventId( false );
+    com_skipMemInfo( false );
+    if( accId == COM_NO_SOCK ) { close( accSd ); return COM_NO_SOCK; }
+    setAcceptInf( accId, iListen, iEventFunc, accSd, &fromAddr );
+    debugEventLog( COM_MOD_ACCEPT, accId, tmp, NULL, 0 );
+    return accId;
+}
+
+static BOOL callEventFunc(
+        const com_eventInf_t *iInf, com_selectId_t iId,
+        int iEvent, void *iData, size_t iDataSize, int iError )
+{
+    if( !iInf->eventFunc ) {
+        com_error( iError, "event function not registered" );
+        return false;
+    }
+    return (iInf->eventFunc)( iId, iEvent, iData, iDataSize );
+}
+
+static BOOL acceptTcpConnection( com_selectId_t iId, BOOL iNonBlock )
+{
+    // accept()に失敗しても、それが理由でループ終了とはしない
+    com_selectId_t accId = com_acceptSocket( iId, iNonBlock, NULL );
+    if( accId == COM_NO_SOCK ) { return true; }
+
+    return callEventFunc( &(gEventInf[iId]), accId,
+                          COM_EVENT_ACCEPT, NULL, 0, COM_ERR_ACCEPTNG );
+}
+
+static BOOL closeTcpConnection( com_selectId_t iId )
+{
+    com_eventInf_t* tmp = &(gEventInf[iId]);
+    // 非TCP接続時は何もせずに返す(念の為の処理)
+    if( UNLIKELY( tmp->type <= COM_SOCK_UDP )) { return true; }
+
+    (void)closeSocket( tmp );  // close()に失敗しても気にしない(何も出来ない)
+    return callEventFunc( tmp, iId, COM_EVENT_CLOSE, NULL, 0, COM_ERR_CLOSENG );
+}
+
+static uchar gRecvBuf[COM_DATABUF_SIZE];
+
+static BOOL readStdin( com_selectId_t iId )
+{
+    ssize_t bytes = read( 0, gRecvBuf, sizeof(gRecvBuf) );
+    com_printfLogOnly( (char*)gRecvBuf );
+    gRecvBuf[bytes - 1] = '\0';
+    com_eventInf_t* inf = &(gEventInf[iId]);
+    debugEventLog( COM_MOD_STDIN, iId, inf, gRecvBuf, (size_t)bytes );
+    return (inf->stdinFunc)( (char*)gRecvBuf, (size_t)bytes );
+}
+
+static BOOL recvPacket( com_selectId_t iId, BOOL iNonBlock, long *oDrop )
+{
+    COM_CLEAR_BUF( gRecvBuf );
+    com_eventInf_t* inf = &(gEventInf[iId]);
+    if( inf->sockId == ID_STDIN ) { return readStdin( iId ); }
+
+    com_sockaddr_t fromAddr;
+    ssize_t recvSize;
+    COM_RECV_RESULT_t ret = com_receiveSocket(
+            iId, gRecvBuf, sizeof(gRecvBuf), iNonBlock, &recvSize, &fromAddr );
+    if( !ret ) { return false; } // エラーは com_receiveSocket()で出力済み
+    if( ret == COM_RECV_NODATA ) { return true; }
+    if( ret == COM_RECV_DROP ) { (*oDrop)++;  return true; }
+    // TCP接続固有処理 (接続受付/切断)
+    if( ret == COM_RECV_ACCEPT ) { return acceptTcpConnection(iId,iNonBlock); }
+    if( ret == COM_RECV_CLOSE )  { return closeTcpConnection( iId ); }
+    // 非TCP接続時は送信元を対向として保持
+    if( inf->type <= COM_SOCK_UDP ) { inf->dstInf = fromAddr; }
+    return callEventFunc( inf, iId, COM_EVENT_RECEIVE, gRecvBuf, recvSize,
+                          COM_ERR_RECVNG );
+}
+
+static BOOL recvBySelect( fd_set *iFds, int iCount, int *iWait, BOOL *oRetry )
+{
+    com_selectId_t recvId[gEventId];  // さりげなく動的確保
+    int count = getRecvId( iFds, iCount, iWait, recvId );
+    BOOL result = false;
+    BOOL lastResult = true;
+    long drop = 0;
+    for( int i = 0;  i < count;  i++ ) {
+        if( recvId[i] == FD_ERROR ) { result = false; }
+        else { result = recvPacket( recvId[i], false, &drop ); }
+        // ひとつでも結果が falseなら最終結果は falseになる
+        if( !result ) { lastResult = false; }
+    }
+    *oRetry = (drop == count);
+    return lastResult;
+}
+
+BOOL com_waitEvent( void )
+{
+    fd_set fds;
+    int maxFd = 0;
+    int waitFd[gEventId];
+    while(1) {
+        int count = createFdList( &fds, &maxFd, waitFd );
+        struct timeval tm;
+        struct timeval* selTimer = checkNextTimer( &tm );
+        if( !selTimer && !count ) { return false; }  // 待機するもの無し
+
+        int result = 0;
+        if( 0 > (result = select( maxFd+1, &fds, NULL, NULL, selTimer )) ) {
+            com_error( COM_ERR_SELECTNG,
+                       "fail to select[%s]", com_strerror(errno) );
+            return false;
+        }
+        if( !result ) { return expireTimer( gWaitingId ); }
+        BOOL retry = false;
+        if( recvBySelect(&fds, count, waitFd, &retry) ) { if(!retry){break;} }
+        else { return false; }
+    }
+    return true;
+}
+
+BOOL com_watchEvent( void ) {
+    BOOL result = true;
+    GET_CURRENT;
+    long drop = 0;
+    for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
+        com_eventInf_t* inf = &(gEventInf[id]);
+        if( !inf->isUse ) { continue; }
+        if( inf->eventFunc ) {
+            if( !recvPacket( id, true, &drop ) ) { result = false; }
+        }
+        else if(current) {if( !checkTimer(id,current) ) { result = false; }}
+    }
+    // こちらは dropがあっても何もしない
+    return result;
+}
+
+static com_selectId_t gStdinId = COM_NO_SOCK;
+
+com_selectId_t com_registerStdin( com_getStdinCB_t iRecvFunc )
+{
+    if( gStdinId != COM_NO_SOCK ) { return gStdinId; }  // 複数登録は不可
+    if( !iRecvFunc ) {COM_PRMNG(COM_NO_SOCK);}
+    com_skipMemInfo( true );
+    com_selectId_t id = getEventId( false );
+    com_skipMemInfo( false );
+    if( id == COM_NO_SOCK ) { return COM_NO_SOCK; }
+    com_eventInf_t* tmp = &(gEventInf[id]);
+    *tmp = (com_eventInf_t){
+        .isUse = true,  // .allowMultiLine = iMulti, // 複数行は中断中
+        .timer = COM_NO_SOCK,  .sockId = ID_STDIN,  .stdinFunc = iRecvFunc
+    };
+    gStdinId = id;
+    debugEventLog( COM_MOD_STDINON, id, tmp, NULL, 0 );
+    return gStdinId;
+}
+
+void com_cancelStdin( com_selectId_t iId )
+{
+    com_eventInf_t* tmp = checkSocketInf( iId, false );
+    if( !tmp ) {COM_PRMNG();}
+    if( tmp->sockId != ID_STDIN ) {COM_PRMNG();}
+
+    tmp->isUse = false;
+    gStdinId = COM_NO_SOCK;
+    debugEventLog( COM_MOD_STDINOFF, iId, tmp, NULL, 0 );
+    return;
+}
 
 
 
@@ -1298,7 +1585,6 @@ static com_dbgErrName_t gErrorNameSelect[] = {
 static void finalizeSelect( void )
 {
     COM_DEBUG_AVOID_START( COM_NO_SKIPMEM );
-#ifdef TO_BE_DEVELOPPED
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
         com_eventInf_t* tmp = &(gEventInf[id]);
         if( !tmp->isUse ) { continue; }
@@ -1308,7 +1594,6 @@ static void finalizeSelect( void )
             else { com_cancelStdin( id ); }
         }
     }
-#endif
     com_skipMemInfo( true );
     com_free( gEventInf );
     freeIfInfo();
