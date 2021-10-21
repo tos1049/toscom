@@ -332,6 +332,10 @@ BOOL com_cancelTimer( com_selectId_t iId );
  *****************************************************************************
  */
 
+void com_switchEventBuffer( void *iBuf, size_t iBufSize );
+
+
+
 BOOL com_waitEvent( void );
 
 

@@ -1029,11 +1029,21 @@ static BOOL closeTcpConnection( com_selectId_t iId )
     return callEventFunc( tmp, iId, COM_EVENT_CLOSE, NULL, 0, COM_ERR_CLOSENG );
 }
 
-static uchar gRecvBuf[COM_DATABUF_SIZE];
+static uchar gDefaultRecvBuf[COM_DATABUF_SIZE];
+// 実際に使用するバッファ (デフォルト設定は com_initializeSelect()で実施
+static uchar* gRecvBuf = NULL;
+static size_t gRecvBufSize = 0;
+
+void com_switchEventBuffer( void *iBuf, size_t iBufSize )
+{
+    gRecvBuf = iBuf;
+    gRecvBufSize = iBufSize;
+}
+
 
 static BOOL readStdin( com_selectId_t iId )
 {
-    ssize_t bytes = read( 0, gRecvBuf, sizeof(gRecvBuf) );
+    ssize_t bytes = read( 0, gRecvBuf, gRecvBufSize );
     com_printfLogOnly( (char*)gRecvBuf );
     gRecvBuf[bytes - 1] = '\0';
     com_eventInf_t* inf = &(gEventInf[iId]);
@@ -1043,14 +1053,14 @@ static BOOL readStdin( com_selectId_t iId )
 
 static BOOL recvPacket( com_selectId_t iId, BOOL iNonBlock, long *oDrop )
 {
-    COM_CLEAR_BUF( gRecvBuf );
+    memset( gRecvBuf, 0, gRecvBufSize );
     com_eventInf_t* inf = &(gEventInf[iId]);
     if( inf->sockId == ID_STDIN ) { return readStdin( iId ); }
 
     com_sockaddr_t fromAddr;
     ssize_t recvSize;
     COM_RECV_RESULT_t ret = com_receiveSocket(
-            iId, gRecvBuf, sizeof(gRecvBuf), iNonBlock, &recvSize, &fromAddr );
+            iId, gRecvBuf, gRecvBufSize, iNonBlock, &recvSize, &fromAddr );
     if( !ret ) { return false; } // エラーは com_receiveSocket()で出力済み
     if( ret == COM_RECV_NODATA ) { return true; }
     if( ret == COM_RECV_DROP ) { (*oDrop)++;  return true; }
@@ -1402,6 +1412,12 @@ static BOOL openSocketForInfo( void )
     return true;
 }
 
+static void setMacAddr( com_ifinfo_t *oInf, void *iMacAddr )
+{
+    memcpy( oInf->hwaddr, iMacAddr, ETH_ALEN );
+    oInf->h_len = ETH_ALEN;
+}
+
 static void setIfInfo( com_ifinfo_t *oInf, char *iIfname )
 {
     oInf->ifname = iIfname;
@@ -1415,10 +1431,7 @@ static void setIfInfo( com_ifinfo_t *oInf, char *iIfname )
     if( 0 > ioctl( gIfInfoSock, (int)SIOCGIFHWADDR, &ifr ) ) {
         com_error( COM_ERR_GETIFINFO, "fail to get hwaddr for %s", iIfname );
     }
-    else {
-        memcpy( oInf->hwaddr, ifr.ifr_hwaddr.sa_data, ETH_ALEN );
-        oInf->h_len = ETH_ALEN;
-    }
+    else { setMacAddr( oInf, ifr.ifr_hwaddr.sa_data ); }
 }
 
 static com_ifinfo_t *getIfInfo( char *iIfname )
@@ -1501,9 +1514,229 @@ static long collectIfInfo( void )
     }
     return gIfInfoCnt;
 }
+
+#ifdef LINUXOS
+/////////////// Netlinkソケットを使ったI/F情報取得処理
+/////////////// 処理起点は getIfInfoByNetlink()
+
+typedef struct {
+    struct nlmsghdr     hdr;
+    struct ifinfomsg    body;
+} com_getLinkReq_t;
+
+typedef struct {
+    struct nlmsghdr     hdr;
+    struct ifaddrmsg    body;
+} com_getAddrReq_t;
+
+static void setNlmsgHdr( struct nlmsghdr *oHdr, size_t iSize, ushort iType )
+{
+    *oHdr = (struct nlmsghdr){
+        .nlmsg_len   = NLMSG_LENGTH( iSize ),
+        .nlmsg_type  = iType,
+        .nlmsg_flags = (NLM_F_REQUEST | NLM_F_DUMP),
+        .nlmsg_pid   = getpid()
+    };
+}
+
+#define SETMSGHDR( MSGTYPE, MSGOP ) \
+    MSGTYPE  msg; \
+    do { \
+        memset( &msg, 0, sizeof(msg) ); \
+        setNlmsgHdr( &msg.hdr, sizeof(msg), (MSGOP) ); \
+    } while(0)
+
+static char gAddrBuff[COM_DATABUF_SIZE];
+static char gRouteBuff[COM_DATABUF_SIZE];
+
+typedef BOOL(*com_nlmsgFunc_t)(
+    struct nlmsghdr *iMsg, size_t iMsgLen, void *iUserData );
+
+#define BREAK( RESULT ) \
+    result = (RESULT); \
+    break; \
+    do {} while(0)
+
+static BOOL recvNlmsg(
+        com_selectId_t iId, char *oBuf, size_t iBufSize,
+        com_nlmsgFunc_t iFunc, void *iUserData )
+{
+    BOOL result = false;
+    while(1) {
+        memset( oBuf, 0, iBufSize );
+        ssize_t msgLen = 0;
+        if( !com_receiveSocket( iId, oBuf, iBufSize, false, &msgLen, NULL ) ) {
+            BREAK( false );
+        }
+        if( (size_t)msgLen < sizeof(struct nlmsghdr) ) {
+            com_error( COM_ERR_RECVNG, "received illegal packet (netlink)" );
+            BREAK( false );
+        }
+        struct nlmsghdr* msg = (struct nlmsghdr*)oBuf;
+        if( msg->nlmsg_type == NLMSG_DONE ) { BREAK( true ); } // 処理終了
+        if( !iFunc( msg, msgLen, iUserData ) ) { BREAK( false ); }
+    }
+    com_deleteSocket( iId );
+    return result;
+}
+
+static BOOL setIfName( com_ifinfo_t *oInf, void *iIfname )
+{
+    if( !(oInf->ifname = com_strdup( (char*)iIfname, NULL )) ) {
+        return false;
+    }
+    return true;
+}
+
+static com_ifinfo_t *getLinkDataFromAttr(
+        struct ifinfomsg *iIfMsg, int iMsgLen )
+{
+    com_ifinfo_t inf;
+    memset( &inf, 0, sizeof(inf) );
+    for( struct rtattr* attr = (struct rtattr*)IFLA_RTA( iIfMsg );
+         RTA_OK( attr, iMsgLen );  attr = RTA_NEXT( attr, iMsgLen ) )
+    {
+        if( attr->rta_type == IFLA_IFNAME ) {
+            if( !setIfName( &inf, RTA_DATA(attr) ) ) { return NULL; }
+        }
+        if( attr->rta_type == IFLA_ADDRESS ) {
+            setMacAddr( &inf, RTA_DATA(attr) );
+        }
+    }
+    if( !inf.ifname ) { return NULL; }
+    com_ifinfo_t* tmp = getIfInfo( inf.ifname );
+    if( !tmp ) { return NULL; }
+    *tmp = inf;
+    tmp->ifindex = iIfMsg->ifi_index;
+    return tmp;
+}
+
+static void *addSaForNetlink( com_ifinfo_t *oInf, int iFamily )
+{
+    struct sockaddr* tmp = NULL;
+    if( iFamily == IF_ANET ) {
+        tmp = com_malloc( size_t(struct sockaddr_in),  "IPv4 by Netlink" );
+    }
+    else {
+        tmp = com_malloc( size_t(struct sockaddr_in6), "IPv6 by Netlink" );
+    }
+    if( !tmp ) { return NULL; }
+    tmp->sa_family = iFamily;
+
+    com_ifaddr_t* soAddr =
+        com_reallocAddr( &oInf->soAddrs, sizeof(*soAddr), 0,
+                         &oInf->cntAddrs, 1, "setIpAddr (sockaddr)" );
+    if( !soAddr ) { com_free( tmp );  return NULL; }
+    soAddr->addr = tmp;
+    return tmp;
+}
+
+static BOOL setIpAddr( com_ifinfo_t *oInf, struct ifaddrmsg *iMsg, void *iAddr )
+{
+    int family = iMsg->ifa_family;
+    if( family == AF_INET ) {
+        struct sockaddr_in* sa = addSaForNetlink( oInf, family );
+        if( !sa ) { return false; }
+        memcpy( &sa->sin_addr.s_addr, iAddr, sizeof(struct in_addr) );
         
+    }
+    else if( family = AF_INET6 ) {
+        struct sockaddr_in6* sa6  addSaForNetlink( oInf, family );
+        if( !sa6 ) { return false; }
+        memcpy( &sa6->sin6_Addr.s6_addr, iAddr, sizeof(struct in6_addr) );
+    }
+    oInf->soAddrs[0].preflen = iMsg->ifa_prefixlen;
+    return true;
+}
 
+static BOOL setIfLabel( com_ifinfo_t *oInf, void *iLabel )
+{
+    char* tmp = com_strdup( (char*)iLabel, NULL );
+    if( !tmp ) { return false; }
+    oInf->soAddrs[0].label = tmp;
+    return true;
+}
 
+static BOOL getAddrDataFromAttr(
+        struct ifaddrmsg *iAddrMsg, int iMsgLen, com_ifinfo_t *oInf )
+{
+    for( struct rtattr* tmp = (struct rta_attr*)IFA_RTA( iAddrMsg );
+         RFA_OK( attr, iMsgLen );  attr = RTA_NEXT( attr, iMsgLen ) )
+    {
+        if( attr->rta_type == IFA_ADDRESS ) {
+            if( !setIpAddr( oInf, iAddrMsg, RTA_DATA( attr ) ) ) {
+                return false;
+            }
+        }
+        if( attr->rta_type == IFA_LABEL ) {
+            if( !setIfLabel( oInf, RTA_DATA( attr ) ) ) { return false; }
+        }
+    }
+    return true;
+}
+
+struct linkinfo {
+    ulong index;
+    com_ifinfo_t* ifInfo;
+};
+
+// com_nlmsgFunc_t型関数
+static BOOL getAddr( struct nlmsghdr *iMsg, size_t iMsgLen, void *iUserData )
+{
+    struct linkinfo* inf = iUserData;
+
+    for( ; NLMSG_OK(iMsg, iMsgLen); iMsg = NLMSG_NEXT(iMsg, iMsgLen) ) {
+        struct ifaddrmsg* msg = (void*)NLMSG_DATA( iMsg );
+        int msgLen = IFA_PAYLOAD( iMsg );
+        if( msg->ifa_index == inf->index ) {
+            getAddrDataFromAttr( msg, msgLen, inf->ifinfo );
+        }
+    }
+    return true;
+}
+
+static com_selectId_t createNetlinkSocket( void )
+{
+    return com_createSocket( COM_SOCK_NETLINK, NULL, NULL, NULL, NULL );
+}
+
+static BOOL getAddrList( struct linkinfo *ioInf )
+{
+    com_selectId_t* id = createNetlinkSocket();
+    if( id == COM_NO_SOCK ) { return false; }
+    SETMSGHDR( com_getAddrReq_t, RTM_GETADDR );
+    msg.body.ifa_family = 0;  // AF_INET
+    if( !com_sendSocket( id, &msg, msg.hdr.nlmsg_len, NULL ) ) { return false; }
+    return recvNlmsg( id, gAddrBuff, sizeof(gAddrBuff), getAddr, ioInf );
+}
+
+// com_nlmsgFunc_t型関数
+static BOOL getLink( struct nlmsghdr *iMsg, size_t iMsgLen, void *iUserData )
+{
+    COM_UNUSED( iUserData );
+    for( ; NLMSG_OK( iMsg, iMsgLen ); iMsg = NLMSG_NEXT( iMsg, iMsgLen ) ) {
+        struct ifinfomsg* msg = (void*)NLMSG_DATA( iMsg );
+        int msgLen = IFLA_PAYLOAD( iMsg );
+        com_ifinfo_t* inf = getLinkDataFromAttr( msg, msgLen );
+        struct linkinfo linkInf = { (ulong)(msg->ifi_index), inf };
+        if( !getAddrList( &linkInf ) ) { return false; }
+    }
+    return true;
+}
+
+static long getIfInfoByNetlink( void )
+{
+    com_selectId_t id = createNetlinkSocket();
+    if( id == COM_NO_SOCK ) { return COM_IFINFO_ERR; }
+    SETMSGHDR( com_getLinkReq_t, RTM_GETLINK );
+    msg.body.ifi_family = ARPHRD_ETHER;
+    if( !com_sendSocket( id, &msg, msg.hdr.nlmsg_len, NULL ) ) {
+        return COM_IFINFO_ERR;
+    }
+    (void)recvNlmsg( id, gRouteBuff, sizeof(gRouteBuff), getLink, NULL );
+    return gIfInfoCnt;
+}
+#endif // LINUXOS
 
 long com_collectIfInfo( com_ifinfo_t **oInf, BOOL iUseNetlink )
 {
@@ -1537,8 +1770,6 @@ long com_getIfInfo( com_ifinfo_t **oInf, BOOL iUseNetlink )
 
 
 
-
-
 // デバッグ用イベント情報出力 ------------------------------------------------
 
 BOOL com_getnameinfo(
@@ -1562,7 +1793,6 @@ BOOL com_getnameinfo(
     COM_SET_IF_EXIST( oPort, sbuf );
     return true;
 }
-
 
 
 
@@ -1605,6 +1835,8 @@ void com_initializeSelect( void )
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
     atexit( finalizeSelect );
     com_registerErrorCode( gErrorNameSelect );
+    gRecvBuf = gDefaultRecvBuf;
+    gRecvBufSize = sizeof(gDefaultRecvBuf);
     COM_DEBUG_AVOID_END( COM_PROC_ALL );
 }
 
