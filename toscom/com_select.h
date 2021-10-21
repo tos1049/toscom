@@ -111,7 +111,7 @@ void com_initializeSelect( void );
  *       const char *iAddress, ushort iPort );
  */
 #define com_getaddrinfo( TARGET, TYPE, FAMILY, ADDR, PORT ) \
-    com_getaddrinfoFunc( (TARGEY),(TYPE),(FAMILY),(ADDR),(PORT),COM_FILELOC )
+    com_getaddrinfoFunc( (TARGET),(TYPE),(FAMILY),(ADDR),(PORT),COM_FILELOC )
 
 BOOL com_getaddrinfoFunc(
         struct addrinfo **oTarget, COM_SOCK_TYPE_t iType, int iFamily,
@@ -211,7 +211,7 @@ typedef struct {
     void*   hwaddr;     // COM_IF_HWTXT/COM_IF_HWBIN指定時に対応データを設定
 } com_seekIf_t;
 
-com_ifinfo_t com_seekIfInfo(
+com_ifinfo_t *com_seekIfInfo(
         int iFlags, com_seekIf_t *iCond, BOOL iUseNetlink );
 
 

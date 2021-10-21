@@ -1412,7 +1412,7 @@ static BOOL openSocketForInfo( void )
     return true;
 }
 
-static void setMacAddr( com_ifinfo_t *oInf, void *iMacAddr )
+static void setHwAddr( com_ifinfo_t *oInf, void *iMacAddr )
 {
     memcpy( oInf->hwaddr, iMacAddr, ETH_ALEN );
     oInf->h_len = ETH_ALEN;
@@ -1431,7 +1431,7 @@ static void setIfInfo( com_ifinfo_t *oInf, char *iIfname )
     if( 0 > ioctl( gIfInfoSock, (int)SIOCGIFHWADDR, &ifr ) ) {
         com_error( COM_ERR_GETIFINFO, "fail to get hwaddr for %s", iIfname );
     }
-    else { setMacAddr( oInf, ifr.ifr_hwaddr.sa_data ); }
+    else { setHwAddr( oInf, ifr.ifr_hwaddr.sa_data ); }
 }
 
 static com_ifinfo_t *getIfInfo( char *iIfname )
@@ -1600,7 +1600,7 @@ static com_ifinfo_t *getLinkDataFromAttr(
             if( !setIfName( &inf, RTA_DATA(attr) ) ) { return NULL; }
         }
         if( attr->rta_type == IFLA_ADDRESS ) {
-            setMacAddr( &inf, RTA_DATA(attr) );
+            setHwAddr( &inf, RTA_DATA(attr) );
         }
     }
     if( !inf.ifname ) { return NULL; }
@@ -1766,6 +1766,158 @@ long com_getIfInfo( com_ifinfo_t **oInf, BOOL iUseNetlink )
     long cnt = gIfInfoCnt;
     if( !(*oInf = gIfInfo) ) { cnt = com_collectIfInfo( oInf, iUseNetlink ); }
     return cnt;
+}
+
+static BOOL setIfAddr( void **oAddr, struct addrinfo **oTmp, void *iAddr )
+{
+    if( !iAddr ) { return false; }
+    BOOL result = com_getaddrinfo(
+            oTmp, COM_SOCK_UDP, (strstr(iAddr, ".")) ? AF_INET : AF_INET6,
+            iAddr, 0 );
+    if( !result ) { return false; }
+    *oAddr = (*oTmp)->ai_addr;
+    return true;
+}
+
+static BOOL setIfMac( uchar *oMac, char *iMac )
+{
+    uint mac[ETH_ALEN];
+    int cnt = sscanf( iMac, "%02x:%02x:%02x:%02x:%02x:%02x",
+                      &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5] );
+    if( cnt != ETH_ALEN ) { return false; }
+    for( int i = 0;  i < ETH_ALEN; i++ ) { oMac[i] = mac[i]; }
+    return true;
+}
+
+#define BOTHEXIST( COND1, COND2 ) \
+    if( COM_CHECKBIT( iFlags, (COND1) ) && COM_CHECKBIT( iFlags, (COND2) ) ) { \
+        COM_PRMNG( false ); \
+    } \
+    do{} while(0)
+
+#define MAKEADDRS( SA, VAL ) \
+    if( COM_CHECKBIT( iFlags, (SA) ) ) { \
+        if( !iCond->VAL ) { return false; } \
+        oCond->VAL = iCond->VAL; \
+    } \
+    do{} while(0)
+
+static BOOL makeSearchIfCond(
+        int iFlags, com_seekIf_t *oCond, com_seekIf_t *iCond,
+        struct addrinfo **oTmp, uchar *oTmpMac )
+{
+    if( COM_CHECKBIT( iFlags, COM_IF_NAME ) ) {
+        if( !iCond->ifname ) {COM_PRMNG(false);}
+        oCond->ifname = iCond->ifname;
+    }
+    if( COM_CHECKBIT( iFlags, COM_IF_INDEX ) ) {
+        if( iCond->ifindex < 0 ) {COM_PRMNG(false);}
+        oCond->ifindex = iCond->ifindex;
+    }
+    BOTHEXIST( COM_IF_IPTXT, COM_IF_IPSA );
+    MAKEADDRS( COM_IF_IPSA, ipaddr );
+    if( COM_CHECKBIT( iFlags, COM_IF_IPTXT ) ) {
+        if(!setIfAddr(&oCond->ipaddr,oTmp, iCond->ipaddr)) {COM_PRMNG(false);}
+    }
+    BOTHEXIST( COM_IF_HWTXT, COM_IF_HWBIN );
+    MAKEADDRS( COM_IF_HWBIN, hwaddr );
+    if( COM_CHECKBIT( iFlags, COM_IF_HWTXT ) ) {
+        if( !iCond->hwaddr ) {COM_PRMNG(false);}
+        oCond->hwaddr = oTmpMac;
+        if( !setIfMac( oCond->hwaddr, iCond->hwaddr ) ) {COM_PRMNG(false);}
+    }
+    return true;
+}
+
+static void *getAddrPoint( struct sockaddr *iSa )
+{
+    if( iSa->sa_family == AF_INET6 ) {
+        return ((struct sockaddr_in6*)iSa)->sin6_addr.s6_addr;
+    }
+    return &(((struct sockaddr_in*)iSa)->sin_addr.s_addr);
+}
+
+static BOOL seekIfLabel( com_ifinfo_t *iInf, char *iName )
+{
+    if( !iInf->soAddrs ) { return false; }
+    for( long i = 0;  i < iInf->cntAddrs;  i++ ) {
+        char* label = iInf->soAddrs[i].label;
+        if( !label ) { continue; }
+        if( !strcmp( label, iName ) ) { return true; }
+    }
+    return false;
+}
+
+static BOOL compareAddr(
+        long iCnt, com_ifaddr_t *iAddrs, struct sockaddr *iCond )
+{
+    if( !iAddrs ) { return false; }
+    for( long i = 0;  i < iCnt;  i++ ) {
+        if( !(iAddrs[i].addr) ) { continue; }  // AF_PACKETではあり得る
+        if( iAddrs[i].addr->sa_family != iCond->sa_family ) { continue; }
+        socklen_t len = (iCond->sa_family == AF_INET ) ? 4 : 16;
+        void* addrIf = getAddrPoint( iAddrs[i].addr );
+        void* addrCo = getAddrPoint( iCond );
+        if( !memcmp( addrIf, addrCo, len ) ) { return true; }
+    }
+    return false;
+}
+
+static BOOL matchIfCond( int iFlags, com_ifinfo_t *iInf, com_seekIf_t *iCond )
+{
+    if( COM_CHECKBIT( iFlags, COM_IF_NAME ) ) {
+        if( strcmp( iInf->ifname, iCond->ifname ) ) {
+            return seekIfLabel( iInf, iCond->ifname );
+        }
+    }
+    if( COM_CHECKBIT( iFlags, COM_IF_INDEX ) ) {
+        if( iInf->ifindex != iCond->ifindex ) { return false; }
+    }
+    if( COM_CHECKBIT( iFlags, (COM_IF_IPTXT | COM_IF_IPSA) ) ) {
+        if( !compareAddr( iInf->cntAddrs, iInf->soAddrs, iCond->ipaddr ) ) {
+            return false;
+        }
+    }
+    if( COM_CHECKBIT( iFlags, (COM_IF_HWTXT | COM_IF_HWBIN) ) ) {
+        uchar* condMac = iCond->hwaddr;
+        for( int i = 0;  i < ETH_ALEN;  i++ ) {
+            if( iInf->hwaddr[i] != condMac[i] ) { return false; }
+        }
+    }
+    return true;
+}
+
+#define SEEKIFRETURN( RET )    return seekIfResult( &tmp, RET )
+
+static com_ifinfo_t *seekIfResult( struct addrinfo **oTmp, com_ifinfo_t *iRet )
+{
+    if( oTmp ) { com_freeaddrinfo( oTmp ); }
+    com_skipMemInfo( false );
+    return iRet;
+}
+
+com_ifinfo_t *com_seekIfInfo(
+        int iFlags, com_seekIf_t *iCond, BOOL iUseNetlink )
+{
+#ifndef LINUXOS
+    if( iUseNetlink ) {COM_PRMNG(NULL);}
+#endif
+    if(iFlags <= 0 || iFlags > COM_IF_CONDMAX || !iCond) {COM_PRMNG(NULL);}
+    com_seekIf_t cond = {NULL, -1, NULL, NULL};
+    struct addrinfo* tmp = NULL;
+    uchar tmpMac[ETH_ALEN];
+    com_skipMemInfo( true );
+    if( !makeSearchIfCond( iFlags, &cond, iCond, &tmp, tmpMac ) ) {
+        SEEKIFRETURN( NULL );
+    }
+    com_ifinfo_t* inf = NULL;
+    long infCnt = com_getIfInfo( &inf, iUseNetlink );
+    if( infCnt < 0 ) { SEEKIFRETURN( NULL ); }
+    for( long i = 0;  i < infCnt;  i++ ) {
+        com_ifinfo_t* ifinf = &(gIfInfo[i]);
+        if( matchIfCond( iFlags, ifinf, &cond ) ) { SEEKIFRETURN( ifinf ); }
+    }
+    SEEKIFRETURN( NULL );
 }
 
 
