@@ -335,7 +335,56 @@ toscom grimoire Ver3.00
 
 
 ===== セレクト機能 (com_select.h) ============================================
-(近日追加予定)
+
+   ********** COMSELBASE:基本 **********
+   com_initializeExtraSelect() セレクト機能初期化
+
+   ********** COMSELADDR:アドレス関連 **********
+   com_getaddrinfo()           アドレス情報取得
+   com_freeaddrinfo()          アドレス情報解放
+   com_getnameinfo()           アドレス情報文字列取得
+   com_copyAddr()              共通処理用アドレスコピー
+
+   com_isIpAddr()              IPアドレス文字列判定
+   com_valIpAddress()          IPアドレスチェック
+    com_valIpAddressCondCopy()  IPアドレスチェック条件コピー
+   com_compareAddr()           アドレス情報比較
+   com_compareSock()           ソケットアドレス比較
+   com_compareSockWithPort()   IPアドレス・ポート番号比較
+
+   com_collectIfInfo()         通信インターフェース情報取得
+   com_getIfInfo()             通信インターフェース情報取得(既存データ再利用版)
+   com_seekIfInfo()            通信インターフェース情報検索
+
+   ********** COMSELSOCK:ソケット関連 **********
+   com_createSocket()          ソケット生成
+   com_getSockId()             ソケットID取得
+   com_getSrcInf()             アドレス情報取得(自側)
+   com_getDstInf()             アドレス情報取得(対向)
+   com_deleteSocket()          ソケット削除
+   com_sendSocket()            データ送信
+   com_cksumRfc()              チェックサム計算
+   com_receiveSocket()         データ受信
+   com_acceptSocket()          TCP接続受付
+   com_filterSocket()          ソケットフィルター設定
+
+   ********** COMSELTIMER:タイマー関連 **********
+   com_registerTimer()         タイマー登録
+   com_stopTimer()             タイマー停止
+   com_checkTimer()            タイマー満了チェック
+   com_resetTimer()            タイマー再設定
+   com_cancelTimer()           タイマー解除
+
+   ********** COMSELEVENT:イベント関連 **********
+   com_switchEventBuffer()     イベント用バッファ切替
+   com_waitEvent()             イベント同期待機
+   com_watchEvent()            イベント非同期監視
+   com_registerStdin()         標準入力受付登録
+   com_cancelStdin()           標準入力受付解除
+
+   ********** COMSELDBG:デバッグ関連 **********
+   com_setDebugSelect()        発生イベントデバッグ出力
+   com_dispDebugSelect()       イベント情報デバッグ出力
 
 
 

@@ -227,7 +227,10 @@ void com_freeaddrinfoFunc( struct addrinfo **oTarget, COM_FILEPRM );
  * iAddr は struct sockaddr_storage型と、それで表せる struct sockaddr_in型などの
  * アドレス情報のアドレスを想定する。様々な型を受け入れるため void*型にした。
  * getnameinfo()で求められている struct sockaddr *型ももちろん指定可能。
+ *
  * iLenはそのアドレス情報の実サイズを指定する。
+ * 0 にすると iAddrの sa_familyを参照し、それに対応する struct sockaddr_～型
+ * のサイズを自動設定する。
  *
  * *oAddrと *oPortには、iAddr・iLenで与えられたアドレス情報から取得した
  * アドレスとポート番号を文字列として格納する。不要なら NULL指定する。
@@ -684,7 +687,7 @@ com_ifinfo_t *com_seekIfInfo(
  */
 
 /*
- * 通信ソケット生成  com_createSocket()
+ * ソケット生成  com_createSocket()
  *   ソケットが生成できたら、comモジュール内の管理ID(0以上)を返す。
  *   この管理IDは以後 捜査対象のソケット指定に使用するので保持が必須となる。
  *   socket()によって受け取るソケットIDとは別の値なので注意すること。
@@ -886,7 +889,7 @@ com_sockaddr_t *com_getDstInf( com_selectId_t iId );
 
 
 /*
- * 通信ソケット削除  com_deleteSocket()
+ * ソケット削除  com_deleteSocket()
  *   処理の成否を true/false で返す。
  * ---------------------------------------------------------------------------
  *   COM_ERR_DEBUGNG: [com_prmNG] iId不正
