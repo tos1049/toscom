@@ -26,6 +26,7 @@ typedef struct {
     long timer;                       // タイマー値
     com_expireTimerCB_t expireFunc;   // タイマー満了処理関数
     struct timeval startTime;         // タイマー開始時刻
+    BOOL isStopped;                   // タイマー停止中か
     int sockId;                       // ソケットID
     COM_SOCK_TYPE_t type;             // 通信種別
     BOOL isPacket;                    // raw時パケット用か(false=IP用)
@@ -111,6 +112,7 @@ typedef enum {
     COM_MOD_TIMERON,            // タイマー起動
     COM_MOD_EXPIRED,            // タイマー満了
     COM_MOD_TIMERMOD,           // タイマー修正
+    COM_MOD_TIMERSTOP,          // タイマー停止
     COM_MOD_TIMEROFF,           // タイマー解除
     COM_MOD_NOEVENT     // 最後は必ずこれで
 } COM_MOD_EVENT_t;
@@ -119,7 +121,7 @@ static char* gModEvent[] = {
     "socket", "bind", "listen", "connect", "accept",
     "send", "receive", "drop", "close_self", "closed_by_dst",
     "stdin_on", "stdin", "stdin_off",
-    "timer_on", "timer_expired", "timer_reset", "timer_off"
+    "timer_on", "timer_expired", "timer_reset", "timer_stop", "timer_off"
 };
 
 static BOOL gDebugEvent = true;
@@ -757,7 +759,7 @@ com_selectId_t com_registerTimer(
     com_eventInf_t* inf = &(gEventInf[id]);
     *inf = (com_eventInf_t){
         .isUse = true,  .timer = iTimer,  .expireFunc = iExpireFunc,
-        .sockId = COM_NO_SOCK
+        .isStopped = false,  .sockId = COM_NO_SOCK
     };
     if( !com_gettimeofday( &(inf->startTime), "start timer" ) ) {
         inf->isUse = false;
@@ -767,28 +769,30 @@ com_selectId_t com_registerTimer(
     UNLOCKRETURN( id );
 }
 
-static com_eventInf_t *checkTimerInf(
-        com_selectId_t iId, BOOL iUse, BOOL iLock )
+static com_eventInf_t *checkTimerInf( com_selectId_t iId, BOOL iLock )
 {
     if( iId < 0 || iId > gEventId ) { return NULL; }
     if( iLock ) { com_mutexLock( &gMutexEvent, __func__ ); }
     com_eventInf_t* tmp = &(gEventInf[iId]);
     if( tmp->timer == COM_NO_SOCK ) { return NULL; }
-    if( iUse && !tmp->isUse ) { return NULL; }
+    if( !tmp->isUse ) { return NULL; }
     return tmp;
 }
 
-static void cancelTimer( com_eventInf_t *oInf )
+BOOL com_stopTimer( com_selectId_t iId )
 {
-    // 今の所 isUse のフラグを落とすだけ
-    oInf->isUse = false;
+    com_eventInf_t* tmp = checkTimerInf( iId, true );
+    if( !tmp ) {com_prmNG(NULL); UNLOCKRETURN(false); }
+    tmp->isStopped = true;
+    debugEventLog( COM_MOD_TIMERSTOP, iId, tmp, NULL, 0 );
+    UNLOCKRETURN( true );
 }
 
 BOOL com_cancelTimer( com_selectId_t iId )
 {
-    com_eventInf_t* tmp = checkTimerInf( iId, true, true );
+    com_eventInf_t* tmp = checkTimerInf( iId, true );
     if( !tmp ) {com_prmNG(NULL); UNLOCKRETURN(false); }
-    cancelTimer( tmp );
+    tmp->isUse = false;
     debugEventLog( COM_MOD_TIMEROFF, iId, tmp, NULL, 0 );
     UNLOCKRETURN( true );
 }
@@ -797,7 +801,7 @@ static BOOL expireTimer( com_selectId_t iId )
 {
     com_eventInf_t* inf = &(gEventInf[iId]);
     debugEventLog( COM_MOD_EXPIRED, iId, inf, NULL, 0 );
-    cancelTimer( inf );
+    inf->isStopped = true;
     return (inf->expireFunc)( iId );
 }
 
@@ -818,7 +822,9 @@ static long calculateRestTime( com_selectId_t iId, struct timeval *iNow )
 
 static BOOL checkTimer( com_selectId_t iId, struct timeval *iNow )
 {
-    if( !checkTimerInf( iId, true, false ) ) { return true; }
+    com_eventInf_t* tmp = checkTimerInf( iId, false );
+    if( !tmp ) { return true; }
+    if( tmp->isStopped ) { return true; }
     if( 0 < calculateRestTime( iId, iNow ) ) { return true; }
     return expireTimer( iId );
 }
@@ -849,15 +855,15 @@ BOOL com_checkTimer( com_selectId_t iId )
 
 BOOL com_resetTimer( com_selectId_t iId, long iTimer )
 {
-    com_eventInf_t* tmp = checkTimerInf( iId, false, true );
+    com_eventInf_t* tmp = checkTimerInf( iId, true );
     if( !tmp || iTimer < 1 ) {com_prmNG(NULL); UNLOCKRETURN(false); }
     if( iTimer > 0 ) { tmp->timer = iTimer; }
-    tmp->isUse = true;
+    tmp->isStopped = false;
     if( !com_gettimeofday( &(tmp->startTime), "reset timer time" ) ) {
-        tmp->isUse = false;
+        tmp->isStopped = true;
     }
-    if( tmp->isUse ) { debugEventLog( COM_MOD_TIMERMOD, iId, tmp, NULL, 0 ); }
-    UNLOCKRETURN( tmp->isUse );
+    if( !tmp->isStopped ) {debugEventLog( COM_MOD_TIMERMOD,iId,tmp,NULL,0 );}
+    UNLOCKRETURN( !tmp->isStopped );
 }
 
 
@@ -913,7 +919,7 @@ static struct timeval *checkNextTimer( struct timeval *iTm )
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
         com_eventInf_t* tmp = &(gEventInf[id]);
         if( !tmp->isUse ) { continue; }
-        if( tmp->timer == COM_NO_SOCK ) { continue; }
+        if( tmp->timer == COM_NO_SOCK || tmp->isStopped ) { continue; }
         getTimeValue( &timer, &now, id );
         count++;
     }
