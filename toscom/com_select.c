@@ -1924,10 +1924,24 @@ com_ifinfo_t *com_seekIfInfo(
 
 // デバッグ用イベント情報出力 ------------------------------------------------
 
+static socklen_t getSockLen( const void *iAddr )
+{
+    const struct sockaddr* addr = iAddr;
+    size_t len = 0;
+    if( addr->sa_family == AF_INET )  { len = sizeof(struct sockaddr_in); }
+    if( addr->sa_family == AF_INET6 ) { len = sizeof(struct sockaddr_in6); }
+    if( addr->sa_family == AF_UNIX ) {
+        len = SUN_LEN( (struct sockaddr_un*)iAddr );
+    }
+    return (socklen_t)len;
+}
+
 BOOL com_getnameinfo(
         char **oAddr, char **oPort, const void *iAddr, socklen_t iLen )
 {
     if( !iAddr ) {COM_PRMNG(false);}
+    if( !iLen ) { iLen = getSockLen( iAddr ); }
+    if( !iLen ) { return false; }
 
     static char hbuf[COM_LINEBUF_SIZE];
     static char sbuf[COM_WORDBUF_SIZE];
