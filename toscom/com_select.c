@@ -247,7 +247,7 @@ static BOOL setSockCondRawSnd(
 }
 
 static BOOL setSockCondRawRcv(
-        const struct addrinfo_ll *iSrc,
+        const struct sockaddr_ll *iSrc,
         int *oFamily, int *oType, int *oProtocol )
 {
     *oFamily = AF_PACKET;
@@ -1614,11 +1614,11 @@ static com_ifinfo_t *getLinkDataFromAttr(
 static void *addSaForNetlink( com_ifinfo_t *oInf, int iFamily )
 {
     struct sockaddr* tmp = NULL;
-    if( iFamily == IF_ANET ) {
-        tmp = com_malloc( size_t(struct sockaddr_in),  "IPv4 by Netlink" );
+    if( iFamily == AF_INET ) {
+        tmp = com_malloc( sizeof(struct sockaddr_in),  "IPv4 by Netlink" );
     }
     else {
-        tmp = com_malloc( size_t(struct sockaddr_in6), "IPv6 by Netlink" );
+        tmp = com_malloc( sizeof(struct sockaddr_in6), "IPv6 by Netlink" );
     }
     if( !tmp ) { return NULL; }
     tmp->sa_family = iFamily;
@@ -1640,10 +1640,10 @@ static BOOL setIpAddr( com_ifinfo_t *oInf, struct ifaddrmsg *iMsg, void *iAddr )
         memcpy( &sa->sin_addr.s_addr, iAddr, sizeof(struct in_addr) );
         
     }
-    else if( family = AF_INET6 ) {
-        struct sockaddr_in6* sa6  addSaForNetlink( oInf, family );
+    else if( family == AF_INET6 ) {
+        struct sockaddr_in6* sa6 = addSaForNetlink( oInf, family );
         if( !sa6 ) { return false; }
-        memcpy( &sa6->sin6_Addr.s6_addr, iAddr, sizeof(struct in6_addr) );
+        memcpy( &sa6->sin6_addr.s6_addr, iAddr, sizeof(struct in6_addr) );
     }
     oInf->soAddrs[0].preflen = iMsg->ifa_prefixlen;
     return true;
@@ -1660,8 +1660,8 @@ static BOOL setIfLabel( com_ifinfo_t *oInf, void *iLabel )
 static BOOL getAddrDataFromAttr(
         struct ifaddrmsg *iAddrMsg, int iMsgLen, com_ifinfo_t *oInf )
 {
-    for( struct rtattr* tmp = (struct rta_attr*)IFA_RTA( iAddrMsg );
-         RFA_OK( attr, iMsgLen );  attr = RTA_NEXT( attr, iMsgLen ) )
+    for( struct rtattr* attr = (struct rtattr*)IFA_RTA( iAddrMsg );
+         RTA_OK( attr, iMsgLen );  attr = RTA_NEXT( attr, iMsgLen ) )
     {
         if( attr->rta_type == IFA_ADDRESS ) {
             if( !setIpAddr( oInf, iAddrMsg, RTA_DATA( attr ) ) ) {
@@ -1689,7 +1689,7 @@ static BOOL getAddr( struct nlmsghdr *iMsg, size_t iMsgLen, void *iUserData )
         struct ifaddrmsg* msg = (void*)NLMSG_DATA( iMsg );
         int msgLen = IFA_PAYLOAD( iMsg );
         if( msg->ifa_index == inf->index ) {
-            getAddrDataFromAttr( msg, msgLen, inf->ifinfo );
+            getAddrDataFromAttr( msg, msgLen, inf->ifInfo );
         }
     }
     return true;
@@ -1702,7 +1702,7 @@ static com_selectId_t createNetlinkSocket( void )
 
 static BOOL getAddrList( struct linkinfo *ioInf )
 {
-    com_selectId_t* id = createNetlinkSocket();
+    com_selectId_t id = createNetlinkSocket();
     if( id == COM_NO_SOCK ) { return false; }
     SETMSGHDR( com_getAddrReq_t, RTM_GETADDR );
     msg.body.ifa_family = 0;  // AF_INET
