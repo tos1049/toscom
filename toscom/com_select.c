@@ -1396,7 +1396,9 @@ static long gIfInfoCnt = 0;
 static int gIfInfoSock = COM_NO_SOCK;  // 情報取得用に生成するソケット
 
 #ifndef LINUXOS
-#define  ETH_ALEN  6
+#ifndef ETH_ALEN
+#define   ETH_ALEN  6
+#endif // ETH_ALEN
 #endif // LINUXOS
 
 // 旧来のIF情報取得関連 ------------------------------------------------------
@@ -1498,7 +1500,7 @@ static BOOL addIfAddr( struct ifaddrs *iIfa )
     com_ifinfo_t* inf = getIfInfo( iIfa->ifa_name );
     if( !inf ) { return false; }
     struct ifaddrs** ifAddr =
-        com_reallocAddr( &inf->ifaddrs, sizeof(struct ifaddrs), 0,
+        com_reallocAddr( &inf->ifaddrs, sizeof(struct ifaddrs*), 0,
                          &inf->cntAddrs, ADDRCNT_ADD, "addAddrInf (ifaddr)" );
     if( !ifAddr ) { return false; }
     *ifAddr = iIfa;

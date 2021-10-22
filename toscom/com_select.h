@@ -390,7 +390,7 @@ typedef struct {
     size_t            h_len;       // hwaddr長 (通常のMACアドレスなら 6)
     long              cntAddrs;    // soaddrs/ifaddrsの総数
     com_ifaddr_t*     soAddrs;     // アドレス情報
-    struct ifaddrs*   ifaddrs;     // getifaddrs()で取得した生データ
+    struct ifaddrs**  ifaddrs;     // getifaddrs()で取得した生データ
 } com_ifinfo_t;
 
 // (参考)
