@@ -319,13 +319,16 @@ void com_exitFunc( long iType, COM_FILEPRM )
 }
 
 #ifndef CHECK_PRINT_FORMAT    // make checkfを打った時に指定されるマクロ
-static __thread char gBuffSys[COM_LINEBUF_SIZE];
-
 int com_system( const char *iFormat, ... )
 {
+    char sysBuf[COM_LINEBUF_SIZE];
     if( !iFormat ) {COM_PRMNG(0);}
-    //COM_SET_FORMAT( gBuffSys );
-    return system( gBuffSys );
+    COM_SET_FORMAT( sysBuf );
+    if( strlen( sysBuf ) == sizeof(sysBuf) -1 ) {
+        com_printf( "maybe... com_system() get too long command line"
+                    "(%-10s...)\n", sysBuf );
+    }
+    return system( sysBuf );
 }
 #endif
 
