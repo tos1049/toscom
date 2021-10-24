@@ -33,6 +33,14 @@ static BOOL viewVersion( com_getOptInf_t *iOptInf )
     return true;
 }
 
+static BOOL clearLogs( com_getOptInf_t *iOptInf )
+{
+    COM_UNUSED( iOptInf );
+    com_system( "rm -fr .%s.log_*", com_getAplName() );
+    com_printf( "<<< cleared all past logs >>>\n" );
+    return true;
+}
+
 #ifdef    USE_TESTFUNC    // テスト関数使用のコンパイルオプション
 static BOOL execTest( com_getOptInf_t *iOptInf )
 {
@@ -42,9 +50,10 @@ static BOOL execTest( com_getOptInf_t *iOptInf )
 #endif // USE_TESTFUNC
 
 static com_getOpt_t gOptions[] = {
-    { 'v', "version", 0,           0, false, viewVersion },
+    { 'v', "version",  0,           0, false, viewVersion },
+    { 'c', "clearlog", 0,           0, false, clearLogs },
 #ifdef    USE_TESTFUNC
-    {   0, "debug",   COM_OPT_ALL, 0, false, execTest },
+    {   0, "debug",    COM_OPT_ALL, 0, false, execTest },
 #endif // USE_TESTFUNC
     COM_OPTLIST_END
 };
