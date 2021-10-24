@@ -18,7 +18,7 @@
 #include "com_if.h"
 #include "com_debug.h"
 #include "com_extra.h"
-//#include "com_select.h"
+#include "com_select.h"
 //#include "com_window.h"
 
 #ifdef    USE_TESTFUNC
@@ -1754,6 +1754,408 @@ void test_readPack( void )
 #endif // USING_COM_EXTRA
 
 
+#ifdef USING_COM_SELECT    // セレクト機能を使うテストコード
+
+// test_convertAddr() ////////////////////////////////////////////////////////
+
+static void procConvert(
+        COM_SOCK_TYPE_t iType, int iFamily, const char *iAddr, ushort iPort )
+{
+    static int count = 0;
+    struct addrinfo* tmp = NULL;
+    com_sockaddr_t test;
+    count++;
+    if( com_getaddrinfo( &tmp, iType, iFamily, iAddr, iPort ) ) {
+        char *addr, *port;
+        com_copyAddr( &test, tmp );
+        com_getnameinfo( &addr, &port, &test.addr, 0 );
+        com_printf( "[%s]:%s\n", addr, port );
+        com_freeaddrinfo( &tmp );
+    }
+    else { com_printf( "convert NG (%d)\n", count ); }
+}
+
+void test_convertAddr( void )
+{
+    startFunc( __func__ );
+    procConvert( COM_SOCK_UDP, AF_INET, "192.168.1.1", 12345 );
+    procConvert( COM_SOCK_TCP_CLIENT, AF_INET, "10.1.2.3", 34 );
+    procConvert( COM_SOCK_UDP, AF_INET, "192.3.56.78.123.3", 222 ); // エラー
+    procConvert( COM_SOCK_TCP_SERVER, AF_INET6, "2001:aaaa:bbbb::1:2", 456 );
+    procConvert( COM_SOCK_UDP, AF_INET6, "2001::1::23:x", 222 );    // エラー
+}
+
+// test_ipAddr() /////////////////////////////////////////////////////////////
+
+static void checkAddr( const char *iString )
+{
+    COM_AF_TYPE_t type = com_isIpAddr( iString );
+
+    com_printf( "%s", iString );
+    if( type == AF_INET )   { com_printf( " ...IPv4 address\n" ); }
+    if( type == COM_IPV6 )  { com_printf( " ...IPv6 address\n" ); }
+    if( type == COM_NOTIP ) { com_printf( " ...not IP address\n" ); }
+}
+
+void test_ipAddr( void )
+{
+    startFunc( __func__ );
+    checkAddr( "127.0.0.1" );       // IPv4
+    checkAddr( "123.4" );           // not
+    checkAddr( "123.A" );           // not
+    checkAddr( "2001::1" );         // IPv6
+    checkAddr( "1111:2222:3333:4444:5555:6666:7777:8888" );   // IPv6
+    checkAddr( "111::222::333" );   // not
+    checkAddr( "ABC:DEF::GHI" );    // not
+}
+
+// test_network() ////////////////////////////////////////////////////////////
+
+static BOOL gIsServer = false;
+static BOOL gIsTcp    = false;
+static BOOL gIsV6     = false;
+static BOOL gIsUNIX   = false;
+static com_selectId_t gConnId = COM_NO_SOCK;
+static com_selectId_t gAcptId = COM_NO_SOCK;
+
+static struct addrinfo* gAddr1 = NULL;
+static struct addrinfo* gAddr2 = NULL;
+
+static char gV4Addr[] = "127.0.0.1";
+static ushort gV4Port1 = 23456;
+static ushort gV4Port2 = 23457;
+static char gV6Addr[] = "::1";
+static ushort gV6Port1 = 34567;
+static ushort gV6Port2 = 34567;
+
+static char* gUnixDomain1 = "./tmp_toscom_testnet1";
+static char* gUnixDomain2 = "./tmp_toscom_testnet2";
+static struct sockaddr_un gUDom1, gUDom2;
+
+static void setTestAddr( void )
+{
+    if( gIsUNIX ) {
+        gUDom1.sun_family = AF_UNIX;
+        strcpy( gUDom1.sun_path, gUnixDomain1 );
+        gUDom2.sun_family = AF_UNIX;
+        strcpy( gUDom2.sun_path, gUnixDomain2 );
+        return;
+    }
+    COM_SOCK_TYPE_t type = gIsTcp ? COM_SOCK_TCP_SERVER : COM_SOCK_UDP;
+    if( gIsV6 ) {
+        com_getaddrinfo( &gAddr1, type, AF_INET6, gV6Addr, gV6Port1 );
+        com_getaddrinfo( &gAddr2, type, AF_INET6, gV6Addr, gV6Port2 );
+    }
+    else {
+        com_getaddrinfo( &gAddr1, type, AF_INET,  gV4Addr, gV4Port1 );
+        com_getaddrinfo( &gAddr2, type, AF_INET,  gV4Addr, gV4Port2 );
+    }
+}
+
+static void freeAddr( void )
+{
+    com_freeaddrinfo( &gAddr1 );
+    com_freeaddrinfo( &gAddr2 );
+}
+
+static void sendPacket( com_selectId_t iId, char *iData, size_t iDataSize,
+                        com_sockaddr_t *iDst )
+{
+    if( !com_sendSocket( iId, iData, iDataSize, iDst ) ) { return; }
+    com_printf( "<-- SEND[%ld]: %s (%zu)\n", iId, iData, iDataSize );
+}
+
+static void makeUnixDst( com_sockaddr_t *oDst, struct sockaddr_un *iDst )
+{
+    memset( oDst, 0, sizeof(*oDst) );
+    oDst->len = SUN_LEN( iDst );
+    memcpy( &oDst->addr, iDst, oDst->len );
+}
+
+static BOOL recvTest(
+        com_selectId_t iId, COM_SOCK_EVENT_t iEvent,
+        void *iData, size_t iDataSize )
+{
+    if( iEvent == COM_EVENT_ACCEPT ) {
+        char HELLO[] = "HELLO";
+        gAcptId = iId;
+        sendPacket( gAcptId, HELLO, sizeof(HELLO), NULL );
+        return true;
+    }
+    if( iEvent == COM_EVENT_CLOSE ) {
+        if( gIsServer ) { gAcptId = COM_NO_SOCK; }
+        else { gConnId = COM_NO_SOCK; }
+        return true;
+    }
+    com_printf( "--> RECEIVE[%ld]: %s (%zu)\n", iId, (char*)iData, iDataSize );
+    if( !gIsTcp && gIsServer ) {
+        char text[] = "OK!";
+        com_sockaddr_t* dst = NULL;
+        com_sockaddr_t  tmp;
+        if( !gIsUNIX ) { dst = com_getDstInf( gConnId ); }
+        else { makeUnixDst( &tmp, &gUDom2 ); dst = &tmp; }
+        sendPacket( gConnId, text, sizeof(text), dst );
+    }
+    return !gIsServer;
+}
+
+static BOOL sendTest( com_selectId_t iId )
+{
+    com_sockaddr_t dst;
+    char sendData[] = "DATA SEND TEST!";
+    com_printf( "*** SEND TIMER EXPIRED[%ld] ***\n", iId );
+    if( !gIsUNIX ) { com_copyAddr( &dst, gAddr1 ); }
+    else { makeUnixDst( &dst, &gUDom1 ); }
+    sendPacket( gConnId, sendData, sizeof(sendData), &dst );
+    return true;
+}
+
+static BOOL recvKey( char *iData, size_t iDataSize )
+{
+    com_printf( "### KEY IN ###\n" );
+    com_printf( " %s (%zu)\n", iData, iDataSize );
+    if( iData[0] == 'q' ) { return false; }
+    return true;
+}
+
+static com_selectId_t gSendTimer = COM_NO_SOCK;  // 再接続時の再設定用
+static com_selectId_t gQuitTimer = COM_NO_SOCK;  // 終了待ちの再設定用
+
+// clientConnect()で reconnect()を指定する必要があるので、プロトタイプ宣言
+static BOOL reconnect( com_selectId_t iId );
+
+static void clientConnect( COM_SOCK_TYPE_t iType )
+{
+    if( !gIsUNIX ) {
+        gConnId = com_createSocket( iType, gAddr2, NULL, recvTest, gAddr1 );
+    }
+    else {
+        if( com_checkExistFile( gUnixDomain2 ) ) { remove( gUnixDomain2 ); }
+        gConnId = com_createSocket( iType, &gUDom2, NULL, recvTest, &gUDom1 );
+    }
+    if( iType == COM_SOCK_UDP ) { return; }
+    if( 0 > gConnId ) { (void)com_registerTimer( 2000, reconnect ); }
+    else { gSendTimer = com_registerTimer( 3000, sendTest ); }
+}
+
+static BOOL reconnect( com_selectId_t iId )
+{
+    com_printf( "*** RECONNECT TIMER EXPIRED[%ld] ***", iId );
+    clientConnect( COM_SOCK_TCP_CLIENT );
+    com_resetTimer( gQuitTimer, 0 );
+    return true;
+}
+
+static BOOL quitNow( com_selectId_t iId )
+{
+    com_printf( "*** QUIT TIMER EXPIRED[%ld] ***", iId );
+    return false;
+}
+
+// データ通信とタイマー動作の確認
+//   サーバーとクライアントで2つ起動する必要がある。
+//   (同じディレクトリ上で動かすとログがおかしくなるので注意)
+//
+//  UDP接続時：
+//   サーバー側を先に起動。
+//   クライアント起動3秒後に "DATA SEND TEST!" 送信。
+//   サーバーはそれを受信後即座に "OK!" を送信して処理終了。
+//   クライアントは更に2秒後に処理終了。
+//   どちらも q で始まる文字を入力したら即時終了。
+//
+//  TCP接続時
+//   サーバー側を先に起動。
+//   クライアント起動でTCP接続確立、サーバーから "HELLO" 送信
+//   クライアント起動3秒後に "DATA SEND TEST!" 送信
+//   サーバーはそれを受信後即座にTCP接続を切り、処理を終了。
+//   クライアントは更に2秒後に処理終了。
+//   どちらも q で始まる文字を入力したら即時終了。
+//
+//   もしサーバー起動前にクライアントを起動したら、TCP接続失敗となり、
+//   2秒ごとに再接続を試み続ける。サーバーを起動すれば接続して動作する。
+//
+// 4/6 の代わりに UNIX とオプション指定すると、UNIXドメインソケットで接続する。
+// (この場合も UDP/TCP は選択可能である)
+
+void test_network( int iArgc, char **iArgv )
+{
+    startFunc( __func__ );
+    COM_SOCK_TYPE_t type = COM_SOCK_UDP;
+
+    // com_select.h 動作チェック用オプション
+    if( iArgc < 5 ) { com_printf( "need s/c t/u 4/6/U\n" ); return; }
+    gIsServer = !strcmp( iArgv[2], "s" );
+    gIsTcp    = !strcmp( iArgv[3], "t" );
+    gIsV6     = !strcmp( iArgv[4], "6" );
+    gIsUNIX   = !strcmp( iArgv[4], "U" );
+    setTestAddr();
+
+    if( gIsServer ) {
+        if( gIsTcp ) { type = COM_SOCK_TCP_SERVER; }
+        (void)com_registerTimer( 100000, quitNow );
+        if( !gIsUNIX ) {
+            gConnId = com_createSocket( type, gAddr1, NULL, recvTest, gAddr2 );
+        }
+        else {
+            if( com_checkExistFile( gUnixDomain1 ) ) { remove( gUnixDomain1 ); }
+            gConnId = com_createSocket(type, &gUDom1, NULL, recvTest, NULL );
+        }
+        (void)com_registerStdin( recvKey );
+        com_printf( "*** WAIT EVENTS (SERVER) ***\n" );
+        while( com_waitEvent() ) { /* 待機中はやることなし */ }
+        // TCP接続の場合、サーバー側からコネクションを切る動作とする
+        if( gAcptId != COM_NO_SOCK ) { com_deleteSocket( gAcptId ); }
+    }
+    else {
+        if( gIsTcp ) { type = COM_SOCK_TCP_CLIENT; }
+        else { gSendTimer = com_registerTimer( 3000, sendTest ); }
+        clientConnect( type );
+        gQuitTimer = com_registerTimer( 5000, quitNow );
+        (void)com_registerStdin( recvKey );
+        com_printf( "*** WAIT EVENTS (CLIENT) ***\n" );
+        while( com_waitEvent() ) { /* 待機中はやることなし */ }
+    }
+    com_dispDebugSelect();
+    freeAddr();
+}
+
+// test_timer() //////////////////////////////////////////////////////////////
+
+static BOOL testTimerFunc( com_selectId_t iId )
+{
+    static int count = 0;
+    com_printf( "<<%ld timer expired [%d]>>\n", iId, count );
+    count++;
+    if( count < 5 ) {
+        com_resetTimer( iId, 0 );
+        return true;
+    }
+    count = 0;
+    return false;
+}
+
+void test_timer( void )
+{
+    startFunc( __func__ );
+    com_registerTimer( 1000, testTimerFunc );
+    while( com_watchEvent() ) {}
+    com_printf( "--- switch timer ---" );
+    com_registerTimer(  500, testTimerFunc );
+    while( com_checkTimer( COM_ALL_TIMER ) ) {}
+}
+
+// test_checkSize() //////////////////////////////////////////////////////////
+
+void test_checkSize( void )
+{
+    startFunc( __func__ );
+    struct sockaddr_storage  ss;
+    struct addrinfo  ai;
+    struct sockaddr  sa;
+
+    memset( &ss, 0, sizeof(ss) );
+    memset( &ai, 0, sizeof(ai) );
+    memset( &sa, 0, sizeof(sa) );
+
+    com_printf( "%5zu : struct sockaddr_storage\n", sizeof(ss) );
+    com_printf( "%5zu : struct addrinfo\n", sizeof(ai) );
+    com_printf( "%5zu : struct sockaddr\n", sizeof(sa) );
+}
+
+// //test_ifinfo() ///////////////////////////////////////////////////////////
+
+static void dispIfInf( long iCnt, com_ifinfo_t *iInf )
+{
+    for( long i = 0;  i < iCnt;  i++ ) {
+        uchar* mac = iInf[i].hwaddr;
+        com_printf( "%-16s  index=%d [%02x:%02x:%02x:%02x:%02x:%02x]\n",
+                    iInf[i].ifname, iInf[i].ifindex,
+                    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] );
+        for( long j = 0;  j < iInf[i].cntAddrs;  j++ ) {
+            com_ifaddr_t* soAddr = &(iInf[i].soAddrs[j]);
+            struct sockaddr* sa = soAddr->addr;
+            if( !sa ) {continue;}
+            char* addr = NULL;
+            if( com_getnameinfo( &addr, NULL, sa, 0 ) ) {
+                com_printf( "   %s", addr );
+                if( iInf[i].ifaddrs ) {
+                    struct ifaddrs* ia = iInf[i].ifaddrs[j];
+                    if( com_getnameinfo( &addr, NULL, ia->ifa_netmask, 0 ) ) {
+                        com_printf( " (mask %s)", addr );
+                    }
+                }
+                else if( soAddr->preflen ) {
+                    com_printf( "/%ld", soAddr->preflen );
+                }
+                if( soAddr->label ) {
+                    com_printf( "  label=%s", soAddr->label );
+                }
+                com_printLf();
+            }
+            else { com_printf( "  address unavailable\n" ); }
+        }
+    }
+}
+
+static com_ifinfo_t *getSomeIf( long iCnt, com_ifinfo_t *iInf )
+{
+    for( long i = 0;  i < iCnt;  i++ ) {
+        if( strcmp( iInf[i].ifname, "lo" ) ) { return &(iInf[i]); }
+    }
+    return NULL;
+}
+
+// IF情報取得に Netlinkを使用する場合は true定義(Linuxのみ)
+static BOOL gUseNetlink = false;
+
+static void examSeekIf(
+        char *iLabel, com_ifinfo_t *iTarget, long iFlags,
+        com_seekIf_t *iCond )
+{
+    com_ifinfo_t* result = com_seekIfInfo( iFlags, iCond, gUseNetlink );
+    if( result ) {
+        com_printf( "--found ifindex=%d(%s)\n",
+                    result->ifindex, result->ifname );
+        if( result->ifindex == iTarget->ifindex ) {
+            com_printf( "seek OK! (%s)\n", iLabel );
+        }
+        else { com_printf( "seek NG..(%s)\n", iLabel ); }
+    }
+    else { com_printf( "--cannot seek (%s)\n", iLabel ); }
+}
+
+void test_ifinfo( void )
+{
+    startFunc( __func__ );
+    com_ifinfo_t* inf = NULL;
+    long cnt = com_getIfInfo( &inf, gUseNetlink );  // gUseNetlinkの定義は上の方
+    com_printf( "--- found interfaces (%ld) ---\n", cnt );
+    if( cnt <= 0 ) { return; }
+    dispIfInf( cnt, inf );
+    com_ifinfo_t* target = getSomeIf( cnt, inf );
+    if( !target ) { return; }
+    examSeekIf( "ifname", target, COM_IF_NAME,
+                &(com_seekIf_t){ .ifname = target->ifname } );
+    examSeekIf( "ifindex", target, COM_IF_INDEX,
+                &(com_seekIf_t){ .ifindex = target->ifindex } );
+    examSeekIf( "ifname & ifindex", target, COM_IF_NAME | COM_IF_INDEX,
+                &(com_seekIf_t){ .ifname = target->ifname,
+                                 .ifindex = target->ifindex } );
+    examSeekIf( "ipaddr(sa)", target, COM_IF_IPSA,
+                &(com_seekIf_t){ .ipaddr = target->soAddrs[0].addr } );
+    examSeekIf( "ipaddr(text) -> NG", target, COM_IF_IPTXT,
+                &(com_seekIf_t){ .ipaddr = "255.255.255.2" } );
+    examSeekIf( "hwaddr(bin)", target, COM_IF_HWBIN,
+                &(com_seekIf_t){ .hwaddr = target->hwaddr } );
+    examSeekIf( "hwaddr(text) -> NG", target, COM_IF_HWTXT,
+                &(com_seekIf_t){ .hwaddr = "FF:FF:FF:F1:F2:F3" } );
+}
+
+#ifdef USING_COM_SIGNAL1   // セレクト機能＋シグナル機能1を使うテストコード
+
+#endif // USING_COM_SIGNAL1
+#endif // USING_COM_SELECT
+
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -1810,7 +2212,7 @@ static void exam_extraFunctions( void )
 {
 #ifdef USING_COM_EXTRA
     // テストしたい関数のコメントアウトを外して再ビルドする
-
+    //
     //test_multiThread();             // マルチスレッド
         // マルチスレッドは基本機能だが、テストコードにエキストラ機能が必要
     //test_comInputVar();             // データ入力
@@ -1825,6 +2227,23 @@ static void exam_extraFunctions( void )
 #endif // USING_COM_EXTRA
 }
 
+static void exam_selectFunctions( int iArgc, char **iArgv )
+{
+    COM_UNUSED( iArgc );  COM_UNUSED( iArgv );   // 警告対策
+#ifdef USING_COM_SELECT
+    // テストしたい関数のコメントアウトを外して再ビルドする
+
+    //test_convertAddr();             // アドレスデータ変換
+    //test_ipAddr();                  // IPアドレス文字列チェック
+    //test_network( iArgc, iArgv );   // 通信とタイマーのテスト
+    //test_timer();                   // 非同期タイマーのテスト
+    //test_checkSize();               // 構造体サイズチェック
+    //test_ifinfo();                  // IF情報取得
+#ifdef USING_COM_SIGNAL1  // シグナル機能1も使う
+    //test_rawSocket();               // パケット rawソケット動作
+#endif // USING_COM_SIGNAL1
+#endif // USING_COM_SELECT
+}
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1852,7 +2271,7 @@ void com_testCode( int iArgc, char **iArgv )
     // 各機能のテスト関数実行
     exam_baseFunctions( iArgc, iArgv );
     exam_extraFunctions();
-    //exam_selectFunctions( iArgc, iArgv );
+    exam_selectFunctions( iArgc, iArgv );
     //exam_windowFunctions( iArgc, iArgv );
 
     com_printTag( "=", 79, COM_PTAG_CENTER, "TEST END" );

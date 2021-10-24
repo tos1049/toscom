@@ -856,7 +856,7 @@ BOOL com_checkTimer( com_selectId_t iId )
 BOOL com_resetTimer( com_selectId_t iId, long iTimer )
 {
     com_eventInf_t* tmp = checkTimerInf( iId, true );
-    if( !tmp || iTimer < 1 ) {com_prmNG(NULL); UNLOCKRETURN(false); }
+    if( !tmp || iTimer < 0 ) {com_prmNG(NULL); UNLOCKRETURN(false); }
     if( iTimer > 0 ) { tmp->timer = iTimer; }
     tmp->isStopped = false;
     if( !com_gettimeofday( &(tmp->startTime), "reset timer time" ) ) {
@@ -1208,7 +1208,8 @@ BOOL com_getaddrinfoFunc(
     *oTarget = NULL;
     int result = getaddrinfo( iAddress, portText, &hints, oTarget );
     if( result ) {
-        com_error(COM_ERR_DEBUGNG,"getaddrinfo() NG [%s]", com_strerror(errno));
+        com_error( COM_ERR_DEBUGNG,
+                   "getaddrinfo() NG [%s]", com_strerror(result) );
         return false;
     }
     com_addMemInfo( COM_FILEVAR, COM_GETADDRINFO, *oTarget, calcSize(*oTarget),
@@ -1881,12 +1882,12 @@ static BOOL matchIfCond( int iFlags, com_ifinfo_t *iInf, com_seekIf_t *iCond )
     if( COM_CHECKBIT( iFlags, COM_IF_INDEX ) ) {
         if( iInf->ifindex != iCond->ifindex ) { return false; }
     }
-    if( COM_CHECKBIT( iFlags, (COM_IF_IPTXT | COM_IF_IPSA) ) ) {
+    if( COM_CONTAINBIT( iFlags, (COM_IF_IPTXT | COM_IF_IPSA) ) ) {
         if( !compareAddr( iInf->cntAddrs, iInf->soAddrs, iCond->ipaddr ) ) {
             return false;
         }
     }
-    if( COM_CHECKBIT( iFlags, (COM_IF_HWTXT | COM_IF_HWBIN) ) ) {
+    if( COM_CONTAINBIT( iFlags, (COM_IF_HWTXT | COM_IF_HWBIN) ) ) {
         uchar* condMac = iCond->hwaddr;
         for( int i = 0;  i < ETH_ALEN;  i++ ) {
             if( iInf->hwaddr[i] != condMac[i] ) { return false; }
@@ -1968,6 +1969,52 @@ BOOL com_getnameinfo(
     return true;
 }
 
+static void dumpSockAddr( const char *iLabel, com_sockaddr_t *iInf )
+{
+    if( iInf->len > 0 ) {
+        char* addr = NULL;
+        char* port = NULL;
+        if( com_getnameinfo( &addr, &port, &iInf->addr, iInf->len ) ) {
+            com_dbgCom( "     %s=[%s]:%s", iLabel, addr, port );
+        }
+        else { com_dbgCom( "     %s=(illegal data?)\n", iLabel ); }
+    }
+    else {  com_dbgCom( "     %s=(none)", iLabel ); }
+    com_dumpCom( &(iInf->addr), iInf->len, "     (len=%zu)", iInf->len );
+}
+
+static void dispConvertTime( struct timeval *iTime )
+{
+    char startDate[COM_DATE_DSIZE];
+    char startTime[COM_TIME_DSIZE];
+    com_setTimeval( COM_FORM_DETAIL, startDate, startTime, NULL, iTime );
+    com_dbgCom( "               (%s %s)", startDate, startTime );
+}
+
+void com_dispDebugSelect( void )
+{
+    if( !com_getDebugPrint() ) { return; }
+    com_dbgCom( "=== Current Event Info List Start ===" );
+    for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
+        com_eventInf_t* tmp = &(gEventInf[id]);
+        com_dbgCom( "#%-3ld  isUse=%ld  isListen=%ld",
+                      id, tmp->isUse, tmp->isListen );
+        com_dbgCom( "     timer=%ld", tmp->timer );
+        com_dbgCom( "      isStopped=%ld", tmp->isStopped );
+        com_dbgCom( "      expireFunc=%zx", (intptr_t)tmp->expireFunc );
+        com_dbgCom( "      startTime=%ld.%06ld",
+                      tmp->startTime.tv_sec, tmp->startTime.tv_usec );
+        if( tmp->timer != COM_NO_SOCK ) { dispConvertTime( &tmp->startTime ); }
+        com_dbgCom( "     sockId=%d", tmp->sockId );
+        com_dbgCom( "      eventFunc=%zx", (intptr_t)tmp->eventFunc );
+        com_dbgCom( "      stdinFunc=%zx", (intptr_t)tmp->stdinFunc );
+        com_dbgCom( "      type=%d", tmp->type );
+        dumpSockAddr( "srcInf", &tmp->srcInf );
+        dumpSockAddr( "dstInf", &tmp->dstInf );
+        if( id < (gEventId - 1) ) { com_dbgCom( " "); }
+    }
+    com_dbgCom( "=== Current Event Info List End ===" );
+}
 
 
 // 初期化処理 ----------------------------------------------------------------
