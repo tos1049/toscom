@@ -1062,6 +1062,7 @@ static BOOL recvPacket( com_selectId_t iId, BOOL iNonBlock, long *oDrop )
     memset( gRecvBuf, 0, gRecvBufSize );
     com_eventInf_t* inf = &(gEventInf[iId]);
     if( inf->sockId == ID_STDIN ) { return readStdin( iId ); }
+    if( inf->isListen ) { return acceptTcpConnection(iId,iNonBlock); }
 
     com_sockaddr_t fromAddr;
     ssize_t recvSize;
@@ -1070,7 +1071,7 @@ static BOOL recvPacket( com_selectId_t iId, BOOL iNonBlock, long *oDrop )
     if( !ret ) { return false; } // エラーは com_receiveSocket()で出力済み
     if( ret == COM_RECV_NODATA ) { return true; }
     if( ret == COM_RECV_DROP ) { (*oDrop)++;  return true; }
-    // TCP接続固有処理 (接続受付/切断)
+    // TCP接続固有処理 (acceptは本関数冒頭で普通は済んでいるはずだが念の為)
     if( ret == COM_RECV_ACCEPT ) { return acceptTcpConnection(iId,iNonBlock); }
     if( ret == COM_RECV_CLOSE )  { return closeTcpConnection( iId ); }
     // 非TCP接続時は送信元を対向として保持
