@@ -31,19 +31,19 @@ toscom grimoire Ver3.00
    com_getAplName()            アプリ名取得
    com_getVersion()            バージョン取得
    com_getCommandLine()        起動コマンドライン取得
-   com_getOption()             起動オプション取得                     <getopt>
-   com_exit()                  プログラムの強制終了                     <exit>
-   com_system()                システムコマンド実行                   <system>
+   com_getOption()             起動オプション取得                      <getopt>
+   com_exit()                  プログラムの強制終了                      <exit>
+   com_system()                システムコマンド実行                    <system>
 
    ********** COMMEM:メモリ関連 **********
-   com_malloc()                メモリ捕捉                             <malloc>
-   com_realloc()               メモリ再捕捉                          <realloc>
+   com_malloc()                メモリ捕捉                              <malloc>
+   com_realloc()               メモリ再捕捉                           <realloc>
    com_reallocf()              メモリ再捕捉(失敗時、元メモリ解放)
    com_realloct()              メモリ再捕捉(テーブル拡縮)
    com_reallocAddr()           メモリ再捕捉(位置の指定+アドレス返却)
-   com_strdup()                文字列複製                             <strdup>
-   com_strndup()               文字列複製(サイズ指定あり)            <strndup>
-   com_free()                  メモリ解放                               <free>
+   com_strdup()                文字列複製                              <strdup>
+   com_strndup()               文字列複製(サイズ指定あり)             <strndup>
+   com_free()                  メモリ解放                                <free>
 
    ********** COMBUF:文字列バッファ関連 **********
    com_createBuffer()          文字列バッファ生成
@@ -376,8 +376,8 @@ toscom grimoire Ver3.00
 
    ********** COMSELEVENT:イベント関連 **********
    com_switchEventBuffer()     イベント用バッファ切替
-   com_waitEvent()             イベント同期待機   <select/accept/recvfrom/close>
-   com_watchEvent()            イベント非同期監視        <accept/recvfrom/close>
+   com_waitEvent()             イベント同期待機  <select/accept/recvfrom/close>
+   com_watchEvent()            イベント非同期監視       <accept/recvfrom/close>
    com_registerStdin()         標準入力受付登録
    com_cancelStdin()           標準入力受付解除
 
