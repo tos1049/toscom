@@ -7,10 +7,9 @@ toscom grimoire Ver3.00
     @   構造は変わらないが、処理が変わったI/F
     -   削除したI/F
 
-<>で標準関数との関連も明記します。
- <～拡張>となっていたら、その標準関数の機能強化版で代替使用推奨
- <～代替>となっていたら、その標準関数の代替使用推奨
-を示します。動作情報についてはヘッダファイルの説明記述を必ず確認して下さい。
+<>で代替が推奨される標準関数も示します。
+元の標準関数と引数が異なっていたり、全てを代替できないこともあったりするので、
+実際の動作情報については、ヘッダファイルの説明記述を必ず確認して下さい。
 
 
 
@@ -32,19 +31,19 @@ toscom grimoire Ver3.00
    com_getAplName()            アプリ名取得
    com_getVersion()            バージョン取得
    com_getCommandLine()        起動コマンドライン取得
-   com_getOption()             起動オプション取得 <getopt拡張>
-   com_exit()                  プログラムの強制終了 <exit代替>
-   com_system()                システムコマンド実行 <system拡張>
+   com_getOption()             起動オプション取得                     <getopt>
+   com_exit()                  プログラムの強制終了                     <exit>
+   com_system()                システムコマンド実行                   <system>
 
    ********** COMMEM:メモリ関連 **********
-   com_malloc()                メモリ捕捉 <malloc拡張>
-   com_realloc()               メモリ再捕捉 <realloc拡張>
+   com_malloc()                メモリ捕捉                             <malloc>
+   com_realloc()               メモリ再捕捉                          <realloc>
    com_reallocf()              メモリ再捕捉(失敗時、元メモリ解放)
    com_realloct()              メモリ再捕捉(テーブル拡縮)
    com_reallocAddr()           メモリ再捕捉(位置の指定+アドレス返却)
-   com_strdup()                文字列複製 <strdup代替>
-   com_strndup()               文字列複製(サイズ指定あり) <strndup代替>
-   com_free()                  メモリ解放 <free拡張>
+   com_strdup()                文字列複製                             <strdup>
+   com_strndup()               文字列複製(サイズ指定あり)            <strndup>
+   com_free()                  メモリ解放                               <free>
 
    ********** COMBUF:文字列バッファ関連 **********
    com_createBuffer()          文字列バッファ生成
@@ -143,16 +142,16 @@ toscom grimoire Ver3.00
    com_getCfgAll()             コンフィグ全取得
 
    ********** COMCONV:データ変換関連 **********
-   com_convertUpper()          大文字変換 <upper拡張>
-   com_convertLower()          小文字変換 <lower拡張>
+   com_convertUpper()          大文字変換                               <upper>
+   com_convertLower()          小文字変換                               <lower>
 
-   com_strtoul()               文字列-数値変換 <strtoul拡張>
-   com_strtol()                文字列-数値変換 <strtol拡張>
-   com_strtof()                文字列-数値変換 <strtof拡張>
-   com_strtod()                文字列-数値変換 <strtod拡張>
-   com_atoi()                  文字列-数値変換 <atoi代替>
-   com_atol()                  文字列-数値変換 <atol代替>
-   com_atof()                  文字列-数値変換 <atof代替>
+   com_strtoul()               文字列-数値変換                        <strtoul>
+   com_strtol()                文字列-数値変換                         <strtol>
+   com_strtof()                文字列-数値変換                         <strtof>
+   com_strtod()                文字列-数値変換                         <strtod>
+   com_atoi()                  文字列-数値変換                           <atoi>
+   com_atol()                  文字列-数値変換                           <atol>
+   com_atof()                  文字列-数値変換                           <atof>
    com_strtooct()              文字列-バイナリ数値列変換
 
    com_ltostr()                数値-文字列変換(long型)
@@ -164,10 +163,10 @@ toscom grimoire Ver3.00
    com_octtostr()              バイナリ数値列-文字列変換
 
    ********** COMUSTR:文字列ユーティリティ **********
-   com_strncpy()               長さ指定文字列コピー <strncpy拡張>
-   com_strcpy()                文字列コピーマクロ <strcpy拡張>
-   com_strncat()               長さ指定文字列連結 <strncat拡張>
-   com_strcat()                文字列連結マクロ <strcat拡張>
+   com_strncpy()               長さ指定文字列コピー                   <strncpy>
+   com_strcpy()                文字列コピーマクロ                      <strcpy>
+   com_strncat()               長さ指定文字列連結                     <strncat>
+   com_strcat()                文字列連結マクロ                        <strcat>
    com_connectString()         書式指定文字列追加
    com_searchString()          文字列検索
    com_replaceString()         文字列置換
@@ -180,7 +179,7 @@ toscom grimoire Ver3.00
    ********** COMUTIME:時間ユーティリティI/F **********
    com_getCurrentTime()        日時取得
    com_getCurrentTimeGmt()     日時取得(GMT版)
-   com_gettimeofday()          gettimeofday代替
+   com_gettimeofday()          現在日時取得                      <gettimeofday>
    com_setTime()               任意時間データ整形(time_t型)
    com_setTimeGmt()            任意時間データ整形(time_t型、GMT版)
    com_setTimeval()            任意時間データ整形(timeval型)
@@ -192,8 +191,8 @@ toscom grimoire Ver3.00
    com_strDotw()               曜日文字列取得
 
    ********** COMFILE:ファイル/ディレクトリ関連 **********
-   com_fopen()                 ファイルオープン <fopen代替>
-   com_fclose()                ファイルクローズ <fclose代替>
+   com_fopen()                 ファイルオープン                         <fopen>
+   com_fclose()                ファイルクローズ                        <fclose>
    com_checkExistFile()        ファイル存在チェック
    com_checkExistFiles()       ファイル存在チェック(複数対応)
    com_getFileInfo()           ファイル情報取得
@@ -207,11 +206,11 @@ toscom grimoire Ver3.00
    com_seekTextLine()          テキスト行走査
 
    com_checkIsDir()            ディレクトリ存在チェック
-   com_makeDir()               ディレクトリ作成 <mkdir拡張>
-   com_removeDir()             ディレクトリ削除 <rmdir拡張>
+   com_makeDir()               ディレクトリ作成                         <mkdir>
+   com_removeDir()             ディレクトリ削除                         <rmdir>
    com_seekDir()               ディレクトリ走査
    com_seekDir2()              ディレクトリ走査(軽量版)
-   com_scanDir()               ディレクトリ直走査 <scandir拡張>
+   com_scanDir()               ディレクトリ直走査                     <scandir>
    com_freeScanDir()           ディレクトリ直走査情報解放
    com_countFiles()            ディレクトリ内ファイル数カウント
 
@@ -219,10 +218,10 @@ toscom grimoire Ver3.00
    com_unzipFile()             ファイル展開
 
    ********** COMTHRD:スレッド関連 **********
-   com_mutexLock()             排他ロック <pthread_mutex_lock代替>
-   com_mutexUnlock()           排他アンロック <pthread_mutex_unlock代替>
+   com_mutexLock()             排他ロック                  <pthread_mutex_lock>
+   com_mutexUnlock()           排他アンロック            <pthread_mutex_unlock>
 
-   com_createThread()          [Linuxのみ] 子スレッド生成 <pthread_create拡張>
+   com_createThread()          [Linuxのみ] 子スレッド生成      <pthread_create>
    com_readyThread()           [Linuxのみ] 子スレッド開始通知
    com_finishThread()          [Linuxのみ] 子スレッド終了通知
    com_checkThread()           [Linuxのみ] 子スレッド状態取得
@@ -234,14 +233,14 @@ toscom grimoire Ver3.00
    com_setLogFile()            デバッグログファイル名設定
    com_setTitleForm()          タイトルの書式設定
    com_setErrorCodeForm()      エラーコード書式設定
-   com_printf()                画面出力＆ロギング <printf代替>
+   com_printf()                画面出力＆ロギング                      <printf>
    com_repeat()                文字列の複数連続出力
    com_printLf()               改行のみ出力
    com_printCr()               カーソル復帰後、画面出力
    com_printBack()             画面出力後カーソル後退
    com_printTag()              セパレータタグ文字列出力
    com_printBinary()           バイナリデータ出力
-   com_clear()                 画面クリア <clear代替>
+   com_clear()                 画面クリア                               <clear>
    com_printfLogOnly()         ロギングのみ
    com_printfDispOnly()        画面出力のみ
  
@@ -272,7 +271,7 @@ toscom grimoire Ver3.00
    com_useStdErr()             エラー出力先切り替え
    com_getLastError()          最新エラーコード取得
    com_resetLastError()        最新エラーコード初期化
-   com_strerror()              エラー文字列取得 <strerr代替>
+   com_strerror()              エラー文字列取得                        <strerr>
    com_hookError()             エラーフック
    com_getErrorCount()         個別エラーカウント取得
    com_outputErrorCount()      現在のエラーカウント出力
@@ -315,12 +314,12 @@ toscom grimoire Ver3.00
    com_isPrime()               素数判定
 
    ********** COMEXRAND:乱数関連 **********
-   com_rand()                  乱数生成 <srandom/rand拡張>
+   com_rand()                  乱数生成                          <srandom/rand>
    com_checkChance()           確率判定
    com_rollDice()              ダイスロール
 
    ********** COMEXSIG:シグナル関連 **********
-   com_setSignalAction()       シグナルハンドラー設定 <sigaction拡張>
+   com_setSignalAction()       シグナルハンドラー設定        <signal/sigaction>
    com_resumeSignalAction()    シグナルハンドラー復旧
 
    ********** COMEXPACK:データパッケージ関連 **********
@@ -340,9 +339,9 @@ toscom grimoire Ver3.00
    com_initializeExtraSelect() セレクト機能初期化
 
    ********** COMSELADDR:アドレス関連 **********
-   com_getaddrinfo()           アドレス情報取得
-   com_freeaddrinfo()          アドレス情報解放
-   com_getnameinfo()           アドレス情報文字列取得
+   com_getaddrinfo()           アドレス情報取得                   <getaddrinfo>
+   com_freeaddrinfo()          アドレス情報解放                  <freeaddrinfo>
+   com_getnameinfo()           アドレス情報文字列取得             <getnameinfo>
    com_copyAddr()              共通処理用アドレスコピー
 
    com_isIpAddr()              IPアドレス文字列判定
@@ -357,15 +356,15 @@ toscom grimoire Ver3.00
    com_seekIfInfo()            通信インターフェース情報検索
 
    ********** COMSELSOCK:ソケット関連 **********
-   com_createSocket()          ソケット生成
+   com_createSocket()          ソケット生成    <socket/setsockopt/bind/connect>
    com_getSockId()             ソケットID取得
    com_getSrcInf()             アドレス情報取得(自側)
    com_getDstInf()             アドレス情報取得(対向)
-   com_deleteSocket()          ソケット削除
-   com_sendSocket()            データ送信
+   com_deleteSocket()          ソケット削除                             <close>
+   com_sendSocket()            データ送信                              <sendto>
    com_cksumRfc()              チェックサム計算
-   com_receiveSocket()         データ受信
-   com_acceptSocket()          TCP接続受付
+   com_receiveSocket()         データ受信                            <recvfrom>
+   com_acceptSocket()          TCP接続受付                             <accept>
    com_filterSocket()          ソケットフィルター設定
 
    ********** COMSELTIMER:タイマー関連 **********
@@ -377,8 +376,8 @@ toscom grimoire Ver3.00
 
    ********** COMSELEVENT:イベント関連 **********
    com_switchEventBuffer()     イベント用バッファ切替
-   com_waitEvent()             イベント同期待機
-   com_watchEvent()            イベント非同期監視
+   com_waitEvent()             イベント同期待機   <select/accept/recvfrom/close>
+   com_watchEvent()            イベント非同期監視        <accept/recvfrom/close>
    com_registerStdin()         標準入力受付登録
    com_cancelStdin()           標準入力受付解除
 
