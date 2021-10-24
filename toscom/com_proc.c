@@ -355,14 +355,14 @@ static void checkAllocation(
         com_error( COM_ERR_NOMEMORY, "com_%s NG (%s)", op, gMemLog );
     }
     else {
-        com_error( COM_ERR_NOMEMORY, "com_%s NG (%zdbyte)", op, iSize );
+        com_error( COM_ERR_NOMEMORY, "com_%s NG (%zubyte)", op, iSize );
     }
 }
 
 void *com_mallocFunc( size_t iSize, COM_FILEPRM, const char *iFormat, ... )
 {
     if( !iSize ) {COM_PRMNG(NULL);}
-    com_mutexLock( &gMutexMem, "malloc(%zd)", iSize );
+    com_mutexLock( &gMutexMem, "malloc(%zu)", iSize );
     void* ptr = NULL;
     if( !com_debugMemoryError() ) { ptr = calloc( iSize, 1 ); }
     COM_SET_FORMAT( gMemLog );
