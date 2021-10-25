@@ -34,14 +34,11 @@
 #define _XOPEN_SOURCE_EXTENDED
 #endif
 
-#define NCURSES_INTERNALS
-
 #include <panel.h>
 #include <ncurses.h>
 #include <locale.h>
 #include <wchar.h>
 #include <wctype.h>
-
 
 /*
  *****************************************************************************
