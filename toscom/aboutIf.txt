@@ -388,7 +388,60 @@ toscom grimoire Ver3.00
 
 
 ===== ウィンドウ機能 (com_window.h) ==========================================
-(近日通過予定)
+   (現状 Linuxでのみ使用可能)
+
+   ********** COMWINBASE:基本 **********
+   com_initializeWindow()      ウィンドウ機能初期化
+
+   ********** COMWINCONT:ウィンドウ制御 **********
+   com_readyWindow()           ウィンドウモード開始
+   com_createWindow()          ウィンドウ生成
+   com_existWindow()           ウィンドウ存在チェック
+   com_setBackgroundWindow()   バックグラウンド指定
+
+   com_activateWindow()        ウィンドウアクティベート
+   com_refreshWindow()         ウィンドウ更新
+   com_moveWindow()            ウィンドウ位置変更
+   com_floatWindow()           ウィンドウ階層アップ
+   com_sinkWindow()            ウィンドウ階層ダウン
+   com_hideWindow()            ウィンドウ隠蔽設定
+   com_getWindowInf()          ウィンドウ情報取得
+
+   com_getWindowPos()          座標取得(ウィンドウ位置)
+   com_getWindowMax()          座標取得(ウィンドウサイズ)
+   com_getWindowCur()          座標取得(カーソル位置)
+
+   com_deleteWindow()          ウィンドウ削除
+   com_finishWindow()          ウィンドウモード終了
+
+   ********** COMWINDISP:ウィンドウ出力 **********
+   com_fillWindow()            ウィンドウフィル
+   com_clearWindow()           ウィンドウクリア
+
+   com_moveCursor()            ウィンドウ内カーソル位置指定
+   com_shiftCursor()           ウィンドウ内カーソル位置移動
+   com_udlrCursor()            ウィンドウ内カーソル位置移動(十字指定)
+
+   com_printWindow()           ウィンドウ内文字列出力(現在位置・出力非追従)
+   com_mprintWindow()          ウィンドウ内文字列出力(指定位置・出力非追従)
+   com_printw()                ウィンドウ内文字列出力(現在位置・出力追従)
+   com_mprintw()               ウィンドウ内文字列出力(指定位置・出力追従)
+
+   ********** COMWINKEY:ウィンドウ入力 **********
+   com_setWindowKeymap()       キーマップ登録
+   com_mixWindowKeymap()       他ウィンドウキーマップ併用設定
+   com_checkWindowKey()        キーボードマッピングチェック
+   com_getLastKey()            最終押下キー取得
+
+   com_inputWindow()           文字列入力
+   com_getRestSize()           ウィンドウで打てる文字数算出
+   com_setIntrInputWindow()    割込キー登録
+   com_getInputWindow()        入力中文字列取得
+   com_setInputWindow()        入力中文字列変更
+   com_cancelInputWindow()     文字列入力キャンセル
+
+   ********** COMWINDBG:デバッグ関連 **********
+   com_setDebugWindow()        ウィンドウモードデバッグ出力設定
 
 
 
