@@ -32,13 +32,7 @@
     > make
 
     これにより test (Cygwinの場合は test.exe)が生成されます。
-
-    ただし ncurses・ncurses-devel・ncurses-libs がインストールされていない場合
-    コンパイルに失敗します。これについては、toscom/BUILD/makefile を開き、
-    「CFLAGS += -lpanel -lncursesw」という行の先頭に # を付けてコメントアウトし
-    更に main.cの「#include "com_window.h"」もコメントアウトすれば、とりあえず
-    コンパイルは出来るはずです。
-    
+   
     toscom/main.c に main()があるので、そこに処理を書いていけば良いですが、
     toscom/配下で色々ファイルを修正するのは、出来るだけ避ける方が望ましいです。
     
