@@ -310,7 +310,7 @@ BOOL com_sinkWindow( com_winId_t iId )
     return true;
 }
 
-BOOL com_hidePos( com_winId_t iId, BOOL iHide )
+BOOL com_hideWindow( com_winId_t iId, BOOL iHide )
 {
     NO_ROOTWIN( false );
     GET_WIN( false );
@@ -695,14 +695,14 @@ static BOOL addText( com_workInput_t *iWork, wint_t *iInput )
 // 関数ポインタは void*型と直接交換できないため、構造体を噛ませる
 typedef struct {
     com_intrKeyCB_t func;
-} com_tmpIntrKeyCBFunc_t;
+} tmpIntrKeyCBFunc_t;
 
 static BOOL setInterruptKey(
         com_winId_t iId, const com_intrKey_t *iIntrKey, com_hashId_t iHash )
 {
     long key;
     for( ;  (key = iIntrKey->key);  iIntrKey++ ) {
-        com_tmpIntrKeyCBFunc_t tmp = { iIntrKey->func };
+        tmpIntrKeyCBFunc_t tmp = { iIntrKey->func };
         if( !com_addHash( iHash,true,&key,sizeof(key),&tmp,sizeof(tmp) ) ) {
             return false;
         }
@@ -771,7 +771,7 @@ static BOOL inputStringLine(
     return false;
 }
 
-BOOL com_inputWinodw(
+BOOL com_inputWindow(
         com_winId_t iId, char **oInput, com_wininopt_t *iOpt,
         const com_winpos_t *iPos )
 {
@@ -790,8 +790,138 @@ BOOL com_inputWinodw(
     return inputStringLine( &work, wch, iOpt );
 }
 
+size_t com_getRestSize( com_winId_t iId )
+{
+    GET_WIN(0);
+    com_winpos_t cur = *(getCurPos( win ));
+    com_winpos_t max = *(getMaxPos( win ));
+    if( win->border ) { return (max.x - cur.x); }
+    return (size_t)(max.x * max.y - ((max.x * cur.y) + cur.x) + 1);
+}
+
+#define GET_WINWORK( NGRET ) \
+    GET_WIN( NGRET ); \
+    com_workInput_t* work = NULL; \
+    if( !(work = setWork( win->textId, NULL )) ) {COM_PRMNG( NGRET );} \
+    do{} while(0)
+
+char *com_getInputWindow( com_winId_t iId )
+{
+    GET_WINWORK( NULL );
+    convertText();
+    return gInputText;
+}
+
+void com_setInputWindow( com_winId_t iId, const char *iText )
+{
+    GET_WINWORK();
+    if( work->echo ) { (void)clearText( work, false ); }
+    mbstowcs( gWorkWstr, iText, COM_WINTEXT_BUF_SIZE - 1 );
+    if( work->echo ) {
+        com_mprintw( work->id, work->pos, 0, "%ls", gWorkWstr );
+        com_refreshWindow();
+    }
+}
+
+void com_cancelInputWindow( com_winId_t iId )
+{
+    GET_WINWORK();
+    (void)cancelText( work );
+}
+
+// 関数ポインタは void*型と直接交換できないため、構造体を噛ませる
+typedef struct {
+    com_keyCB_t func;
+} tmpKeyCBfunc_t;
+
+static BOOL setWindowKeymap(
+        com_winId_t iId, const com_keymap_t *iKeymap, com_hashId_t iHash )
+{
+    long key;
+    for( ;  (key = iKeymap->key);  iKeymap++ ) {
+        tmpKeyCBfunc_t tmp = { iKeymap->func };
+        if( !com_addHash( iHash,true,&key,sizeof(key),&tmp,sizeof(tmp) ) ) {
+            return false;
+        }
+        dbgWin( ">> keymap[%ld] added (%c)", iId, key );
+    }
+    return true;
+}
+
+BOOL com_setWindowKeymap( com_winId_t iId, const com_keymap_t *iKeymap )
+{
+    if( !iKeymap ) {COM_PRMNG(false);}
+    GET_WIN( false );
+    com_skipMemInfo( true );
+    com_hash_t result = setWindowKeymap( iId, iKeymap, win->keyHash );
+    com_skipMemInfo( false );
+    return result;
+}
+
+BOOL com_mixWindowKeymap( com_winId_t iId, com_winId_t iSourceId )
+{
+    if( iId == iSourceId ) {COM_PRMNG(false);}
+    GET_WIN( false );
+    com_cwin_t* src = checkWinId( &iSourceId );
+    if( iSourceId == COM_ONLY_OWN_KEYMAP ) {  // srcは NULLになっているはず
+        win->mixKeyHash = iSourceId;
+        dbgWin( ">> set[%ld] keymap no mix", iId );
+        return true;
+    }
+    if( UNLIKELY( !src )) {COM_PRMNG(false);}
+    win->mixKeyHash = src->keyHash;
+    dbgWin( ">> set[%ld] mix keymap[%ld]", iId, iSourceId );
+    return true;
+}
+
+static int gLastKey = 0;
+
+int com_getLastKey( void )
+{
+    return gLastKey;
+}
+
+static BOOL searchWindowKeymap( com_keyCB_t *iFunc, com_hashId_t iHash )
+{
+    const void* data;
+    if( !searchKeyHash( iHash, (long)gLastKey, &data ) ) { return false; }
+    tmpKeyCBfunc_t tmp;
+    memcpy( &tmp, data, sizeof(*iFunc) );
+    *iFunc = tmp.func;
+    return true;
+}
+
+static BOOL checkKeymap( com_keyCB_t *iFunc, com_cwin_t *iWin, BOOL *oMixed )
+{
+    *oMixed = false;
+    if( searchWindowKeymap( iFunc, iWin->keyHash ) ) { return true; }
+    if( iWin->mixKeyHash == COM_ONLY_OWN_KEYMAP ) { return false; }
+    *oMixed = true;
+    return searchWindowKeymap( iFunc, iWin->mixKeyHash );
+}
+
+BOOL com_checkWindowKey( com_winId_t iId, int iDelay )
+{
+    GET_WIN( false );
+    wtimeout( win->window, iDelay );
+    if( ERR == (gLastKey = wgetch( win->window )) ) { return false; }
+    com_keyCB_t func = NULL;
+    BOOL mixed = false;
+    if( checkKeymap( &func, win, &mixed ) ) {
+        if( func ) {
+            dbgWin( ">> keymap[%ld] exist %d '%c' (use mixed=%ld)",
+                    iId, gLastKey, gLastKey, mixed );
+            func( iId );
+            return true;
+        }
+    }
+    dbgWin( ">> no keymap[%ld] %d '%c'", iId, gLastKey, gLastKey );
+    return false;
+}
 
 
+
+// ウィンドウ初期化/終了処理 -------------------------------------------------
 
 static void configColors( const com_colorPair_t *iColors )
 {
@@ -849,6 +979,8 @@ BOOL com_finishWindow( void )
     com_setFuncTrace( true );
     return true;
 }
+
+
 
 // 初期化処理 ----------------------------------------------------------------
 
