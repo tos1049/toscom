@@ -146,7 +146,7 @@ static void showPanels( void )
 com_winId_t com_createWindow(
         const com_winpos_t *iPos, const com_winpos_t *iSize, BOOL iBorder )
 {
-    if( !gWin.cnt ) { return 0; }
+    if( !gWin.cnt ) { return COM_NO_WIN; }
     WINDOW* win = newwin( iSize->y, iSize->x, iPos->y, iPos->x );
     if( !win ) { forceExit( "fail to create new window..." ); }
     keypad( win, gWin.keypad );
