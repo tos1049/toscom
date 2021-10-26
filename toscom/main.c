@@ -8,7 +8,7 @@
 #include "com_if.h"                 // toscom基本機能
 #include "com_extra.h"              // toscomエキストラ機能
 #include "com_select.h"             // toscomセレクト機能
-#include "com_window.h"             // toscomウィンドウ機能
+//#include "com_window.h"             // toscomウィンドウ機能
 
 /* 独自処理があれば記述 ******************************************************/
 

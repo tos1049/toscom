@@ -31,6 +31,7 @@ function fileconv1() {
 }
 
 function convArcFile() {
+  if [ ! -e $1 ]; then return; fi
   echo " $1"
   chmod 664 $1
   tmpdir=tmp.$1
@@ -44,7 +45,15 @@ function convArcFile() {
   chmod 444 $1
 }
 
+WINDOWTAZ="com_window.tar.gz"
+WINDOWFILES="com_window.h com_window.c"
+WINDOWPREF="tmp13579"
+
 function convSrc() {
+  if [ -e $WINDOWTAZ ]; then
+    tar xvfz $WINDOWTAZ >& /dev/null
+    mv $WINDOWTAZ ${WINDOWPREF}${WINDOWTAZ}
+  fi
   fileconv0 BUILD/makefile
   #fileconv1 HISTORY/*.txt
   fileconv1 com_if.h com_proc*.c com_debug.*
@@ -52,9 +61,14 @@ function convSrc() {
   #fileconv1 com_signal*
   fileconv0 main.c com_custom.h com_spec.* com_test*.c
   fileconv0 xname
+  if [ -e ${WINDOWPREF}${WINDOWTAZ} ]; then
+    tar cvfz $WINDOWTAZ $WINDOWFILES >& /dev/null
+    rm -fr ${WINDOWPREF}${WINDOWTAZ} $WINDOWFILES
+  fi
 }
 
 function convArcDir() {
+  if [ ! -e $1 ]; then return; fi
   echo " $1"
   chmod 664 $1
   tar xvfz $1 > /dev/null
@@ -67,6 +81,7 @@ function convArcDir() {
 }
 
 function convArcSmpl() {
+  if [ ! -e $1 ]; then return; fi
   echo " $1"
   chmod 664 $1
   tar xvfz $1 > /dev/null
@@ -89,8 +104,8 @@ convSrc
 convArcFile com_testtos.tar.gz "com_testtos.c"
 convArcDir newenv.tar.gz NEWENV \
        "BUILD/makefile *.c *.h newenv"
-#convArcDir analyzer.tar.gz analyzer \
-#       "BUILD/makefile anlz_* com_spec.* com_test.c main.c newenv"
-#convArcSmpl smplcomm.tar.gz smplComm \
-##       "BUILD/makefile com_spec.* com_test.c smpl_*.c smpl_*.h main.c newenv"
+convArcDir analyzer.tar.gz analyzer \
+       "BUILD/makefile anlz_* com_spec.* com_test.c main.c newenv"
+convArcSmpl smplcomm.tar.gz smplComm \
+       "BUILD/makefile com_spec.* com_test.c smpl_*.c smpl_*.h main.c newenv"
 

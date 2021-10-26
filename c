@@ -88,7 +88,8 @@ echo
 echo 
 cd ../../toscom
 ./xname
-checker "$tarfile (module rename)" "rel" "$testfile" "toscom"
+tar xvfz tos_testtos.tar.gz >& /dev/null
+checker "$tarfile (module rename)" "" "$testfile" "toscom"
 
 if [ -e toscom/smplcomm.tar.gz ]; then
   echo

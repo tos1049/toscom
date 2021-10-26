@@ -179,7 +179,7 @@ comfiles="$CDIR/com_if.h $CDIR/com_proc.c $CDIR/com_procThread.c"
 comfiles+=" $CDIR/com_debug.h $CDIR/com_debug.c"
 comfiles+=" $CDIR/com_extra.h $CDIR/com_extra.c"
 comfiles+=" $CDIR/com_select.h $CDIR/com_select.c"
-comfiles+=" $CDIR/com_window.h $CDIR/com_window.c"
+#comfiles+=" $CDIR/com_window.h $CDIR/com_window.c"
 #comfiles+=" $CDIR/com_signal.h $CDIR/com_signal.c"
 #comfiles+=" $CDIR/com_signalCom.h $CDIR/com_signalCom.c"
 #comfiles+=" $CDIR/com_signalPrt1.h $CDIR/com_signalPrt1.c"
@@ -191,7 +191,12 @@ specfiles+=" $CDIR/com_test.c $CDIR/main.c"
 specfiles+=" $CDIR/xconv"
 specfiles+=" $CDIR/xname"
 
-tarfiles="$CDIR/newenv.tar.gz $CDIR/com_testtos.tar.gz"
+cd $CDIR
+tar cvfz com_window.tar.gz com_window.h com_window.c >& /dev/null
+cd ..
+tarfiles="$CDIR/com_window.tar.gz"
+
+tarfiles+=" $CDIR/newenv.tar.gz $CDIR/com_testtos.tar.gz"
 #tarfiles+=" $CDIR/smplcomm.tar.gz $CDIR/analyzer.tar.gz"
 
 romfiles="${docfiles} ${comfiles} ${tarfiles}"

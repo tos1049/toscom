@@ -84,7 +84,7 @@ CFLAGS += -lpthread
 # com_extra.h(エキストラ機能)を使用する場合、このライブラリ使用が必要
 CFLAGS += -lm
 # com_window.h(ウィンドウ機能）を使用する場合、このライブラリ使用が必要
-CFLAGS += -lpanel -lncursesw
+#CFLAGS += -lpanel -lncursesw
 # Electric Fenceを使ったデバッグがしたい時のみ入れるオプション
 #CFLAGS += -lefence
 
