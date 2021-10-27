@@ -62,7 +62,7 @@ WINDOWFILES="${NEWMODULE}_window.h ${NEWMODULE}_window.c"
 function procFiles() {
   echo ">> convert document files"
   convert "*.txt" $1 $2 1
-  convert "README.md" $1 $2 1
+  #convert "README.md" $1 $2 1
 
   if [ -e ${1}${WINDOWTAZ} ]; then
     tar xvfz ${1}${WINDOWTAZ} >& /dev/null
