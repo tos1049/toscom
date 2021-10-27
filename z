@@ -191,12 +191,18 @@ specfiles+=" $CDIR/com_test.c $CDIR/main.c"
 specfiles+=" $CDIR/xconv"
 specfiles+=" $CDIR/xname"
 
-cd $CDIR
-tar cvfz com_window.tar.gz com_window.h com_window.c >& /dev/null
-cd ..
-tarfiles="$CDIR/com_window.tar.gz"
-
-tarfiles+=" $CDIR/newenv.tar.gz $CDIR/com_testtos.tar.gz"
+winfiles="com_window.h com_window.c"
+if [ "x$winfiles" != "x" ]; then
+  tarfiles="$CDIR/com_window.tar.gz "
+  cd $CDIR
+  chmod 444 $winfiles
+  tar cvfz com_window.tar.gz $winfiles >& /dev/null
+  chmod 644 $winfiles
+  cd ..
+else
+  tarfiles=""
+fi
+tarfiles+="$CDIR/newenv.tar.gz $CDIR/com_testtos.tar.gz"
 #tarfiles+=" $CDIR/smplcomm.tar.gz $CDIR/analyzer.tar.gz"
 
 romfiles="${docfiles} ${comfiles} ${tarfiles}"

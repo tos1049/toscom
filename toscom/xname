@@ -86,9 +86,11 @@ function procFiles() {
   if [ -e ${1}${WINDOWTAZ} ]; then
     tar cvfz ${2}$WINDOWTAZ $WINDOWFILES >& /dev/null
     rm -fr ${1}${WINDOWTAZ} $WINDOWFILES
+    chmod 444 ${2}${WINDOWTAZ}
   fi
   tar cvfz ${2}_testtos.tar.gz ${2}_testtos.c >& /dev/null
   rm -fr ${1}_testtos.tar.gz ${2}_testtos.c
+  chmod 444 ${2}_testtos.tar.gz
 }
 
 procFiles $OLDMODULE $NEWMODULE
