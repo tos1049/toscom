@@ -775,6 +775,7 @@ BOOL com_inputWindow(
         com_winId_t iId, char **oInput, com_wininopt_t *iOpt,
         const com_winpos_t *iPos )
 {
+    if( !iOpt ) {COM_PRMNG(false);}
     com_workInput_t work = {
         checkWinId( &iId ), iId, iOpt->size, oInput, iPos,
         iOpt->echo, iOpt->clear
