@@ -66,6 +66,16 @@
         com_printf( "Hello, World\n";
     などなど。ビルドして実行したら .test.log というのも出来てるはずです。
 
+    また以下のような記述をすると
+        char *z = com_malloc( 30, "malloc test" );
+        memset( z, 0, 30 );
+    ビルドして実行したら「not freed memory list」というのが出て、
+    解放されずに浮いたままのメモリをプログラム終了時に出力します。
+    com_free( z ); と文言を更にその後ろに足せば、何も言われなくなります。
+    これが toscomのメモリ監視機能です。
+    ファイル監視は com_fopen()でオープン後、com_fclose()でクローズしないまま、
+    プログラムを終了すると「not closed file list」というのが出ます。
+
     toscomがアップデートされたときも、最初と同じように toscom.*.tar.gzを展開
     するだけで、ほぼ反映される、という仕掛けです。main.cに変更があっても、
     開発環境を作ってあれば、上書きされる心配もありません。
