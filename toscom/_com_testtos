@@ -2350,9 +2350,9 @@ typedef struct {
     com_winpos_t   start;
     com_winpos_t   size;
     BOOL           border;
-} test_winData_t;
+} winData_t;
 
-static test_winData_t gWinList[] = {
+static winData_t gWinList[] = {
     { { 40,  2}, { 20, 10 }, true },
     { {  5,  8}, { 65,  8 }, true },
     { { 24,  0}, { 10, 20 }, false },
@@ -2375,7 +2375,7 @@ static void createWindows( void )
     com_setWindowKeymap( 0, gKeymapWin0 );
 
     for( int i = 0;  gWinList[i].start.x != -1;  i++ ) {
-        test_winData_t* tmp = &(gWinList[i]);
+        winData_t* tmp = &(gWinList[i]);
         gWinIdMax = com_createWindow( &tmp->start, &tmp->size, tmp->border );
         if( gWinIdMax < 0 ) { com_printf( "FAILURE[%d]", i ); return; }
         com_setWindowKeymap( gWinIdMax, gKeymapWin1 );

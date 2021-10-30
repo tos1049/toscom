@@ -164,7 +164,7 @@ cp BUILD/makefile $NBDIR/makefile
 patch $NBDIR/makefile $NBDIR/makefile.diff
 NEWFILES="$NBDIR/makefile $NDIR/com_* $NDIR/main.c"
 tar cvfz newenv.tar.gz $NEWFILES $NDIR/newenv
-rm -fr $NEWFILES
+rm -fr $NEWFILES *.rej BUILD/*.rej
 cd ..
 
 # リリースファイルのアーカイブ
@@ -179,7 +179,7 @@ comfiles="$CDIR/com_if.h $CDIR/com_proc.c $CDIR/com_procThread.c"
 comfiles+=" $CDIR/com_debug.h $CDIR/com_debug.c"
 comfiles+=" $CDIR/com_extra.h $CDIR/com_extra.c"
 comfiles+=" $CDIR/com_select.h $CDIR/com_select.c"
-#comfiles+=" $CDIR/com_window.h $CDIR/com_window.c"
+comfiles+=" $CDIR/com_window.h $CDIR/com_window.c"
 #comfiles+=" $CDIR/com_signal.h $CDIR/com_signal.c"
 #comfiles+=" $CDIR/com_signalCom.h $CDIR/com_signalCom.c"
 #comfiles+=" $CDIR/com_signalPrt1.h $CDIR/com_signalPrt1.c"
@@ -192,18 +192,19 @@ specfiles+=" $CDIR/xconv"
 specfiles+=" $CDIR/xname"
 
 # ウィンドウ機能アーカイブ(暫定処理)
-winfiles="com_window.h com_window.c"
-if [ "x$winfiles" != "x" ]; then
-  tarfiles="$CDIR/com_window.tar.gz "
-  cd $CDIR
-  chmod 444 $winfiles
-  tar cvfz com_window.tar.gz $winfiles >& /dev/null
-  chmod 644 $winfiles
-  cd ..
-else
-  tarfiles=""
-fi
-tarfiles+="$CDIR/newenv.tar.gz $CDIR/com_testtos.tar.gz"
+#winfiles="com_window.h com_window.c"
+#if [ "x$winfiles" != "x" ]; then
+#  tarfiles="$CDIR/com_window.tar.gz "
+#  cd $CDIR
+#  chmod 444 $winfiles
+#  tar cvfz com_window.tar.gz $winfiles >& /dev/null
+#  chmod 644 $winfiles
+#  cd ..
+#else
+#  tarfiles=""
+#fi
+#tarfiles+="$CDIR/newenv.tar.gz $CDIR/com_testtos.tar.gz"
+tarfiles="$CDIR/newenv.tar.gz $CDIR/com_testtos.tar.gz"
 #tarfiles+=" $CDIR/smplcomm.tar.gz $CDIR/analyzer.tar.gz"
 
 romfiles="${docfiles} ${comfiles} ${tarfiles}"

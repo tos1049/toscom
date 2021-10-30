@@ -84,10 +84,10 @@ CFLAGS += -lpthread
 # com_extra.h(エキストラ機能)を使用する場合、このライブラリ使用が必要
 CFLAGS += -lm
 # com_window.h(ウィンドウ機能）を使用する場合、このライブラリ使用が必要
-#CFLAGS += -lpanel -lncursesw
+# (Cygwinで curses系の-lを末尾に記述しないとリンクエラーになるため 別フラグに)
+LASTCFLAGS += -lpanel -lncursesw
 # Electric Fenceを使ったデバッグがしたい時のみ入れるオプション
 #CFLAGS += -lefence
-
 
 
 
@@ -158,16 +158,16 @@ NAMELIST = .namelist.toscom
 
 ########## コンパイル時はタグファイルも自動生成する ##########
 $(COMMAND): tags $(OBJS)
-	$(CC) $(CFLAGS) $(OPTION) $(OBJS) -o $(CHECKF)$@
+	$(CC) $(CFLAGS) $(OPTION) $(OBJS) -o $(CHECKF)$@ $(LASTCFLAGS)
 ifneq (,$(findstring USE_FUNCTRACE, $(OPTION)))
 	nm -nl $(CHECKF)$(COMMAND) > $(NAMELIST)
 endif
 
 main.o: $(SRC)/main.c $(COMMON_HEAD)
-	$(CC) $(CFLAGS) $(OPTION) $< -c -o $@
+	$(CC) $(CFLAGS) $(OPTION) $< -c -o $@ $(LASTCFLAGS)
 
 com.o: $(SRC)/com_*.c $(SRC)/com_*.h
-	$(CC) $(CFLAGS) $(OPTION) -c $(wildcard $(SRC)/com_*.c)
+	$(CC) $(CFLAGS) $(OPTION) -c $(wildcard $(SRC)/com_*.c) $(LASTCFLAGS)
 	$(LD) $(LDFLAGS) com_*.o -o $@
 
 # 新たに別モジュールを追加したい時は、smpl.oと同じように記述する。
@@ -182,7 +182,7 @@ com.o: $(SRC)/com_*.c $(SRC)/com_*.h
 # またタグ生成の為、tagsにも モジュール名_*.? を追加するとよいだろう。
 
 smpl.o: $(SRC)/smpl_*.c $(SRC)/smpl_*.h $(COMMON_HEAD)
-	$(CC) $(CFLAGS) $(OPTION) -c $(wildcard $(SRC)/smpl_*.c)
+	$(CC) $(CFLAGS) $(OPTION) -c $(wildcard $(SRC)/smpl_*.c) $(LASTCFLAGS)
 	$(LD) $(LDFLAGS) smpl_*.o -o $@
 
 
