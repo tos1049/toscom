@@ -388,7 +388,6 @@ toscom grimoire Ver3.00
 
 
 ===== ウィンドウ機能 (com_window.h) ==========================================
-   (現状 Linuxでのみ使用可能)
 
    ********** COMWINBASE:基本 **********
    com_initializeWindow()      ウィンドウ機能初期化
