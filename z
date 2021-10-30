@@ -191,6 +191,7 @@ specfiles+=" $CDIR/com_test.c $CDIR/main.c"
 specfiles+=" $CDIR/xconv"
 specfiles+=" $CDIR/xname"
 
+# ウィンドウ機能アーカイブ(暫定処理)
 winfiles="com_window.h com_window.c"
 if [ "x$winfiles" != "x" ]; then
   tarfiles="$CDIR/com_window.tar.gz "
