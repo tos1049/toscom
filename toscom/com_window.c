@@ -74,7 +74,7 @@ static void getWindowPos(
 }
 
 #define GETWINPOS( WINDOW ) \
-    com_winpos_t  wmax, wmin; \
+    com_winpos_t  wmax = {0,0}, wmin = {0,0}; \
     getWindowPos( (WINDOW), &wmax, &wmin ); \
     do{} while(0)
 

@@ -19,7 +19,7 @@
 #include "com_debug.h"
 #include "com_extra.h"
 #include "com_select.h"
-//#include "com_window.h"
+#include "com_window.h"
 
 #ifdef    USE_TESTFUNC
 
@@ -2156,6 +2156,274 @@ void test_ifinfo( void )
 #endif // USING_COM_SIGNAL1
 #endif // USING_COM_SELECT
 
+#ifdef USING_COM_WINDOW  // ウィンドウ機能テスト
+#ifdef USING_COM_EXTRA   // シグナルハンドラーを使うためエキストラ機能も使用
+
+// test_window() /////////////////////////////////////////////////////////////
+
+static BOOL gWindowLoop = true;
+
+#define WINPOS    &(com_winpos_t)
+
+static void printSignum( int iSignum )
+{
+    com_mprintWindow( 0, WINPOS{0, -1}, A_REVERSE | A_UNDERLINE, false,
+                      " signal: %-3d", iSignum );
+}
+
+static com_sigact_t gSigList[] = {
+    { SIGINT,         { .sa_handler = printSignum } },  // Ctrl + c
+    { SIGTSTP,        { .sa_handler = printSignum } },  // Ctrl + z
+    { SIGUSR1,        { .sa_handler = printSignum } },
+    { SIGUSR2,        { .sa_handler = printSignum } },
+    { COM_SIGACT_END, { .sa_handler = NULL } }
+};
+
+static void wkey_up( com_winId_t iId )
+{
+    com_udlrCursor( iId, COM_CUR_UP, 1, NULL );
+}
+
+static void wkey_down( com_winId_t iId )
+{
+    com_udlrCursor( iId, COM_CUR_DOWN, 1, NULL );
+}
+
+static void wkey_left( com_winId_t iId )
+{
+    com_udlrCursor( iId, COM_CUR_LEFT, 1, NULL );
+}
+
+static void wkey_right( com_winId_t iId )
+{
+    com_udlrCursor( iId, COM_CUR_RIGHT, 1, NULL );
+}
+
+static void wkey_moveWindow( com_winId_t iId )
+{
+    int inkey = com_getLastKey();
+    com_winpos_t pos;
+
+    if( !com_getWindowPos( iId, &pos ) ) { return; }
+    if( inkey == 'H' ) { (pos.x)--; }
+    if( inkey == 'J' ) { (pos.y)++; }
+    if( inkey == 'K' ) { (pos.y)--; }
+    if( inkey == 'L' ) { (pos.x)++; }
+    com_moveWindow( iId, &pos );
+    //com_clearWindow( 0 );
+}
+
+static void wkey_now( com_winId_t iId )
+{
+    com_winpos_t cur;
+    int color = 0;
+
+    (void)com_getWindowCur( iId, &cur );
+    if( iId >= 1 && iId <= 3 ) { color = COLOR_PAIR(iId); }
+    com_printWindow( iId, color | (int)A_BOLD, false,
+                     "(%d, %d)", cur.x, cur.y );
+}
+
+static com_winId_t gWinIdMax = 0;
+
+static void wkey_switch( com_winId_t iId )
+{
+    BOOL reverse = ( com_getLastKey() == 'S' );
+    while(1) {
+        if( !reverse ) { iId++; if( iId > gWinIdMax ) { iId = 0; } }
+        else { iId--; if( iId < 0 ) { iId = gWinIdMax; } }
+        if( !com_existWindow( iId ) ) { continue; }
+        if( com_activateWindow( iId ) ) { break; }
+    }
+}
+
+static void wkey_delete( com_winId_t iId )
+{
+    if( iId ) { com_deleteWindow( iId ); }
+}
+
+static void wkey_quit( com_winId_t iId )
+{
+    COM_UNUSED( iId );
+    gWindowLoop = false;
+}
+
+static void wkey_float( com_winId_t iId )
+{
+    com_floatWindow( iId );
+}
+
+static void wkey_sink( com_winId_t iId )
+{
+    com_sinkWindow( iId );
+}
+
+static void wkey_hide( com_winId_t iId )
+{
+    com_hideWindow( iId, true );
+}
+
+static void wkey_showAll( com_winId_t iId )
+{
+    COM_UNUSED( iId );
+    for( int id = 0;  id <= gWinIdMax;  id++ ) {
+        if( com_existWindow( id ) ) { com_hideWindow( id, false ); }
+    }
+    com_refreshWindow();
+}
+
+static void wkey_refresh( com_winId_t iId )
+{
+    com_activateWindow( iId );
+}
+
+static void wkey_clear( com_winId_t iId )
+{
+    com_clearWindow( iId );
+}
+
+static void wkey_fill( com_winId_t iId )
+{
+    com_fillWindow( iId, '*' );
+}
+
+static void wkey_escape( com_winId_t iId )
+{
+    com_mprintWindow( iId, WINPOS{-1, 0}, A_UNDERLINE, false,
+                      "Window ID = %d", iId );
+}
+
+static void wkey_text( com_winId_t iId )
+{
+    char* text = NULL;
+    com_winpos_t cur;
+    com_wininopt_t opt = { .type = COM_IN_1LINE, .delay = 50,
+                           .echo = true,  .clear = false };
+    const com_cwin_t* win;
+    
+    com_getWindowCur( iId, &cur );
+    opt.size = com_getRestSize( iId );
+    com_getWindowInf( iId, &win );
+    while( !com_inputWindow( iId, &text, &opt, &cur ) ) {}
+}
+
+static com_keymap_t gKeymapWin0[] = {
+    { 'h', wkey_left },           // カーソルを左に移動
+    { 'j', wkey_down },           // カーソルを下に移動
+    { 'k', wkey_up },             // カーソルを上に移動
+    { 'l', wkey_right },          // カーソルを右に移動
+    { ' ', wkey_now },            // 現在のカーソル座標を表示
+    { 's', wkey_switch },         // ウィンドウ切替
+    { 'S', wkey_switch },         // ウィンドウ切替(逆方向)
+    { 'r', wkey_refresh },        // ウィンドウ再描画
+    { '/', wkey_showAll },        // ウィンドウ全表示
+    { 'c', wkey_clear },          // ウィンドウ内クリア
+    { 'q', wkey_quit },           // 終了
+    { 0x1b, wkey_escape },        // ウィンドウID表示
+    { KEY_F(12), wkey_text },     // テキスト入力
+    { 0, NULL }
+};
+
+static com_keymap_t gKeymapWin1[] = {
+    { KEY_LEFT, wkey_left },      // カーソルを左に移動
+    { KEY_DOWN, wkey_down },      // カーソルを下に移動
+    { KEY_UP, wkey_up },          // カーソルを上に移動
+    { KEY_RIGHT, wkey_right },    // カーソルを右に移動
+    { 'H', wkey_moveWindow },     // ウィンドウを左に移動
+    { 'J', wkey_moveWindow },     // ウィンドウを下に移動
+    { 'K', wkey_moveWindow },     // ウィンドウを上に移動
+    { 'L', wkey_moveWindow },     // ウィンドウを右に移動
+    { ' ', wkey_now },            // カーソルの現在座標を表示
+    { 'u', wkey_float },          // ウィンドウを最上層に
+    { 'U', wkey_float },          // ウィンドウを最上層に
+    { 'n', wkey_sink },           // ウィンドウを最下層に
+    { 'N', wkey_sink },           // ウィンドウを最下層に
+    { '*', wkey_hide },           // ウィンドウを隠蔽
+    { 'D', wkey_delete },         // ウィンドウを削除
+    { 'F', wkey_fill },           // ウィンドウ内を * でフィル
+    { 'q', NULL },                // q は何もしない
+    { 'z', wkey_quit },           // 終了 (gKeymapWin0[]と違うキーになる)
+    { 0, NULL }
+};
+
+typedef struct {
+    com_winpos_t   start;
+    com_winpos_t   size;
+    BOOL           border;
+} test_winData_t;
+
+static test_winData_t gWinList[] = {
+    { { 40,  2}, { 20, 10 }, true },
+    { {  5,  8}, { 65,  8 }, true },
+    { { 24,  0}, { 10, 20 }, false },
+    { { -1, -1}, { -1, -1 }, true }   // 最後は必ずこれで
+};
+
+static com_colorPair_t  gColorList[] = {
+    { 1, COLOR_RED,     COLOR_BLACK },
+    { 2, COLOR_BLUE,    COLOR_WHITE },
+    { 3, COLOR_YELLOW,  COLOR_BLACK },
+    { 0,0,0 }   // 最後はこれで
+};
+
+static void createWindows( void )
+{
+    com_winopt_t opt = { .noEnter = true, .noEcho = true, .keypad = true,
+                         .colors = gColorList };
+    com_readyWindow( &opt, NULL );
+    com_setBackgroundWindow( 0, ',' );
+    com_setWindowKeymap( 0, gKeymapWin0 );
+
+    for( int i = 0;  gWinList[i].start.x != -1;  i++ ) {
+        test_winData_t* tmp = &(gWinList[i]);
+        gWinIdMax = com_createWindow( &tmp->start, &tmp->size, tmp->border );
+        if( gWinIdMax < 0 ) { com_printf( "FAILURE[%d]", i ); return; }
+        com_setWindowKeymap( gWinIdMax, gKeymapWin1 );
+        com_mixWindowKeymap( gWinIdMax, 0 );
+    }
+    com_setBackgroundWindow( 1, COLOR_PAIR(2) );
+    // com_refreshWindow() は別のところで実施
+}
+
+static void testPrintWindow( void )
+{
+    char testText[] = "12345678901234567890123456789012345678901234567890"
+                      "12345678901234567890123456789012345678901234567890";
+
+    com_moveCursor( 0, WINPOS{72,22} );
+    com_printWindow( 1, 0, false, testText );
+    com_printWindow( 1, 0, true,  testText );
+
+    com_mprintWindow( 0, WINPOS{0,0}, A_UNDERLINE, false,
+                      "日本語出力テスト" );
+    // stdscr(id = 0)のカーソル位置は (72,22) から変わらないはず
+
+    com_refreshWindow();
+    com_activateWindow( 1 );
+}
+
+void test_window( void )
+{
+    startFunc( __func__ );
+    com_setDebugWindow( true );
+    com_setSignalAction( gSigList );
+
+    createWindows();
+    testPrintWindow();
+    while( gWindowLoop ) {
+        if( !com_checkWindowKey( COM_ACTWIN, -1 ) ) {
+            int inkey = com_getLastKey();
+            if( inkey == ERR ) { continue; }
+            com_mprintWindow( 1, WINPOS{1,-1}, A_REVERSE, false,
+                              "[%3d %c]", inkey, inkey );
+        }
+    }
+    com_finishWindow();
+    com_resumeSignalAction( COM_SIGACT_ALL );
+}
+
+#endif // USING_COM_EXTRA
+#endif // USING_COM_WINDOW
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -2245,6 +2513,16 @@ static void exam_selectFunctions( int iArgc, char **iArgv )
 #endif // USING_COM_SELECT
 }
 
+static void exam_windowFunctions( void )
+{
+#ifdef USING_COM_WINDOW
+#ifdef USING_COM_EXTRA   // エキストラ機能も使う(シグナルハンドラー操作のため)
+    // テストしたい関数のコメントアウトを外して再ビルドする
+
+    //test_window();                  // ウィンドウ機能テスト
+#endif // USING_COM_EXTRA
+#endif // USING_COM_WINDOW
+}
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -2272,7 +2550,7 @@ void com_testCode( int iArgc, char **iArgv )
     exam_baseFunctions( iArgc, iArgv );
     exam_extraFunctions();
     exam_selectFunctions( iArgc, iArgv );
-    //exam_windowFunctions( iArgc, iArgv );
+    exam_windowFunctions();
 
     com_printTag( "=", 79, COM_PTAG_CENTER, "TEST END" );
 
