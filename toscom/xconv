@@ -2,6 +2,11 @@
 
 CHANGETO="EUCJP"
 
+
+
+
+
+
 ISUTF8=`file -i aboutIf.txt | grep utf-8`
 if [ -n "$ISUTF8" ]; then
   echo "UTF-8 -> $CHANGETO"

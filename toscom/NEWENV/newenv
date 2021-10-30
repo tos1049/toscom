@@ -58,8 +58,11 @@ function makeLink() {
   # ウィンドウ機能を使う場合、以下2つのコメントアウトを外す
   #ln -s ../toscom/${NEWMODULE}_window.h
   #ln -s ../toscom/${NEWMODULE}_window.c
-  # 更に BUILD/makefile の「-lpanel -lncursesw」の行もコメントアウトを外すこと
-  # これを正常にコンパイルするためには ncurses系のパッケージインストールが必要。
+  # 更に BUILD/makefile の「-lpanel -lncursesw」の行もコメントアウトを外すこと。
+  # 正常にコンパイルするためには ncurses系の以下パッケージインストールが必要。
+  #    ncurses         (Cygwinでも ncurses)
+  #    ncurses-devel   (Cygwinでは libcurses-devel)
+  #    ncurses-lib     (Cygwinでは libcursesw)
 
   # シグナル機能を使う場合、以下6つのコメントアウトを外す
   #ln -s ../toscom/${NEWMODULE}_signal.h
@@ -77,6 +80,9 @@ function makeLink() {
   #ln -s ../toscom/${NEWMODULE}_signalPrt3.h
   #ln -s ../toscom/${NEWMODULE}_signalPrt3.c
 }
+
+
+
 
 
 
