@@ -277,7 +277,7 @@ BOOL com_refreshWindow( void )
 {
     if( !gWin.cnt ) { return false; }
     showPanels();
-    dbgWin( ">> regresh" );
+    dbgWin( ">> refresh" );
     return true;
 }
 
@@ -965,13 +965,14 @@ BOOL com_readyWindow( com_winopt_t *iOpt, com_winpos_t *oSize )
 
 BOOL com_finishWindow( void )
 {
-    if( !gWin.act ) { return false; }
+    if( !gWin.cnt ) { return false; }
     COM_DEBUG_AVOID_START( COM_NO_FUNCTRACE | COM_NO_SKIPMEM );
     for( com_winId_t id = 1;  id < gWin.cnt;  id++ ) {
         if( gWin.inf[id].window ) { com_deleteWindow( id ); }
     }
     endwin();
     cancelHash( &(gWin.inf[0]) );
+    com_skipMemInfo( true );
     com_free( gWin.inf );
     gWin.cnt = 0;
     com_skipMemInfo( false );
