@@ -19,28 +19,8 @@
 #include "com_debug.h"
 
 #ifdef USE_FUNCTRACE
-#include "dlfcn.h"
+#include <dlfcn.h>
 #endif
-
-// デバッグ表示設定 ----------------------------------------------------------
-
-static void setDebugMode( COM_DEBUG_MODE_t *oMode, COM_DEBUG_MODE_t iValue )
-{
-    if( iValue > COM_DEBUG_SILENT ) { iValue = COM_DEBUG_SILENT; }
-    *oMode = iValue;
-}
-
-static COM_DEBUG_MODE_t gPrintDebugMode = COM_DEBUG_OFF;
-
-void com_setDebugPrint( COM_DEBUG_MODE_t iMode )
-{
-    setDebugMode( &gPrintDebugMode, iMode );
-}
-
-COM_DEBUG_MODE_t com_getDebugPrint( void )
-{
-    return gPrintDebugMode;
-}
 
 // デバッグログファイル関連 --------------------------------------------------
 
@@ -203,14 +183,14 @@ static void writeFile(
 {
     if( iLineTop ) {
         dispTimeStamp( ioFp, iStamp );
-        if( iPrefixLabel ) { fprintf( ioFp, "[%s]", iPrefixLabel ); }
+        if( iPrefixLabel ) { fprintf( ioFp, "[%s] ", iPrefixLabel ); }
         else if( iStamp ) { fprintf( ioFp, " " ); }
     }
     // 改行なしの途中でもデバッグ出力はまず改行して出力する
     else if( iPrefixLabel ) {
         fprintf( ioFp, "\n" );
         dispTimeStamp( ioFp, iStamp );
-        fprintf( ioFp, "[%s]", iPrefixLabel );
+        fprintf( ioFp, "[%s] ", iPrefixLabel );
     }
     fprintf( ioFp, "%s", gWriteBuf );
     fflush( ioFp );
@@ -396,8 +376,7 @@ void com_printTag(
     if( iPos < 0 || iPos > COM_PTAG_RIGHT ) {COM_PRMNG();}
     com_setFuncTrace( false );
     COM_SET_FORMAT( label );
-    size_t dispLen = 0;
-    dispLen += printTag( iTag, iWidth, iPos, label, true );
+    size_t dispLen = printTag( iTag, iWidth, iPos, label, true );
     com_printf( "%s", label );
     dispLen += strlen( label );
     dispLen += printTag( iTag, iWidth, iPos, label, false );
@@ -429,6 +408,7 @@ static void dispTopSeparator( com_printBin_t *iFlags )
     if( iFlags->prefix ) { count += strlen( iFlags->prefix ); }
     if( iFlags->suffix ) { count += strlen( iFlags->suffix ); }
     if( iFlags->seqAscii ) {count += strlen( iFlags->seqAscii ) + iFlags->cols;}
+    for( size_t i = 0;  i < count;  i++ ) { PRINT( iFlags->topSep ); }
     PRINT( "\n" );
 }
 
@@ -441,9 +421,9 @@ static void dispBinary(
             COM_BINTOHEX( tmpBin, iBinary[i], false );
             PRINT( tmpBin );
         }
-        else { PRINT( " " ); }
+        else { PRINT( "  " ); }
         if( iFlags->colSeq == 1 ) { PRINT( iFlags->seq ); }
-        else if( i && ((i + 1) % iFlags->colSeq) ) { PRINT( iFlags->seq ); }
+        else if( i && !((i + 1) % iFlags->colSeq) ) { PRINT( iFlags->seq ); }
     }
 }
 
@@ -537,6 +517,26 @@ void com_printfDispOnly( const char *iFormat, ... )
     DBGOUT_TAIL;
 }
 #endif   // CHECK_PRINT_FORMAT
+
+// デバッグ表示設定 ----------------------------------------------------------
+
+static void setDebugMode( COM_DEBUG_MODE_t *oMode, COM_DEBUG_MODE_t iValue )
+{
+    if( iValue > COM_DEBUG_SILENT ) { iValue = COM_DEBUG_SILENT; }
+    *oMode = iValue;
+}
+
+static COM_DEBUG_MODE_t gPrintDebugMode = COM_DEBUG_OFF;
+
+void com_setDebugPrint( COM_DEBUG_MODE_t iMode )
+{
+    setDebugMode( &gPrintDebugMode, iMode );
+}
+
+COM_DEBUG_MODE_t com_getDebugPrint( void )
+{
+    return gPrintDebugMode;
+}
 
 static void debugCom( BOOL iCom )
 {
@@ -1191,23 +1191,6 @@ COM_DEBUG_MODE_t com_getWatchFileInfo( void )
     return gWatchFileInfoMode;
 }
 
-static com_watchInfo_t* gFileInfoTop = NULL;
-static long gFileInfoSeqno = 0;
-static long gFileInfoCount = 0;
-
-static void dispFileInfo(
-        const char *iPre, COM_FILE_OPR_t iType, const com_watchInfo_t *oInfo,
-        COM_DEBUG_MODE_t iMode, COM_FILEPRM )
-{
-    char* type[] = { "fopen", "fclose" };
-
-    COM_CLEAR_BUF( gLogBuff );
-    // iTypeだけは iIndo->typeと異なる可能性があるため、別入力
-    COM_MAKELOG( "%s%08ld com_%-7s %12p (%5ld)\n",
-                 iPre, oInfo->seqno, type[iType], oInfo->ptr, gFileInfoCount );
-    dispWatchInfo( iMode, iPre, oInfo->label, COM_FILEVAR );
-}
-
 static __thread BOOL gSkipFileInfo = false;
 
 void com_skipFileInfo( BOOL iMode ) {
@@ -1217,6 +1200,23 @@ void com_skipFileInfo( BOOL iMode ) {
 #else
     gSkipFileInfo = iMode;
 #endif
+}
+
+static com_watchInfo_t* gFileInfoTop = NULL;
+static long gFileInfoSeqno = 0;
+static long gFileInfoCount = 0;
+
+static void dispFileInfo(
+        const char *iPre, COM_FILE_OPR_t iType, const com_watchInfo_t *oInfo,
+        COM_DEBUG_MODE_t iMode, COM_FILEPRM )
+{
+    char* type[] = { "open", "close" };
+
+    COM_CLEAR_BUF( gLogBuff );
+    // iTypeだけは iIndo->typeと異なる可能性があるため、別入力
+    COM_MAKELOG( "%s%08ld com_f%-7s %12p (%5ld)\n",
+                 iPre, oInfo->seqno, type[iType], oInfo->ptr, gFileInfoCount );
+    dispWatchInfo( iMode, iPre, oInfo->label, COM_FILEVAR );
 }
 
 void com_addFileInfo(
@@ -1319,7 +1319,7 @@ BOOL com_debugFcloseError( const FILE *iFp )
 {
     // 扱いが少し違うため、judgeDebugError()は使わない
     if( !gDebugFcloseMode ) { return false; }
-    if( !gDebugFcloseSeqno ) { return false; }
+    if( !gDebugFcloseSeqno ) { return true; }
     // カウント決め打ちでNGにする
     long infoSeqno = checkWatchInfo( gFileInfoTop, iFp );
     if( infoSeqno == NO_DEBUG_INFO ) { return false; }
@@ -1474,7 +1474,7 @@ static const char *getFuncName( void *iFunc )
 
     Dl_info dli;
     if( dladdr( iFunc, &dli ) ) {
-        if( dli.dli_fname ) { return dli.dli_sname; }
+        if( dli.dli_sname ) { return dli.dli_sname; }
         return "<<internal function>>";
     }
     return "<<unknown>>";

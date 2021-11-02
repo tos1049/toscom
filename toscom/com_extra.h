@@ -38,7 +38,7 @@
 enum {
     COM_ERR_READTXTNG  = 930,        // 複数行テキスト読み込みNG
     COM_ERR_RANDOMIZE  = 931,        // 乱数生成NG
-    COM_ERR_SIGNALING  = 932,        // シグナル関連NG
+    COM_ERR_SIGNALNG   = 932,        // シグナル関連NG
 };
 
 /*

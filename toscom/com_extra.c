@@ -215,7 +215,7 @@ size_t com_inputMutliLine( char *oData, size_t iSize, const char *iFormat, ... )
 }
 
 #define INPUTWRAP( DEFAULT, FUNC, FLAGS ) \
-    char tmp[9] = {0}; \
+    char tmp[8] = {0}; \
     do { \
         const char defaultLabel[] = DEFAULT; \
         if( !iFormat ) { iFormat = defaultLabel; } \
@@ -226,14 +226,14 @@ size_t com_inputMutliLine( char *oData, size_t iSize, const char *iFormat, ... )
 
 BOOL com_askYesNo( const com_actFlag_t *iFlag, const char *iFormat, ... )
 {
-    INPUTWRAP( "(Yes/No)", com_valYesNo, iFlag );
+    INPUTWRAP( "(Yes/No) ", com_valYesNo, iFlag );
     return com_isYes( tmp );
 }
 
 void com_waitEnter( const char *iFormat, ... )
 {
     com_actFlag_t flags = { .clear = false,  .enterSkip = true };
-    INPUTWRAP( "   --- HIT ENTER KEY ---\n", com_valOnlyEnter, &flags );
+    INPUTWRAP( "  --- HIT ENTER KEY ---\n", com_valOnlyEnter, &flags );
 }
 
 
@@ -583,7 +583,7 @@ static BOOL procSigaction( long iCount, const com_sigact_t *iSigList )
         }
         struct sigaction oldact;
         if( 0 > sigaction( (int)tmp->signal, &(tmp->action), &oldact ) ) {
-            com_error( COM_ERR_SIGNALING, "fail to regist sigaction(%ld/%d)",
+            com_error( COM_ERR_SIGNALNG, "fail to register sigaction(%ld/%d)",
                        tmp->signal, errno );
             return false;
         }
@@ -593,7 +593,7 @@ static BOOL procSigaction( long iCount, const com_sigact_t *iSigList )
         if( !result ) { return false; }
         if( isCol ) {  // 上書き発生時エラーは出すが、処理は続行する
             com_error( COM_ERR_DEBUGNG,
-                       "same signal already registered (%ld)", tmp->signal );
+                       "same signal already registered(%ld)", tmp->signal );
             isCol = false;
         }
     }
@@ -624,7 +624,7 @@ void com_resumeSignalAction( long iSignum )
         }
     }
     if( !resumed && iSignum != COM_SIGACT_ALL ) {
-        com_error( COM_ERR_DEBUGNG, "no such signal registered (%ld)",iSignum );
+        com_error( COM_ERR_DEBUGNG, "no such signal registered(%ld)",iSignum );
         return;
     }
     com_skipMemInfo( true );
@@ -694,6 +694,7 @@ BOOL com_readyPack( com_packInf_t *ioInf, const char *iConfirm )
 BOOL com_finishPack( com_packInf_t *ioInf, BOOL iFinal )
 {
     if( !ioInf ) {COM_PRMNG(false);}
+    com_skipMemInfo( false );
     BOOL result = true;
     com_fclose( ioInf->fp );
     if( iFinal ) {
@@ -708,6 +709,7 @@ BOOL com_finishPack( com_packInf_t *ioInf, BOOL iFinal )
     else {  // 未完了の場合はファイル削除して終了
         if( ioInf->writeFile || ioInf->useZip ) { remove( ioInf->filename ); }
     }
+    com_skipMemInfo( true );
     return result;
 }
 
@@ -858,7 +860,7 @@ BOOL com_readPackVar( com_packInf_t *ioInf, void *ioAddr, size_t *ioSize )
 
 static com_dbgErrName_t gErrorNameExtra[] = {
     { COM_ERR_READTXTNG,   "COM_ERR_READTXTNG" },
-    { COM_ERR_SIGNALING,   "COM_ERR_SIGNALING" },
+    { COM_ERR_SIGNALNG,    "COM_ERR_SIGNALNG" },
     { COM_ERR_END,         "" }  // 最後は必ずこれで
 };
 

@@ -650,9 +650,9 @@ ushort com_cksumRfc( void *iBin, size_t iBinSize )
 static BOOL checkNoRecv( BOOL iNonBlock, int iErrno )
 {
     if( !iNonBlock ) { return false; }
-    if( iErrno == EAGAIN ) { return false; }
+    if( iErrno == EAGAIN ) { return true; }
     // EAGAIN と EWOULDBLOCK が同値宣言されている場合を考慮
-    if( EAGAIN != EWOULDBLOCK ) {if(iErrno == EWOULDBLOCK) {return false;}}
+    if( EAGAIN != EWOULDBLOCK ) {if(iErrno == EWOULDBLOCK) {return true;}}
     return false;
 }
 
@@ -888,7 +888,7 @@ static int createFdList( fd_set *oFds, int *oMax, int *oFdList )
     int count = 0;
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
         com_eventInf_t* tmp = &(gEventInf[id]);
-        if( !tmp->isUse ) { continue; }
+        if( !(tmp->isUse) ) { continue; }
         if( tmp->sockId == COM_NO_SOCK ) { continue; }
         addFdList( tmp->sockId, oFds, oMax, oFdList, &count );
     }
@@ -918,7 +918,7 @@ static struct timeval *checkNextTimer( struct timeval *iTm )
     long timer = 0;
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
         com_eventInf_t* tmp = &(gEventInf[id]);
-        if( !tmp->isUse ) { continue; }
+        if( !(tmp->isUse) ) { continue; }
         if( tmp->timer == COM_NO_SOCK || tmp->isStopped ) { continue; }
         getTimeValue( &timer, &now, id );
         count++;
@@ -960,7 +960,7 @@ static BOOL acceptSocket(
 
     *oAccFd = accept( iSockId, (struct sockaddr*)(&ioAddr->addr),
                       &ioAddr->len );
-    if( *oAccFd  < 0 ) {
+    if( *oAccFd < 0 ) {
         if( checkNoRecv( iNonBlock, errno ) ) { return false; }
         com_error( COM_ERR_ACCEPTNG,
                    "fail to accept tcp connection [%s]", com_strerror(errno) );
@@ -1292,7 +1292,7 @@ static socklen_t getAddrLl( void *iSockAddr, void **oAddr )
 {
     struct sockaddr_ll* sll = iSockAddr;
     *oAddr = &(sll->sll_addr);
-    return sizeof(sll->sll_addr);
+    return sll->sll_halen;
 }
 #endif
 
@@ -1382,7 +1382,7 @@ static BOOL compareSockPort( void *iTarget, void *iSource )
 BOOL com_compareSockWithPort( void *iTargetSock, void *iSockAddr )
 {
     if( !iTargetSock || !iSockAddr ) {COM_PRMNG(false);}
-    if( !isIp(iTargetSock) || isIp(iSockAddr) ) { return false; }
+    if( !isIp(iTargetSock) || !isIp(iSockAddr) ) { return false; }
     if( !compareSockFamily( iTargetSock, iSockAddr ) ) { return false; }
     if( !compareSockPort( iTargetSock, iSockAddr ) ) { return false; }
     return compareSockAddr( iTargetSock, iSockAddr );
@@ -1922,7 +1922,7 @@ com_ifinfo_t *com_seekIfInfo(
     }
     com_ifinfo_t* inf = NULL;
     long infCnt = com_getIfInfo( &inf, iUseNetlink );
-    if( infCnt < 0 ) { SEEKIFRETURN( NULL ); }
+    if( infCnt <= 0 ) { SEEKIFRETURN( NULL ); }
     for( long i = 0;  i < infCnt;  i++ ) {
         com_ifinfo_t* ifinf = &(gIfInfo[i]);
         if( matchIfCond( iFlags, ifinf, &cond ) ) { SEEKIFRETURN( ifinf ); }
@@ -1978,7 +1978,7 @@ static void dumpSockAddr( const char *iLabel, com_sockaddr_t *iInf )
         if( com_getnameinfo( &addr, &port, &iInf->addr, iInf->len ) ) {
             com_dbgCom( "     %s=[%s]:%s", iLabel, addr, port );
         }
-        else { com_dbgCom( "     %s=(illegal data?)\n", iLabel ); }
+        else { com_dbgCom( "     %s=(illegal data?)", iLabel ); }
     }
     else {  com_dbgCom( "     %s=(none)", iLabel ); }
     com_dumpCom( &(iInf->addr), iInf->len, "     (len=%zu)", iInf->len );
@@ -2000,16 +2000,16 @@ void com_dispDebugSelect( void )
         com_eventInf_t* tmp = &(gEventInf[id]);
         com_dbgCom( "#%-3ld  isUse=%ld  isListen=%ld",
                       id, tmp->isUse, tmp->isListen );
-        com_dbgCom( "     timer=%ld", tmp->timer );
-        com_dbgCom( "      isStopped=%ld", tmp->isStopped );
-        com_dbgCom( "      expireFunc=%zx", (intptr_t)tmp->expireFunc );
-        com_dbgCom( "      startTime=%ld.%06ld",
+        com_dbgCom( "    timer=%ld", tmp->timer );
+        com_dbgCom( "     isStopped=%ld", tmp->isStopped );
+        com_dbgCom( "     expireFunc=%zx", (intptr_t)tmp->expireFunc );
+        com_dbgCom( "     startTime=%ld.%06ld",
                       tmp->startTime.tv_sec, tmp->startTime.tv_usec );
         if( tmp->timer != COM_NO_SOCK ) { dispConvertTime( &tmp->startTime ); }
-        com_dbgCom( "     sockId=%d", tmp->sockId );
-        com_dbgCom( "      eventFunc=%zx", (intptr_t)tmp->eventFunc );
-        com_dbgCom( "      stdinFunc=%zx", (intptr_t)tmp->stdinFunc );
-        com_dbgCom( "      type=%d", tmp->type );
+        com_dbgCom( "    sockId=%d", tmp->sockId );
+        com_dbgCom( "     eventFunc=%zx", (intptr_t)tmp->eventFunc );
+        com_dbgCom( "     stdinFunc=%zx", (intptr_t)tmp->stdinFunc );
+        com_dbgCom( "     type=%d", tmp->type );
         dumpSockAddr( "srcInf", &tmp->srcInf );
         dumpSockAddr( "dstInf", &tmp->dstInf );
         if( id < (gEventId - 1) ) { com_dbgCom( " "); }

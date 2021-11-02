@@ -143,10 +143,14 @@ static void showPanels( void )
     moveToActCursor( NULL );
 }
 
+#define NOWINDOW( RETURN ) \
+    if( !gWin.cnt ) { return (RETURN); } \
+    do{} while(0)
+
 com_winId_t com_createWindow(
         const com_winpos_t *iPos, const com_winpos_t *iSize, BOOL iBorder )
 {
-    if( !gWin.cnt ) { return COM_NO_WIN; }
+    NOWINDOW( COM_NO_WIN );
     WINDOW* win = newwin( iSize->y, iSize->x, iPos->y, iPos->x );
     if( !win ) { forceExit( "fail to create new window..." ); }
     keypad( win, gWin.keypad );
@@ -249,7 +253,7 @@ BOOL com_getWindowMax( com_winId_t iId, com_winpos_t *oSize )
     if( !oSize ) {COM_PRMNG(false);}
     GET_WIN( false );
     *oSize = *(getMaxPos( win ));
-    dbgWin( ">> window[%ld] size(%d,%d)", iId, oSize->x, oSize->y );
+    dbgWin( ">> window[%ld] size %dx%d", iId, oSize->x, oSize->y );
     return true;
 }
 
@@ -275,7 +279,7 @@ BOOL com_activateWindow( com_winId_t iId )
 
 BOOL com_refreshWindow( void )
 {
-    if( !gWin.cnt ) { return false; }
+    NOWINDOW( false );
     showPanels();
     dbgWin( ">> refresh" );
     return true;
@@ -283,8 +287,8 @@ BOOL com_refreshWindow( void )
 
 BOOL com_moveWindow( com_winId_t iId, const com_winpos_t *iPos )
 {
-    NO_ROOTWIN( false );
     if( !iPos ) {COM_PRMNG(false);}
+    NO_ROOTWIN( false );
     GET_WIN( false );
     if( ERR == move_panel( win->panel, iPos->y, iPos->x ) ) { return false; }
     showPanels();
@@ -529,8 +533,8 @@ static void initializeInput( void )
 // かなり大きなサイズになるので適正サイズを再考する余地あり
 static wchar_t*  gWorkWstr;
 static wchar_t   gInputWstr[COM_WINTEXT_BUF_COUNT][COM_WINTEXT_BUF_SIZE];
-static wchar_t*  gWorkSize;
-static wchar_t   gInputSize[COM_WINTEXT_BUF_COUNT];
+static size_t*   gWorkSize;
+static size_t    gInputSize[COM_WINTEXT_BUF_COUNT];
 // MB_CUR_MAX に相当する 6 を入れた。
 // このマクロは定数マクロではないようで、静的変数定義にはつかえなかった。
 static char      gInputText[COM_WINTEXT_BUF_SIZE * 6];
@@ -660,7 +664,7 @@ static BOOL cancelText( com_workInput_t *iWork )
     return true;
 }
 
-static int getWintSize( wint_t iVal )
+static int getInputSize( wint_t iVal )
 {
     char tmp[MB_CUR_MAX];
     return (size_t)wctomb( tmp, iVal );
@@ -668,7 +672,7 @@ static int getWintSize( wint_t iVal )
 
 static int isOverSize( com_workInput_t *iWork, wint_t iInput )
 {
-    int inSize = getWintSize( iInput );
+    int inSize = getInputSize( iInput );
     if( iWork->win->border ) {
         com_winpos_t  cur, size;
         com_getWindowCur( iWork->id, &cur );
@@ -676,7 +680,7 @@ static int isOverSize( com_workInput_t *iWork, wint_t iInput )
         if( cur.x + inSize >= size.x ) { return 0; }
     }
     if( iWork->size ) {
-        if( *gWorkSize + inSize >= (int)(iWork->size) ) { return 0; }
+        if( *gWorkSize + inSize >= iWork->size ) { return 0; }
     }
     if( wcslen(gWorkWstr) + 1 >= COM_WINTEXT_BUF_SIZE ) { return 0; }
     return inSize;
@@ -781,7 +785,7 @@ BOOL com_inputWindow(
         iOpt->echo, iOpt->clear
     };
     if( !work.win || !oInput || !iPos ) {COM_PRMNG(false);}
-    if( !getWorkBuff( &work ) ) { return false; }
+    if( !getWorkBuff( &work ) ) { return true; }
 
     timeout( iOpt->delay );
     wint_t wch[2] = {0};
@@ -965,7 +969,7 @@ BOOL com_readyWindow( com_winopt_t *iOpt, com_winpos_t *oSize )
 
 BOOL com_finishWindow( void )
 {
-    if( !gWin.cnt ) { return false; }
+    NOWINDOW( false );
     COM_DEBUG_AVOID_START( COM_NO_FUNCTRACE | COM_NO_SKIPMEM );
     for( com_winId_t id = 1;  id < gWin.cnt;  id++ ) {
         if( gWin.inf[id].window ) { com_deleteWindow( id ); }

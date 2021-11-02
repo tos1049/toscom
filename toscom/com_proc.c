@@ -206,7 +206,7 @@ static BOOL decideParams(
     }
     if( iOpt->argvCnt <= 0 ) {return true;}  // COM_OPT_ALLもここも true返却
     if( iCnt + iOpt->argvCnt >= iArgc ) {
-        com_error( COM_ERR_PARAMNG, "lack of option argumets" );
+        com_error( COM_ERR_PARAMNG, "lack of option arguments" );
         return false;
     }
     oOptInf->argc = iOpt->argvCnt;
@@ -569,7 +569,7 @@ char *com_strndupFunc(
         const char *iFormat, ... )
 {
     if( !iString || !iSize ) {COM_PRMNG(NULL);}
-    com_mutexLock( &gMutexMem, "strdnup(%s)", iString );
+    com_mutexLock( &gMutexMem, "strndup(%s)", iString );
     COM_SET_FORMAT( gMemLog );
     if( iSize > strlen(iString) ) { iSize = strlen(iString); }
     if( !iFormat ) {
@@ -588,7 +588,7 @@ void com_freeFunc( void *ioAddr, COM_FILEPRM )
     if( !ioAddr ) {COM_PRMNGF("com_free",);}
     char** dmy = ioAddr;  // ioAddrはダブルポインタであることを想定
     if( *dmy == NULL ) { return; }
-    com_mutexLock( &gMutexMem, "free(%p)", dmy );
+    com_mutexLock( &gMutexMem, "free(%p)", *dmy );
     com_deleteMemInfo( COM_FILEVAR, COM_FREE, *dmy );
     free(*dmy);
     *dmy = NULL;
@@ -638,8 +638,8 @@ static BOOL setBuffer(
     char* label = gSetFunc[iType];
     size_t len = setBuffBySize( iData, iSize ) + 1;
     if( oBuf->size < len ) {
-        oBuf->data = com_reallocFunc( oBuf->data, len, COM_FILEVAR,
-                                      "%s(%s)", label, iData );
+        oBuf->data = com_reallocfFunc( oBuf->data, len, COM_FILEVAR,
+                                       "%s(%s)", label, iData );
         if( !(oBuf->data) ) { oBuf->size = 0;  return false; }
         oBuf->size = len;
     }
@@ -892,7 +892,7 @@ static size_t checkOctStrings( const char *iString )
 {
     size_t count = 0;
     for( size_t i = 0;  i < strlen(iString);  i++ ) {
-        int target = (int)(iString[i]);
+        char target = iString[i];
         if( isxdigit(target) ) { count++; continue; }
         // 空白と制御文字以外は駄目
         if( !isspace(target) && !iscntrl(target) ) { return 0; }
@@ -938,7 +938,7 @@ BOOL com_strtooctFunc(
     return true;
 }
 
-#define COM_NUM_TO_STR( FORMAT ) \
+#define CONV_NUM_TO_STR( FORMAT ) \
     do { \
         memset( oBuf, 0, COM_LONG_SIZE ); \
         snprintf( oBuf, COM_LONG_SIZE, (FORMAT), iValue ); \
@@ -946,12 +946,12 @@ BOOL com_strtooctFunc(
 
 void com_ltostr( char *oBuf, long iValue )
 {
-    COM_NUM_TO_STR( "%ld" );
+    CONV_NUM_TO_STR( "%ld" );
 }
 
 void com_ultostr( char *oBuf, ulong iValue )
 {
-    COM_NUM_TO_STR( "%lu" );
+    CONV_NUM_TO_STR( "%lu" );
 }
 
 void com_bintohex( char *oBuf, uchar iBin, BOOL iCase )
@@ -1239,7 +1239,7 @@ static char gEmpty[] = "";
 static void freeFormString( void )
 {
     for( int i = 0;  i < COM_FORMSTRING_MAX;  i++ ) {
-        com_resetBuffer( &gFormString[i] );
+        com_resetBuffer( &(gFormString[i]) );
     }
 }
 
@@ -1304,12 +1304,13 @@ static void makeTmData(
     size_t size = 0;
     if( oDate ) {
         size = (iType == COM_FORM_SIMPLE ) ? COM_DATE_SSIZE : COM_DATE_DSIZE;
-        snprintf( oDate, size, DATE_FMT[iType], ctm.year, ctm.mon, ctm.day );
+        snprintf( oDate, size,
+                  DATE_FMT[iType], ctm.year, ctm.mon, ctm.day );
     }
     if( oTime ) {
         size = (iType == COM_FORM_SIMPLE) ? COM_TIME_SSIZE : COM_TIME_DSIZE;
-        snprintf( oTime, size, TIME_FMT[iType], ctm.hour, ctm.min, ctm.sec,
-                                                ctm.usec );
+        snprintf( oTime, size,
+                  TIME_FMT[iType], ctm.hour, ctm.min, ctm.sec, ctm.usec );
     }
     COM_SET_IF_EXIST( oVal, ctm );
 }
@@ -1880,9 +1881,9 @@ com_hashId_t com_registerHashFunc(
         com_errorExit( COM_ERR_HASHNG, "fail to create hash table" );
     }
     for( size_t i = 0;  i < iTableSize;  i++ ) { newTable[i] = NULL; }
-    gHash = com_reallocFunc( gHash,
-                             sizeof(com_hashMng_t) * ((size_t)gHashCount + 1),
-                             COM_FILEVAR, "newHashMng(%ld)", gHashCount );
+    gHash = com_reallocfFunc( gHash,
+                              sizeof(com_hashMng_t) * ((size_t)gHashCount + 1),
+                              COM_FILEVAR, "newHashMng(%ld)", gHashCount );
     if( !gHash ) {
         (void)com_mutexUnlockCom( &gMutexHash, COM_FILELOC, true );
         com_errorExit( COM_ERR_HASHNG, "fail to create hash manage data" );
@@ -1935,8 +1936,8 @@ static com_hash_t calcHashKey(
 
 static com_hashUnit_t **getTop( com_hashId_t iID, com_hashData_t *iKey )
 {
-    com_calcHashKey func = calcHashKey;
-    if( gHash[iID].func ) { func = gHash[iID].func; }
+    com_calcHashKey func = gHash[iID].func;
+    if( !func ) { func = calcHashKey; }
     com_hash_t key = func( iKey->data, iKey->size, gHash[iID].tableSize );
     // 与えられたキーが存在するテーブルの先頭アドレスを返す
     return (gHash[iID].table + key);
@@ -2130,9 +2131,9 @@ static void resizeSortSearch( COM_FILEPRM, com_sortTable_t *oTable )
 {
     long cnt = oTable->count;
     // 検索結果格納用領域の確保
-    oTable->search = com_reallocFunc( oTable->search,
-                                      sizeof(com_sort_t*) * cnt, COM_FILEVAR,
-                                      "resize sort search(%ld)", cnt );
+    oTable->search = com_reallocfFunc( oTable->search,
+                                       sizeof(com_sort_t*) * cnt, COM_FILEVAR,
+                                       "resize sort search(%ld)", cnt );
     // 確保できない場合は最初に見つかったもののみを検索するようになる
 }
 
@@ -2442,7 +2443,7 @@ static void notifyOverwrite( com_ringBuf_t *ioRing )
 {
     (ioRing->owCount)++;
     if( !ioRing->owNotify ) {return;}
-    com_error( COM_ERR_RING, "ring buffer(%p) is overwriten", (void*)ioRing );
+    com_error( COM_ERR_RING, "ring buffer(%p) is overwritten", (void*)ioRing );
 }
 
 BOOL com_pushRingBuf( com_ringBuf_t *oRing, void *iData, size_t iDataSize )
@@ -2606,7 +2607,7 @@ BOOL com_registerCfgUDigit( char *iKey, ulong iData )
     com_cfgData_t* CFG = searchCfgData( iKey ); \
     if( !(CFG) ) { \
         com_error( COM_ERR_CONFIG, "config not exist (%s)", iKey ); \
-        return NGCAUSE; \
+        return (NGCAUSE); \
     }
 
 static BOOL copyConditions( com_valCondCopy_t iCopy, void **oCond, void *iCond )
@@ -3067,7 +3068,7 @@ BOOL com_getFileExt( char *oBuf, size_t iBufSize, const char *iPath )
     if( lastPeriod ) {
         lastPeriod++;
         if( *lastPeriod ) {
-            return com_strncpy(oBuf, iBufSize, lastPeriod, strlen(lastPeriod));
+            return com_strncpy( oBuf,iBufSize,lastPeriod,strlen(lastPeriod) );
         }
     }
     return false;
@@ -3152,7 +3153,7 @@ BOOL com_seekBinary(
         com_error( COM_ERR_FILEDIRNG, "%s not found", iPath );
         return false;
     }
-    COM_FOPEN_MUTE( fp, iPath, "r" );
+    COM_FOPEN_MUTE( fp, iPath, "rb" );
     if( !fp ) { return false; }
     BOOL result = seekBin( oBuf, iBufSize, fp, iNextSize, iFunc, ioUserData );
     COM_FCLOSE_MUTE( fp );
@@ -3169,7 +3170,7 @@ BOOL com_pipeCommand(
     if( !oBuf ) { oBuf = gPipeCmdBuff;  iBufSize = sizeof(gPipeCmdBuff); }
     FILE* fp = popen( iCommand, "r" );
     if( !fp ) {
-        com_error( COM_ERR_FILEDIRNG, "fail tp execute [%s]", iCommand );
+        com_error( COM_ERR_FILEDIRNG, "fail to execute [%s]", iCommand );
         return false;
     }
     BOOL result = notifyTextLine( oBuf, iBufSize, fp, iFunc, ioUserData );
@@ -3307,7 +3308,7 @@ static BOOL deleteSubDirs( const com_seekDirResult_t *iInf )
     if( result < 0 ) { return false; }
 
     long* deleteCount = iInf->userData;
-    (*deleteCount)++;
+    *deleteCount += result;
     return true;
 }
 
@@ -3600,9 +3601,8 @@ BOOL com_seekDir2(
     closedir( dir );
     if( readResult > 0 ) {
         com_error( COM_ERR_FILEDIRNG, "fail to readdir(%s)", iPath );
-        return false;
     }
-    return true;
+    return !readResult;
 }
 
 
@@ -3651,8 +3651,8 @@ static BOOL setZipCommand(
 static BOOL trimZip( const char *iArchive )
 {
     if( !iArchive ) { return true; }
-    char* posSlash  = strchr( iArchive, '/' );
-    char* posPeriod = strchr( iArchive, '.' );
+    char* posSlash  = strrchr( iArchive, '/' );
+    char* posPeriod = strrchr( iArchive, '.' );
     if( posPeriod ) {
         if( !posSlash ) { return true; }
         if( posSlash < posPeriod ) { return true; }
@@ -3702,7 +3702,7 @@ BOOL com_unzipFile(
     if( !iArchive ) {COM_PRMNG(false);}
     else {
         if( !com_checkExistFile( iArchive ) ) {
-            com_error( COM_ERR_ARCHIVENG, "file not exist (%s)", iArchive );
+            com_error( COM_ERR_FILEDIRNG, "file not exist (%s)", iArchive );
             return false;
         }
     }
