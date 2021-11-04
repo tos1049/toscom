@@ -5058,7 +5058,7 @@ void com_setLogFile( const char *iFileName );
  * タイトルはデバッグログを開くタイミングで出力されるため、本I/Fの変更を
  * 最初から反映させたいならば、com_initializeSpec()で呼ぶ必要がある。
  *
- * 書式用バッファサイズを超える入力が会った場合は、NG出力し、デフォルトのまま。
+ * 書式用バッファサイズを超える入力があった場合は、NG出力し、デフォルトのまま。
  * デフォルトは "\n##########   %s ver%s %-8s ##########\n"
  */
 void com_setTitleForm( const char *iTitle );
@@ -5077,7 +5077,7 @@ void com_setTitleForm( const char *iTitle );
  * エラー処理が始まる前に本I/Fを呼ばなければ、呼ぶ前後でエラー書式が変わる。
  * そのため、com_initializeSpec()で本I/Fを呼ぶのが一番望ましい。
  *
- * 書式用バッファサイズを超える入力が会った場合は、NG出力し、デフォルトのまま。
+ * 書式用バッファサイズを超える入力があった場合は、NG出力し、デフォルトのまま。
  * デフォルトは "!%03ld! "
  */
 void com_setErrorCodeForm( const char *iError );
