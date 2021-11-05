@@ -38,9 +38,9 @@ typedef struct {
     com_sockaddr_t dstInf;            // 対抗アドレス情報
 } com_eventInf_t;
 
-static pthread_mutex_t gMutexEvent = PTHREAD_MUTEX_INITIALIZER;
-static com_selectId_t  gEventId = 0;       // 現在のイベント登録数
-static com_eventInf_t* gEventInf = NULL;   // イベント情報実体
+static pthread_mutex_t  gMutexEvent = PTHREAD_MUTEX_INITIALIZER;
+static com_selectId_t   gEventId = 0;       // 現在のイベント登録数
+static com_eventInf_t*  gEventInf = NULL;   // イベント情報実体
 
 enum {
     NO_EVENTS = -1,
@@ -57,11 +57,11 @@ enum {
 
 static BOOL checkAvailInf( com_eventInf_t *iInf, BOOL iIsTimer )
 {
-    if( iInf->isUse ) { return false; }
+    if( iInf->isUse ) {return false;}
     // タイマーイベント用なら、前回タイマーイベントの空き情報は使わない
-    if( iIsTimer ) {if( iInf->expireFunc ) { return false; }}
+    if( iIsTimer ) {if( iInf->expireFunc ) {return false;}}
     // ソケットイベント用なら、前回ソケットイベントの空き情報は使わない
-    else {if( !iInf->expireFunc ) { return false; }}
+    else {if( !iInf->expireFunc ) {return false;}}
     return true;
 }
 
@@ -69,9 +69,9 @@ static com_selectId_t selectEventId( BOOL iIsTimer )
 {
     // 未使用領域がある時は、それを利用する
     com_mutexLock( &gMutexEvent, __func__ );
-    com_selectId_t id = 0;  // for文外でも使うため、for文外で定義
+    com_selectId_t  id = 0;  // for文外でも使うため、for文外で定義
     for( ;  id < gEventId;  id++ ) {
-        if( checkAvailInf( &(gEventInf[id]), iIsTimer ) ) { break; }
+        if( checkAvailInf( &(gEventInf[id]), iIsTimer ) ) {break;}
     }
     return id;
 }
@@ -79,11 +79,11 @@ static com_selectId_t selectEventId( BOOL iIsTimer )
 static com_selectId_t getEventId( BOOL iIsTimer )
 {
     // 未使用領域がない時は、末尾に情報を追加
-    com_selectId_t id = selectEventId( iIsTimer );
+    com_selectId_t  id = selectEventId( iIsTimer );
     if( id == gEventId ) {
-        BOOL result = com_realloct( &gEventInf, sizeof(*gEventInf), &gEventId,
-                                    1, "new event inf(%ld)", gEventId );
-        if( !result ) { UNLOCKRETURN( COM_NO_SOCK ); }
+        BOOL  result = com_realloct( &gEventInf, sizeof(*gEventInf), &gEventId,
+                                     1, "new event inf(%ld)", gEventId );
+        if( !result ) {UNLOCKRETURN( COM_NO_SOCK );}
     }
     // 情報初期化
     gEventInf[id] = (com_eventInf_t){
@@ -124,7 +124,7 @@ static char* gModEvent[] = {
     "timer_on", "timer_expired", "timer_reset", "timer_stop", "timer_off"
 };
 
-static BOOL gDebugEvent = true;
+static BOOL  gDebugEvent = true;
 
 void com_setDebugSelect( BOOL iMode )
 {
@@ -133,8 +133,8 @@ void com_setDebugSelect( BOOL iMode )
 
 static void printAddr( com_sockaddr_t *iInf, const char *iLabel )
 {
-    char* addr;
-    char* port;
+    char*  addr;
+    char*  port;
     if( com_getnameinfo( &addr, &port, &iInf->addr, iInf->len ) ) {
         com_dbgCom( "      %s = [%s]:%s", iLabel, addr, port );
     }
@@ -151,8 +151,8 @@ static void printSignal(
 
 static void printStartTime( struct timeval *iTime )
 {
-    char startDate[COM_DATE_DSIZE];
-    char startTime[COM_TIME_DSIZE];
+    char  startDate[COM_DATE_DSIZE];
+    char  startTime[COM_TIME_DSIZE];
     com_setTimeval( COM_FORM_DETAIL, startDate, startTime, NULL, iTime );
     com_dbgCom( "      start = %s %s", startDate, startTime );
 }
@@ -176,13 +176,13 @@ static void logSocket(
         COM_MOD_EVENT_t iModEvent, com_eventInf_t *iInf,
         const uchar *iData, size_t iSize )
 {
-    char* prot[] = {
+    char*  prot[] = {
         "", "rawSnd", "rawRcv", "Netlink", "UDP", "TCP_CLIENT", "TCP_SERVER"
     };
     com_dbgCom( "      sockId = %d", iInf->sockId );
-    char* addLabel = getAddLabel( iModEvent, iInf );
-    if( !addLabel ) { com_dbgCom( "        type = %s", prot[iInf->type] ); }
-    else { com_dbgCom( "        type = %s (%s)", prot[iInf->type], addLabel ); }
+    char*  addLabel = getAddLabel( iModEvent, iInf );
+    if( !addLabel ) {com_dbgCom( "        type = %s", prot[iInf->type] );}
+    else {com_dbgCom( "        type = %s (%s)", prot[iInf->type], addLabel );}
     if( iModEvent == COM_MOD_SEND ) {
         printSignal( &iInf->srcInf, &iInf->dstInf, iData, iSize );
     }
@@ -191,7 +191,7 @@ static void logSocket(
     }
     else {
         printAddr( &iInf->srcInf, "src" );
-        if( iInf->type > COM_SOCK_UDP ) { printAddr( &iInf->dstInf, "dst" ); }
+        if( iInf->type > COM_SOCK_UDP ) {printAddr( &iInf->dstInf, "dst" );}
     }
 }
 
@@ -205,13 +205,13 @@ static void debugEventLog(
         COM_MOD_EVENT_t iModEvent, com_selectId_t iId, com_eventInf_t *iInf,
         const uchar *iData, size_t iSize )
 {
-    if( !com_getDebugPrint() || !gDebugEvent ) { return; }
+    if( !com_getDebugPrint() || !gDebugEvent ) {return;}
     com_dbgCom( "==SELECT %s (ID=%ld)", gModEvent[iModEvent], iId );
-    if( iModEvent == COM_MOD_STDIN ) { logStdin( iData, iSize ); }
+    if( iModEvent == COM_MOD_STDIN ) {logStdin( iData, iSize );}
     else if( iModEvent <= COM_MOD_CLOSED ) {
         logSocket( iModEvent, iInf, iData, iSize );
     }
-    else if( iModEvent >= COM_MOD_TIMERON ) { logTimer( iInf ); }
+    else if( iModEvent >= COM_MOD_TIMERON ) {logTimer( iInf );}
 }
 
 
@@ -267,8 +267,8 @@ static void setSockCondNetlink(
 {
     *oFamily = AF_NETLINK;
     *oType = SOCK_RAW;
-    if( !iSrc ) { *oProtocol = NETLINK_ROUTE; }
-    else { *oProtocol = *iSrc; }
+    if( !iSrc ) {*oProtocol = NETLINK_ROUTE;}
+    else {*oProtocol = *iSrc;}
 }
 #endif // LINUXOS
 
@@ -279,13 +279,13 @@ static void setSockCondUnix(
     *oFamily = AF_UNIX;
     *oType = (iType == COM_SOCK_UDP) ? SOCK_DGRAM : SOCK_STREAM;
     *oProtocol = 0;
-    if( com_checkExistFile( iSun->sun_path ) ) { remove( iSun->sun_path ); }
+    if( com_checkExistFile( iSun->sun_path ) ) {remove( iSun->sun_path );}
 }
 
 static BOOL isUnixSocket( const void *iSrc )
 {
-    if( !iSrc ) { return false; }
-    const struct sockaddr_un* sun = iSrc;
+    if( !iSrc ) {return false;}
+    const struct sockaddr_un*  sun = iSrc;
     return (sun->sun_family == AF_UNIX);
 }
 
@@ -321,7 +321,7 @@ static void setSocketCondition(
 
 static BOOL setUserOpt( int iSockId, const com_sockopt_t *iOpt )
 {
-    BOOL result = true;
+    BOOL  result = true;
     for( ;  iOpt->level >= 0;  iOpt++ ) {
         if( 0 > setsockopt( iSockId, iOpt->level, iOpt->optname,
                             iOpt->optval, (socklen_t)(iOpt->optlen) ) )
@@ -350,7 +350,7 @@ static BOOL sockoptNG( const char *iOptName )
     return false;
 }
 
-static const int YES = 1;
+static const int  YES = 1;
 
 #define SETSOOPT( OPT ) \
     setsockopt( iSockId, proto, (OPT), &YES, sizeof(YES) )
@@ -358,10 +358,10 @@ static const int YES = 1;
 static BOOL setRawsndOpt( int iSockId, const struct addrinfo *iSrc )
 {
     if( iSrc->ai_family == AF_INET ) {
-        int proto = IPPROTO_IP;
-        if( 0 > SETSOOPT( IP_HDRINCL ) ) {  return sockoptNG( "IP_HDRINCL" ); }
+        int  proto = IPPROTO_IP;
+        if( 0 > SETSOOPT( IP_HDRINCL ) ) {return sockoptNG( "IP_HDRINCL" );}
     }
-    const int buf = getSndBufSize();
+    const int  buf = getSndBufSize();
     if( 0 > setsockopt( iSockId, SOL_SOCKET, SO_SNDBUF, &buf, sizeof(buf) ) ) {
         return sockoptNG( "SO_SNDBUF" );
     }
@@ -372,17 +372,17 @@ static BOOL setSocketOptions(
         COM_SOCK_TYPE_t iType, int iSockId, const struct addrinfo *iSrc,
         const com_sockopt_t *iOpt )
 {
-    if( iOpt ) { return setUserOpt( iSockId, iOpt ); }
-    if( iType == COM_SOCK_RAWRCV ) { return true; }  // オプション設定なし
-    if( iType == COM_SOCK_RAWSND ) { return setRawsndOpt( iSockId, iSrc ); }
-    if( iType == COM_SOCK_NETLINK || isUnixSocket( iSrc ) ) { return true; }
-    int proto = (iSrc->ai_family == AF_INET) ? IPPROTO_IP : IPPROTO_IPV6;
+    if( iOpt ) {return setUserOpt( iSockId, iOpt );}
+    if( iType == COM_SOCK_RAWRCV ) {return true;}  // オプション設定なし
+    if( iType == COM_SOCK_RAWSND ) {return setRawsndOpt( iSockId, iSrc );}
+    if( iType == COM_SOCK_NETLINK || isUnixSocket( iSrc ) ) {return true;}
+    int  proto = (iSrc->ai_family == AF_INET) ? IPPROTO_IP : IPPROTO_IPV6;
     // UDP/TCPのIP通信ソケットの設定開始
     if( proto == IPPROTO_IPV6 ) {
-        if( 0 > SETSOOPT( IPV6_V6ONLY ) ) { return sockoptNG( "IPV6_V6ONLY" ); }
+        if( 0 > SETSOOPT( IPV6_V6ONLY ) ) {return sockoptNG( "IPV6_V6ONLY" );}
     }
     proto = SOL_SOCKET;
-    if( 0 > SETSOOPT( SO_REUSEADDR ) ) { return sockoptNG( "SO_REUSEADDR" ); }
+    if( 0 > SETSOOPT( SO_REUSEADDR ) ) {return sockoptNG( "SO_REUSEADDR" );}
     return true;
 }
 
@@ -390,7 +390,7 @@ static BOOL createSocket(
         COM_SOCK_TYPE_t iType, com_selectId_t iId, com_eventInf_t *oInf,
         const void *iSrc, const com_sockopt_t *iOpt )
 {
-    int family, type, protocol;
+    int  family, type, protocol;
     setSocketCondition( iType, iSrc, &family, &type, &protocol,
                         &oInf->isPacket, &oInf->isUnix );
     oInf->sockId = socket( family, type, protocol );
@@ -412,7 +412,7 @@ static BOOL execBind(
         com_selectId_t iId, com_eventInf_t *oInf,
         const void *iAddr, socklen_t iLen )
 {
-    int ret = bind( oInf->sockId, iAddr, iLen );
+    int  ret = bind( oInf->sockId, iAddr, iLen );
     if( ret < 0 ) {
         com_error( COM_ERR_BINDNG,
                    "fail to bind socket[%s]", com_strerror( errno ) );
@@ -427,8 +427,8 @@ static BOOL bindPacketRaw(
         com_selectId_t iId, com_eventInf_t *oInf,
         const struct sockaddr_ll *iSrc )
 {
-    if( iSrc->sll_ifindex < 0 ) { return true; }
-    struct sockaddr_ll sll;
+    if( iSrc->sll_ifindex < 0 ) {return true;}
+    struct sockaddr_ll  sll;
     memcpy( &sll, iSrc, sizeof(sll) );
     sll.sll_family = AF_PACKET;
     return execBind( iId, oInf, &sll, sizeof(sll) );
@@ -455,7 +455,7 @@ static BOOL makeBind(
 #endif
     if( oInf->isUnix ) {return bindUnixDomain( iId, oInf, iSrc );}
     // UDP/TCPソケットへのアドレスバインド
-    const struct addrinfo* src = iSrc;
+    const struct addrinfo*  src = iSrc;
     com_copyAddr( &(oInf->srcInf), src );
     return execBind( iId, oInf, src->ai_addr, src->ai_addrlen );
 }
@@ -463,22 +463,22 @@ static BOOL makeBind(
 static BOOL startTcpClient(
         com_eventInf_t *oInf, const struct addrinfo *iDst )
 {
-    const void* addr = NULL;
-    socklen_t len = 0;
-    if( !oInf->isUnix ) { addr = iDst->ai_addr;  len = iDst->ai_addrlen; }
-    else { addr = iDst;  len = SUN_LEN((const struct sockaddr_un*)iDst); }
+    const void*  addr = NULL;
+    socklen_t  len = 0;
+    if( !oInf->isUnix ) {addr = iDst->ai_addr;  len = iDst->ai_addrlen;}
+    else {addr = iDst;  len = SUN_LEN((const struct sockaddr_un*)iDst);}
     if( 0 > connect( oInf->sockId, addr, len ) ) {
         com_error( COM_ERR_CONNECTNG,
                    "fail to connect tcp client[%s]", com_strerror(errno) );
         return false;
     }
-    if( !oInf->isUnix ) { com_copyAddr( &(oInf->dstInf), iDst ); }
+    if( !oInf->isUnix ) {com_copyAddr( &(oInf->dstInf), iDst );}
     return true;
 }
 
 static BOOL startTcpServer( com_eventInf_t *oInf )
 {
-    int ret = listen( oInf->sockId, 128 );
+    int  ret = listen( oInf->sockId, 128 );
     if( ret < 0 ) {
         com_error( COM_ERR_LISTENNG,
                    "fail to listen as tcp server[%s]", com_strerror(errno) );
@@ -492,7 +492,7 @@ static int closeSocket( com_eventInf_t *oInf )
 {
     oInf->isUse = false;
     if( oInf->isUnix ) {
-        struct sockaddr_un* sun = (void*)(&oInf->srcInf.addr);
+        struct sockaddr_un*  sun = (void*)(&oInf->srcInf.addr);
         remove( sun->sun_path );
     }
     return close( oInf->sockId );
@@ -508,8 +508,8 @@ static com_selectId_t readyTransport(
         COM_SOCK_TYPE_t iType, com_selectId_t iId, com_eventInf_t *oInf,
         const void *iDstInf )
 {
-    BOOL result = true;
-    COM_MOD_EVENT_t event = COM_MOD_NOEVENT;
+    BOOL  result = true;
+    COM_MOD_EVENT_t  event = COM_MOD_NOEVENT;
     switch( iType ) {
         case COM_SOCK_TCP_CLIENT:   // サーバーにつなぎに行く
             result = startTcpClient( oInf, iDstInf );
@@ -521,9 +521,9 @@ static com_selectId_t readyTransport(
             break;
         default:  break;            // TCP以外は処理なし
     }
-    if( !result ) { return COM_NO_SOCK; }
+    if( !result ) {return COM_NO_SOCK;}
     // TCP接続のイベントログは接続成功時しか出さないようにする
-    if( iType > COM_SOCK_UDP ) { debugEventLog( event, iId, oInf, NULL, 0 ); }
+    if( iType > COM_SOCK_UDP ) {debugEventLog( event, iId, oInf, NULL, 0 );}
     return iId;
 }
 
@@ -532,8 +532,8 @@ static BOOL dummyEventFunc(
         com_selectId_t iId, COM_SOCK_EVENT_t iEvent,
         void *iData, size_t iDataSize )
 {
-    if( iEvent == COM_EVENT_ACCEPT ) { com_dbgFuncCom( "ACCEPT(%ld)", iId ); }
-    if( iEvent == COM_EVENT_CLOSE )  { com_dbgFuncCom( "CLOSE(%ld)",  iId ); }
+    if( iEvent == COM_EVENT_ACCEPT ) {com_dbgFuncCom( "ACCEPT(%ld)", iId );}
+    if( iEvent == COM_EVENT_CLOSE )  {com_dbgFuncCom( "CLOSE(%ld)",  iId );}
     if( iEvent == COM_EVENT_RECEIVE ) {
         com_dumpCom( iData, (size_t)iDataSize, "RECEIVE(%ld)", iId );
     }
@@ -544,10 +544,10 @@ static BOOL checkCreatePrm(
         COM_SOCK_TYPE_t iType, const void *iSrcInf, const void *iDstInf )
 {
 #ifndef LINUXOS
-    if( iType <= COM_SOCK_NETLINK ) { return false; }
+    if( iType <= COM_SOCK_NETLINK ) {return false;}
 #endif
-    if( !iSrcInf && iType != COM_SOCK_NETLINK ) { return false; }
-    if( !iDstInf && iType == COM_SOCK_TCP_CLIENT ) { return false; }
+    if( !iSrcInf && iType != COM_SOCK_NETLINK ) {return false;}
+    if( !iDstInf && iType == COM_SOCK_TCP_CLIENT ) {return false;}
     return true;
 }
 
@@ -557,10 +557,10 @@ com_selectId_t com_createSocket(
         const void *iDstInf )
 {
     if( !checkCreatePrm( iType, iSrcInf, iDstInf ) ) {COM_PRMNG(COM_NO_SOCK);}
-    com_selectId_t id = selectEventId( false );  // 仮ID取得
-    if( !iEventFunc ) { iEventFunc = dummyEventFunc; }
-    com_eventInf_t inf = { .isUse = true,  .timer = COM_NO_SOCK,
-                           .eventFunc = iEventFunc, .type = iType };
+    com_selectId_t  id = selectEventId( false );  // 仮ID取得
+    if( !iEventFunc ) {iEventFunc = dummyEventFunc;}
+    com_eventInf_t  inf = { .isUse = true,  .timer = COM_NO_SOCK,
+                            .eventFunc = iEventFunc, .type = iType };
     com_mutexUnlock( &gMutexEvent, __func__ );
     if( !createSocket( iType, id, &inf, iSrcInf, iOpt ) ) {return COM_NO_SOCK;}
     if( !makeBind( iType, id, &inf, iSrcInf ) ) {return closeSocketEnd( &inf );}
@@ -570,7 +570,7 @@ com_selectId_t com_createSocket(
     com_skipMemInfo( true );
     id = getEventId( false );
     com_skipMemInfo( false );
-    if( id == COM_NO_SOCK ) { return closeSocketEnd( &inf ); }
+    if( id == COM_NO_SOCK ) {return closeSocketEnd( &inf );}
     gEventInf[id] = inf;
     UNLOCKRETURN( id );
 }
@@ -578,18 +578,18 @@ com_selectId_t com_createSocket(
 static com_eventInf_t *checkSocketInf( com_selectId_t iId, BOOL iLock )
 {
     // returnSocketInf()で排他アンロックする想定
-    if( iLock ) { com_mutexLock( &gMutexEvent, __func__ ); }
-    if( iId < 0 || iId > gEventId ) { return NULL; }
-    com_eventInf_t* tmp = &(gEventInf[iId]);
-    if( !tmp->isUse || tmp->sockId == COM_NO_SOCK ) { return NULL; }
+    if( iLock ) {com_mutexLock( &gMutexEvent, __func__ );}
+    if( iId < 0 || iId > gEventId ) {return NULL;}
+    com_eventInf_t*  tmp = &(gEventInf[iId]);
+    if( !tmp->isUse || tmp->sockId == COM_NO_SOCK ) {return NULL;}
     return tmp;
 }
 
 BOOL com_deleteSocket( com_selectId_t iId )
 {
-    com_eventInf_t* tmp = checkSocketInf( iId, true );
-    if( !tmp ) { com_prmNG(NULL); UNLOCKRETURN( false ); }
-    if( tmp->sockId == ID_STDIN ) { UNLOCKRETURN( false ); }
+    com_eventInf_t*  tmp = checkSocketInf( iId, true );
+    if( !tmp ) {com_prmNG(NULL);  UNLOCKRETURN( false );}
+    if( tmp->sockId == ID_STDIN ) {UNLOCKRETURN( false );}
     if( 0 > closeSocket( tmp ) ) {
         com_error( COM_ERR_CLOSENG,
                    "fail to close socket[%s]", com_strerror(errno) );
@@ -604,7 +604,7 @@ BOOL com_sendSocket(
         com_selectId_t iId, const void *iData, size_t iDataSize,
         const com_sockaddr_t *iDst )
 {
-    int ret = 0;
+    int  ret = 0;
     com_eventInf_t* tmp = checkSocketInf( iId, false );
     if( !tmp || !iData ) {COM_PRMNG(false);}
     if( tmp->type == COM_SOCK_RAWRCV ) {COM_PRMNG(false);}
@@ -615,7 +615,7 @@ BOOL com_sendSocket(
                       (const struct sockaddr*)(&iDst->addr), iDst->len );
         tmp->dstInf = *iDst;
     }
-    else { ret = send( tmp->sockId, iData, iDataSize, 0 ); }
+    else {ret = send( tmp->sockId, iData, iDataSize, 0 );}
     if( ret < 0 ) {
         com_error( COM_ERR_SENDNG,
                    "fail to send packet by %ld [%s]", iId, com_strerror(errno));
@@ -643,14 +643,14 @@ ushort com_cksumRfc( void *iBin, size_t iBinSize )
     }
     sum = (sum >> 16) + (sum & 0xffff);
     sum += (sum >> 16);
-    if( 0xffff == (answer = ~sum) ) { return 0; }
+    if( 0xffff == (answer = ~sum) ) {return 0;}
     return answer;
 }
 
 static BOOL checkNoRecv( BOOL iNonBlock, int iErrno )
 {
-    if( !iNonBlock ) { return false; }
-    if( iErrno == EAGAIN ) { return true; }
+    if( !iNonBlock ) {return false;}
+    if( iErrno == EAGAIN ) {return true;}
     // EAGAIN と EWOULDBLOCK が同値宣言されている場合を考慮
     if( EAGAIN != EWOULDBLOCK ) {if(iErrno == EWOULDBLOCK) {return true;}}
     return false;
@@ -665,8 +665,8 @@ static COM_RECV_RESULT_t checkRecvResult(
         return COM_RECV_CLOSE;
     }
     if( iLen < 0 ) {
-        if( iInf->isListen ) { return COM_RECV_ACCEPT; }
-        if( checkNoRecv( iNonBlock, iErrno ) ) { return COM_RECV_NODATA; }
+        if( iInf->isListen ) {return COM_RECV_ACCEPT;}
+        if( checkNoRecv( iNonBlock, iErrno ) ) {return COM_RECV_NODATA;}
         com_error( COM_ERR_RECVNG, "fail to receive packet [%s]",
                    com_strerror( iErrno ) );
         return COM_RECV_NG;
@@ -686,10 +686,10 @@ COM_RECV_RESULT_t com_receiveSocket(
         BOOL iNonBlock, ssize_t *oLen, com_sockaddr_t *oFrom )
 {
     COM_SET_IF_EXIST( oLen, 0 );
-    com_eventInf_t* tmp = checkSocketInf( iId, false );
+    com_eventInf_t*  tmp = checkSocketInf( iId, false );
     if( !tmp || !oData || !oLen ) {COM_PRMNG(COM_RECV_NG);}
-    struct sockaddr* srcAddr = NULL;
-    socklen_t* addrLen = NULL;
+    struct sockaddr*  srcAddr = NULL;
+    socklen_t*  addrLen = NULL;
     if( oFrom ) {
         memset( oFrom, 0, sizeof(*oFrom) );
         srcAddr = (struct sockaddr*)(&oFrom->addr);
@@ -697,9 +697,9 @@ COM_RECV_RESULT_t com_receiveSocket(
         addrLen = &(oFrom->len);
     }
     errno = 0;
-    if( tmp->isUnix ) { *oLen = read( tmp->sockId, oData, iDataSize ); }
+    if( tmp->isUnix ) {*oLen = read( tmp->sockId, oData, iDataSize );}
     else {
-        int flags = iNonBlock ? MSG_DONTWAIT : 0;
+        int  flags = iNonBlock ? MSG_DONTWAIT : 0;
         *oLen = recvfrom( tmp->sockId, oData, iDataSize, flags,
                           srcAddr, addrLen );
     }
@@ -708,7 +708,7 @@ COM_RECV_RESULT_t com_receiveSocket(
 
 BOOL com_filterSocket( com_selectId_t iId, com_sockFilterCB_t iFilterFunc )
 {
-    com_eventInf_t* tmp = checkSocketInf( iId, false );
+    com_eventInf_t*  tmp = checkSocketInf( iId, false );
     if( !tmp ) {COM_PRMNG(false);}
     tmp->filterFunc = iFilterFunc;
     return true;
@@ -716,21 +716,21 @@ BOOL com_filterSocket( com_selectId_t iId, com_sockFilterCB_t iFilterFunc )
 
 int com_getSockId( com_selectId_t iId )
 {
-    com_eventInf_t* tmp = checkSocketInf( iId, true );
-    if( !tmp ) { com_prmNG(NULL); UNLOCKRETURN( false ); }
+    com_eventInf_t*  tmp = checkSocketInf( iId, true );
+    if( !tmp ) {com_prmNG(NULL);  UNLOCKRETURN( false );}
     // タイマーならNG返却
-    if( tmp->expireFunc ) { UNLOCKRETURN( COM_NO_SOCK ); }
+    if( tmp->expireFunc ) {UNLOCKRETURN( COM_NO_SOCK );}
     // 標準入力なら 0返却
-    if( tmp->stdinFunc ) { UNLOCKRETURN( 0 ); }
+    if( tmp->stdinFunc ) {UNLOCKRETURN( 0 );}
     // ソケットなので ID返却
     UNLOCKRETURN( tmp->sockId );
 }
 
 static com_sockaddr_t *getAddrInf( com_selectId_t iId, BOOL iIsSrc )
 {
-    com_eventInf_t* tmp = checkSocketInf( iId, true );
-    if( !tmp ) { com_prmNG(NULL); UNLOCKRETURN( NULL ); }
-    if( iIsSrc ) { UNLOCKRETURN( &tmp->srcInf ); }
+    com_eventInf_t*  tmp = checkSocketInf( iId, true );
+    if( !tmp ) {com_prmNG(NULL);  UNLOCKRETURN( NULL );}
+    if( iIsSrc ) {UNLOCKRETURN( &tmp->srcInf );}
     UNLOCKRETURN( &tmp->dstInf );
 }
 
@@ -753,10 +753,10 @@ com_selectId_t com_registerTimer(
 {
     if( iTimer < 0  || !iExpireFunc ) {COM_PRMNG(COM_NO_SOCK);}
     com_skipMemInfo( true );
-    com_selectId_t id = getEventId( true );
+    com_selectId_t  id = getEventId( true );
     com_skipMemInfo( false );
-    if( id == COM_NO_SOCK ) { UNLOCKRETURN( COM_NO_SOCK ); }
-    com_eventInf_t* inf = &(gEventInf[id]);
+    if( id == COM_NO_SOCK ) {UNLOCKRETURN( COM_NO_SOCK );}
+    com_eventInf_t*  inf = &(gEventInf[id]);
     *inf = (com_eventInf_t){
         .isUse = true,  .timer = iTimer,  .expireFunc = iExpireFunc,
         .isStopped = false,  .sockId = COM_NO_SOCK
@@ -773,16 +773,16 @@ static com_eventInf_t *checkTimerInf( com_selectId_t iId, BOOL iLock )
 {
     if( iId < 0 || iId > gEventId ) { return NULL; }
     if( iLock ) { com_mutexLock( &gMutexEvent, __func__ ); }
-    com_eventInf_t* tmp = &(gEventInf[iId]);
-    if( tmp->timer == COM_NO_SOCK ) { return NULL; }
-    if( !tmp->isUse ) { return NULL; }
+    com_eventInf_t*  tmp = &(gEventInf[iId]);
+    if( tmp->timer == COM_NO_SOCK ) {return NULL;}
+    if( !tmp->isUse ) {return NULL;}
     return tmp;
 }
 
 BOOL com_stopTimer( com_selectId_t iId )
 {
-    com_eventInf_t* tmp = checkTimerInf( iId, true );
-    if( !tmp ) {com_prmNG(NULL); UNLOCKRETURN(false); }
+    com_eventInf_t*  tmp = checkTimerInf( iId, true );
+    if( !tmp ) {com_prmNG(NULL); UNLOCKRETURN(false);}
     tmp->isStopped = true;
     debugEventLog( COM_MOD_TIMERSTOP, iId, tmp, NULL, 0 );
     UNLOCKRETURN( true );
@@ -790,8 +790,8 @@ BOOL com_stopTimer( com_selectId_t iId )
 
 BOOL com_cancelTimer( com_selectId_t iId )
 {
-    com_eventInf_t* tmp = checkTimerInf( iId, true );
-    if( !tmp ) {com_prmNG(NULL); UNLOCKRETURN(false); }
+    com_eventInf_t*  tmp = checkTimerInf( iId, true );
+    if( !tmp ) {com_prmNG(NULL); UNLOCKRETURN(false);}
     tmp->isUse = false;
     debugEventLog( COM_MOD_TIMEROFF, iId, tmp, NULL, 0 );
     UNLOCKRETURN( true );
@@ -799,7 +799,7 @@ BOOL com_cancelTimer( com_selectId_t iId )
 
 static BOOL expireTimer( com_selectId_t iId )
 {
-    com_eventInf_t* inf = &(gEventInf[iId]);
+    com_eventInf_t*  inf = &(gEventInf[iId]);
     debugEventLog( COM_MOD_EXPIRED, iId, inf, NULL, 0 );
     inf->isStopped = true;
     return (inf->expireFunc)( iId );
@@ -809,45 +809,45 @@ static BOOL expireTimer( com_selectId_t iId )
 
 static long calcMsec( struct timeval *iTime )
 {
-    if( !iTime ) { return 0; }
+    if( !iTime ) {return 0;}
     return (TIMEUNIT * iTime->tv_sec + iTime->tv_usec);
 }
 
 static long calculateRestTime( com_selectId_t iId, struct timeval *iNow )
 {
-    com_eventInf_t* tmp = &(gEventInf[iId]);
-    long pastTime = calcMsec( iNow ) - calcMsec( &(tmp->startTime) );
+    com_eventInf_t*  tmp = &(gEventInf[iId]);
+    long  pastTime = calcMsec( iNow ) - calcMsec( &(tmp->startTime) );
     return (1000L * tmp->timer - pastTime);
 }
 
 static BOOL checkTimer( com_selectId_t iId, struct timeval *iNow )
 {
-    com_eventInf_t* tmp = checkTimerInf( iId, false );
-    if( !tmp ) { return true; }
-    if( tmp->isStopped ) { return true; }
-    if( 0 < calculateRestTime( iId, iNow ) ) { return true; }
+    com_eventInf_t*  tmp = checkTimerInf( iId, false );
+    if( !tmp ) {return true;}
+    if( tmp->isStopped ) {return true;}
+    if( 0 < calculateRestTime( iId, iNow ) ) {return true;}
     return expireTimer( iId );
 }
 
 static struct timeval *getCurrentTime( struct timeval *oNow )
 {
-    if( !com_gettimeofday( oNow, "time for events" ) ) { return NULL; }
+    if( !com_gettimeofday( oNow, "time for events" ) ) {return NULL;}
     return oNow;
 }
 
 #define GET_CURRENT \
-    struct timeval  tmpTime; \
-    struct timeval* current = getCurrentTime( &tmpTime ); \
+    struct timeval   tmpTime; \
+    struct timeval*  current = getCurrentTime( &tmpTime ); \
     do{} while(0)
 
 BOOL com_checkTimer( com_selectId_t iId )
 {
-    BOOL result = true;
+    BOOL  result = true;
     GET_CURRENT;
-    if( !current ) { return false; }
+    if( !current ) {return false;}
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
         if( iId == COM_ALL_TIMER || iId == id ) {
-            if( !checkTimer( id, current ) ) { result = false; }
+            if( !checkTimer( id, current ) ) {result = false;}
         }
     }
     return result;
@@ -855,9 +855,9 @@ BOOL com_checkTimer( com_selectId_t iId )
 
 BOOL com_resetTimer( com_selectId_t iId, long iTimer )
 {
-    com_eventInf_t* tmp = checkTimerInf( iId, true );
-    if( !tmp || iTimer < 0 ) {com_prmNG(NULL); UNLOCKRETURN(false); }
-    if( iTimer > 0 ) { tmp->timer = iTimer; }
+    com_eventInf_t*  tmp = checkTimerInf( iId, true );
+    if( !tmp || iTimer < 0 ) {com_prmNG(NULL);  UNLOCKRETURN(false); }
+    if( iTimer > 0 ) {tmp->timer = iTimer;}
     tmp->isStopped = false;
     if( !com_gettimeofday( &(tmp->startTime), "reset timer time" ) ) {
         tmp->isStopped = true;
@@ -874,7 +874,7 @@ static void addFdList(
         int iFd, fd_set *oFds, int *oMax, int *oFdList, int *ioCount )
 {
     FD_SET( iFd, oFds );
-    if( *oMax < iFd ) { *oMax = iFd; }
+    if( *oMax < iFd ) {*oMax = iFd;}
     oFdList[*ioCount] = iFd;
     (*ioCount)++;
 }
@@ -885,23 +885,23 @@ static int createFdList( fd_set *oFds, int *oMax, int *oFdList )
         oFdList[id] = NO_EVENTS;
     }
     FD_ZERO( oFds );
-    int count = 0;
+    int  count = 0;
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
         com_eventInf_t* tmp = &(gEventInf[id]);
-        if( !(tmp->isUse) ) { continue; }
-        if( tmp->sockId == COM_NO_SOCK ) { continue; }
+        if( !(tmp->isUse) ) {continue;}
+        if( tmp->sockId == COM_NO_SOCK ) {continue;}
         addFdList( tmp->sockId, oFds, oMax, oFdList, &count );
     }
     return count;
 }
 
-static com_selectId_t gWaitingId = COM_NO_SOCK;
+static com_selectId_t  gWaitingId = COM_NO_SOCK;
 
 static void getTimeValue(
         long *oTimer, struct timeval *iNow, com_selectId_t iId )
 {
-    long restTime = calculateRestTime( iId, iNow );
-    if( restTime <= 0 ) { restTime = 0; }
+    long  restTime = calculateRestTime( iId, iNow );
+    if( restTime <= 0 ) {restTime = 0;}
     if( gWaitingId == COM_NO_SOCK || restTime < *oTimer ) {
         gWaitingId = iId;
         *oTimer = restTime;
@@ -911,19 +911,19 @@ static void getTimeValue(
 static struct timeval *checkNextTimer( struct timeval *iTm )
 {
     gWaitingId = COM_NO_SOCK;
-    struct timeval now;
-    if( !com_gettimeofday( &now, "time for next timer" ) ) { return NULL; }
+    struct timeval  now;
+    if( !com_gettimeofday( &now, "time for next timer" ) ) {return NULL;}
 
-    long count = 0;
-    long timer = 0;
+    long  count = 0;
+    long  timer = 0;
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
-        com_eventInf_t* tmp = &(gEventInf[id]);
-        if( !(tmp->isUse) ) { continue; }
-        if( tmp->timer == COM_NO_SOCK || tmp->isStopped ) { continue; }
+        com_eventInf_t*  tmp = &(gEventInf[id]);
+        if( !(tmp->isUse) ) {continue;}
+        if( tmp->timer == COM_NO_SOCK || tmp->isStopped ) {continue;}
         getTimeValue( &timer, &now, id );
         count++;
     }
-    if( !count ) { return NULL; }
+    if( !count ) {return NULL;}
     *iTm = (struct timeval){ timer / TIMEUNIT, timer & TIMEUNIT };
     return iTm;
 }
@@ -931,8 +931,8 @@ static struct timeval *checkNextTimer( struct timeval *iTm )
 static com_selectId_t searchId( int iFd )
 {
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
-        com_eventInf_t* tmp = &(gEventInf[id]);
-        if( tmp->isUse && tmp->sockId == iFd ) { return id; }
+        com_eventInf_t*  tmp = &(gEventInf[id]);
+        if( tmp->isUse && tmp->sockId == iFd ) {return id;}
     }
     return FD_ERROR;
 }
@@ -940,7 +940,7 @@ static com_selectId_t searchId( int iFd )
 static int getRecvId(
         fd_set *iFds, int iCount, int *iWait, com_selectId_t *oRecv )
 {
-    int count = 0;
+    int  count = 0;
     for( int i = 0;  i < iCount;  i++ ) {
         if( FD_ISSET( iWait[i], iFds ) ) {
             oRecv[count++] = searchId( iWait[i] );
@@ -955,13 +955,13 @@ static BOOL acceptSocket(
     memset( ioAddr, 0, sizeof(*ioAddr) );
     ioAddr->len = sizeof(ioAddr->addr);
 
-    if( iNonBlock ) { fcntl( iSockId, F_SETFL, O_NONBLOCK ); }
-    else { fcntl( iSockId, F_SETFL, O_SYNC ); }
+    if( iNonBlock ) {fcntl( iSockId, F_SETFL, O_NONBLOCK );}
+    else {fcntl( iSockId, F_SETFL, O_SYNC );}
 
     *oAccFd = accept( iSockId, (struct sockaddr*)(&ioAddr->addr),
                       &ioAddr->len );
     if( *oAccFd < 0 ) {
-        if( checkNoRecv( iNonBlock, errno ) ) { return false; }
+        if( checkNoRecv( iNonBlock, errno ) ) {return false;}
         com_error( COM_ERR_ACCEPTNG,
                    "fail to accept tcp connection [%s]", com_strerror(errno) );
         return false;
@@ -973,11 +973,11 @@ static void setAcceptInf(
         com_selectId_t iAcc, com_selectId_t iListen,
         com_sockEventCB_t iEventFunc, int iAccSd, com_sockaddr_t *iFrom )
 {
-    com_eventInf_t* tmp = &(gEventInf[iAcc]);
+    com_eventInf_t*  tmp = &(gEventInf[iAcc]);
     *tmp = gEventInf[iListen];   // まず listenソケットの設定をコピー
     // 構造体リテラルを使うと指定しないものが 0になるため、個別に設定する
     tmp->isListen = false;
-    if( iEventFunc ) { tmp->eventFunc = iEventFunc; }
+    if( iEventFunc ) {tmp->eventFunc = iEventFunc;}
     tmp->sockId = iAccSd;
     tmp->dstInf = *iFrom;
 }
@@ -985,20 +985,20 @@ static void setAcceptInf(
 com_selectId_t com_acceptSocket(
         com_selectId_t iListen, BOOL iNonBlock, com_sockEventCB_t iEventFunc )
 {
-    com_eventInf_t* tmp = checkSocketInf( iListen, false );
+    com_eventInf_t*  tmp = checkSocketInf( iListen, false );
     if( !tmp ) {COM_PRMNG(COM_NO_SOCK);}
     if( !tmp->isListen ) {COM_PRMNG(COM_NO_SOCK);}
 
-    int accSd = COM_NO_SOCK;
-    com_sockaddr_t fromAddr;
+    int  accSd = COM_NO_SOCK;
+    com_sockaddr_t  fromAddr;
     if( !acceptSocket( &accSd, tmp->sockId, &fromAddr, iNonBlock ) ) {
         return COM_NO_SOCK;
     }
     // 確立したTCP接続用の管理IDを取得し、情報設定
     com_skipMemInfo( true );
-    com_selectId_t accId = getEventId( false );
+    com_selectId_t  accId = getEventId( false );
     com_skipMemInfo( false );
-    if( accId == COM_NO_SOCK ) { close( accSd ); return COM_NO_SOCK; }
+    if( accId == COM_NO_SOCK ) {close( accSd );  return COM_NO_SOCK;}
     setAcceptInf( accId, iListen, iEventFunc, accSd, &fromAddr );
     debugEventLog( COM_MOD_ACCEPT, accId, tmp, NULL, 0 );
     return accId;
@@ -1018,8 +1018,8 @@ static BOOL callEventFunc(
 static BOOL acceptTcpConnection( com_selectId_t iId, BOOL iNonBlock )
 {
     // accept()に失敗しても、それが理由でループ終了とはしない
-    com_selectId_t accId = com_acceptSocket( iId, iNonBlock, NULL );
-    if( accId == COM_NO_SOCK ) { return true; }
+    com_selectId_t  accId = com_acceptSocket( iId, iNonBlock, NULL );
+    if( accId == COM_NO_SOCK ) {return true;}
 
     return callEventFunc( &(gEventInf[iId]), accId,
                           COM_EVENT_ACCEPT, NULL, 0, COM_ERR_ACCEPTNG );
@@ -1027,9 +1027,9 @@ static BOOL acceptTcpConnection( com_selectId_t iId, BOOL iNonBlock )
 
 static BOOL closeTcpConnection( com_selectId_t iId )
 {
-    com_eventInf_t* tmp = &(gEventInf[iId]);
+    com_eventInf_t*  tmp = &(gEventInf[iId]);
     // 非TCP接続時は何もせずに返す(念の為の処理)
-    if( UNLIKELY( tmp->type <= COM_SOCK_UDP )) { return true; }
+    if( UNLIKELY( tmp->type <= COM_SOCK_UDP )) {return true;}
 
     (void)closeSocket( tmp );  // close()に失敗しても気にしない(何も出来ない)
     return callEventFunc( tmp, iId, COM_EVENT_CLOSE, NULL, 0, COM_ERR_CLOSENG );
@@ -1037,8 +1037,8 @@ static BOOL closeTcpConnection( com_selectId_t iId )
 
 static uchar gDefaultRecvBuf[COM_DATABUF_SIZE];
 // 実際に使用するバッファ (デフォルト設定は com_initializeSelect()で実施
-static uchar* gRecvBuf = NULL;
-static size_t gRecvBufSize = 0;
+static uchar*  gRecvBuf = NULL;
+static size_t  gRecvBufSize = 0;
 
 void com_switchEventBuffer( void *iBuf, size_t iBufSize )
 {
@@ -1049,10 +1049,10 @@ void com_switchEventBuffer( void *iBuf, size_t iBufSize )
 
 static BOOL readStdin( com_selectId_t iId )
 {
-    ssize_t bytes = read( 0, gRecvBuf, gRecvBufSize );
+    ssize_t  bytes = read( 0, gRecvBuf, gRecvBufSize );
     com_printfLogOnly( (char*)gRecvBuf );
     gRecvBuf[bytes - 1] = '\0';
-    com_eventInf_t* inf = &(gEventInf[iId]);
+    com_eventInf_t*  inf = &(gEventInf[iId]);
     debugEventLog( COM_MOD_STDIN, iId, inf, gRecvBuf, (size_t)bytes );
     return (inf->stdinFunc)( (char*)gRecvBuf, (size_t)bytes );
 }
@@ -1060,38 +1060,38 @@ static BOOL readStdin( com_selectId_t iId )
 static BOOL recvPacket( com_selectId_t iId, BOOL iNonBlock, long *oDrop )
 {
     memset( gRecvBuf, 0, gRecvBufSize );
-    com_eventInf_t* inf = &(gEventInf[iId]);
-    if( inf->sockId == ID_STDIN ) { return readStdin( iId ); }
-    if( inf->isListen ) { return acceptTcpConnection(iId,iNonBlock); }
+    com_eventInf_t*  inf = &(gEventInf[iId]);
+    if( inf->sockId == ID_STDIN ) {return readStdin( iId );}
+    if( inf->isListen ) {return acceptTcpConnection(iId,iNonBlock);}
 
-    com_sockaddr_t fromAddr;
-    ssize_t recvSize;
-    COM_RECV_RESULT_t ret = com_receiveSocket(
+    com_sockaddr_t  fromAddr;
+    ssize_t  recvSize;
+    COM_RECV_RESULT_t  ret = com_receiveSocket(
             iId, gRecvBuf, gRecvBufSize, iNonBlock, &recvSize, &fromAddr );
     if( !ret ) { return false; } // エラーは com_receiveSocket()で出力済み
-    if( ret == COM_RECV_NODATA ) { return true; }
-    if( ret == COM_RECV_DROP ) { (*oDrop)++;  return true; }
+    if( ret == COM_RECV_NODATA ) {return true;}
+    if( ret == COM_RECV_DROP ) {(*oDrop)++;  return true;}
     // TCP接続固有処理 (acceptは本関数冒頭で普通は済んでいるはずだが念の為)
-    if( ret == COM_RECV_ACCEPT ) { return acceptTcpConnection(iId,iNonBlock); }
-    if( ret == COM_RECV_CLOSE )  { return closeTcpConnection( iId ); }
+    if( ret == COM_RECV_ACCEPT ) {return acceptTcpConnection(iId,iNonBlock);}
+    if( ret == COM_RECV_CLOSE )  {return closeTcpConnection( iId );}
     // 非TCP接続時は送信元を対向として保持
-    if( inf->type <= COM_SOCK_UDP ) { inf->dstInf = fromAddr; }
+    if( inf->type <= COM_SOCK_UDP ) {inf->dstInf = fromAddr;}
     return callEventFunc( inf, iId, COM_EVENT_RECEIVE, gRecvBuf, recvSize,
                           COM_ERR_RECVNG );
 }
 
 static BOOL recvBySelect( fd_set *iFds, int iCount, int *iWait, BOOL *oRetry )
 {
-    com_selectId_t recvId[gEventId];  // さりげなく動的確保
-    int count = getRecvId( iFds, iCount, iWait, recvId );
-    BOOL result = false;
-    BOOL lastResult = true;
-    long drop = 0;
+    com_selectId_t  recvId[gEventId];  // さりげなく動的確保
+    int  count = getRecvId( iFds, iCount, iWait, recvId );
+    BOOL  result = false;
+    BOOL  lastResult = true;
+    long  drop = 0;
     for( int i = 0;  i < count;  i++ ) {
-        if( recvId[i] == FD_ERROR ) { result = false; }
-        else { result = recvPacket( recvId[i], false, &drop ); }
+        if( recvId[i] == FD_ERROR ) {result = false;}
+        else {result = recvPacket( recvId[i], false, &drop );}
         // ひとつでも結果が falseなら最終結果は falseになる
-        if( !result ) { lastResult = false; }
+        if( !result ) {lastResult = false;}
     }
     *oRetry = (drop == count);
     return lastResult;
@@ -1099,56 +1099,56 @@ static BOOL recvBySelect( fd_set *iFds, int iCount, int *iWait, BOOL *oRetry )
 
 BOOL com_waitEvent( void )
 {
-    fd_set fds;
-    int maxFd = 0;
-    int waitFd[gEventId];
+    fd_set  fds;
+    int  maxFd = 0;
+    int  waitFd[gEventId];
     while(1) {
-        int count = createFdList( &fds, &maxFd, waitFd );
-        struct timeval tm;
-        struct timeval* selTimer = checkNextTimer( &tm );
-        if( !selTimer && !count ) { return false; }  // 待機するもの無し
+        int  count = createFdList( &fds, &maxFd, waitFd );
+        struct timeval  tm;
+        struct timeval*  selTimer = checkNextTimer( &tm );
+        if( !selTimer && !count ) {return false;}  // 待機するもの無し
 
-        int result = 0;
+        int  result = 0;
         if( 0 > (result = select( maxFd+1, &fds, NULL, NULL, selTimer )) ) {
             com_error( COM_ERR_SELECTNG,
                        "fail to select[%s]", com_strerror(errno) );
             return false;
         }
-        if( !result ) { return expireTimer( gWaitingId ); }
-        BOOL retry = false;
-        if( recvBySelect(&fds, count, waitFd, &retry) ) { if(!retry){break;} }
-        else { return false; }
+        if( !result ) {return expireTimer( gWaitingId );}
+        BOOL  retry = false;
+        if( recvBySelect(&fds, count, waitFd, &retry) ) {if(!retry){break;}}
+        else {return false;}
     }
     return true;
 }
 
 BOOL com_watchEvent( void ) {
-    BOOL result = true;
+    BOOL  result = true;
     GET_CURRENT;
-    long drop = 0;
+    long  drop = 0;
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
         com_eventInf_t* inf = &(gEventInf[id]);
-        if( !inf->isUse ) { continue; }
+        if( !inf->isUse ) {continue;}
         if( inf->eventFunc ) {
-            if( !recvPacket( id, true, &drop ) ) { result = false; }
+            if( !recvPacket( id, true, &drop ) ) {result = false;}
         }
-        else if(current) {if( !checkTimer(id,current) ) { result = false; }}
+        else if(current) {if( !checkTimer(id,current) ) {result = false;}}
     }
     // こちらは dropがあっても何もしない
     return result;
 }
 
-static com_selectId_t gStdinId = COM_NO_SOCK;
+static com_selectId_t  gStdinId = COM_NO_SOCK;
 
 com_selectId_t com_registerStdin( com_getStdinCB_t iRecvFunc )
 {
-    if( gStdinId != COM_NO_SOCK ) { return gStdinId; }  // 複数登録は不可
+    if( gStdinId != COM_NO_SOCK ) {return gStdinId;}  // 複数登録は不可
     if( !iRecvFunc ) {COM_PRMNG(COM_NO_SOCK);}
     com_skipMemInfo( true );
-    com_selectId_t id = getEventId( false );
+    com_selectId_t  id = getEventId( false );
     com_skipMemInfo( false );
-    if( id == COM_NO_SOCK ) { return COM_NO_SOCK; }
-    com_eventInf_t* tmp = &(gEventInf[id]);
+    if( id == COM_NO_SOCK ) {return COM_NO_SOCK;}
+    com_eventInf_t*  tmp = &(gEventInf[id]);
     *tmp = (com_eventInf_t){
         .isUse = true,  // .allowMultiLine = iMulti, // 複数行は中断中
         .timer = COM_NO_SOCK,  .sockId = ID_STDIN,  .stdinFunc = iRecvFunc
@@ -1160,7 +1160,7 @@ com_selectId_t com_registerStdin( com_getStdinCB_t iRecvFunc )
 
 void com_cancelStdin( com_selectId_t iId )
 {
-    com_eventInf_t* tmp = checkSocketInf( iId, false );
+    com_eventInf_t*  tmp = checkSocketInf( iId, false );
     if( !tmp ) {COM_PRMNG();}
     if( tmp->sockId != ID_STDIN ) {COM_PRMNG();}
 
@@ -1176,21 +1176,21 @@ void com_cancelStdin( com_selectId_t iId )
 
 static size_t calcSize( struct addrinfo *oInfo )
 {
-    size_t size = sizeof( *oInfo );
+    size_t  size = sizeof( *oInfo );
     if( (size_t)oInfo->ai_addrlen > sizeof( *oInfo ) ) {
         size += oInfo->ai_addrlen;
     }
-    else { size += sizeof( struct sockaddr ); }
-    if( oInfo->ai_canonname ) { size += strlen( oInfo->ai_canonname ) + 1; }
+    else {size += sizeof( struct sockaddr );}
+    if( oInfo->ai_canonname ) {size += strlen( oInfo->ai_canonname ) + 1;}
     return size;
 }
 
 static BOOL checkPrmGetaddrinfo(
         struct addrinfo **oTarget, COM_SOCK_TYPE_t iType, int iFamily )
 {
-    if( !oTarget ) { return false; }
+    if( !oTarget ) {return false;}
     if( iType < COM_SOCK_RAWSND || iType > COM_SOCK_TCP_SERVER ) {return false;}
-    if( iFamily != AF_INET && iFamily != AF_INET6 ) { return false; }
+    if( iFamily != AF_INET && iFamily != AF_INET6 ) {return false;}
     return true;
 }
 
@@ -1199,15 +1199,15 @@ BOOL com_getaddrinfoFunc(
         const char *iAddress, ushort iPort, COM_FILEPRM )
 {
     if( !checkPrmGetaddrinfo( oTarget, iType, iFamily ) ) {COM_PRMNG(false);}
-    char portText[6] = {0};  // ポート番号は最大5桁 + 文字列終端
+    char  portText[6] = {0};  // ポート番号は最大5桁 + 文字列終端
     snprintf( portText, sizeof(portText), "%d", iPort );
-    struct addrinfo hints = {
+    struct addrinfo  hints = {
         .ai_family = iFamily,
         .ai_socktype = (iType <= COM_SOCK_UDP) ? SOCK_DGRAM : SOCK_STREAM,
         .ai_flags = AI_NUMERICSERV
     };
     *oTarget = NULL;
-    int result = getaddrinfo( iAddress, portText, &hints, oTarget );
+    int  result = getaddrinfo( iAddress, portText, &hints, oTarget );
     if( result ) {
         com_error( COM_ERR_DEBUGNG,
                    "getaddrinfo() NG [%s]", com_strerror(result) );
@@ -1222,7 +1222,7 @@ BOOL com_getaddrinfoFunc(
 void com_freeaddrinfoFunc( struct addrinfo **oTarget, COM_FILEPRM )
 {
     if( !oTarget ) {COM_PRMNG();}
-    if( !(*oTarget) ) { return; }
+    if( !(*oTarget) ) {return;}
     freeaddrinfo( *oTarget );
     com_deleteMemInfo( COM_FILEVAR, COM_FREEADDRINFO, *oTarget );
     *oTarget = NULL;
@@ -1246,28 +1246,28 @@ void com_copyAddr( com_sockaddr_t *oTarget, const void *iSource )
 
 COM_AF_TYPE_t com_isIpAddr( const char *iString )
 {
-    struct sockaddr_storage dmy;
-    if( 1 == inet_pton( AF_INET,  iString, &dmy ) ) { return COM_IPV4; }
-    if( 1 == inet_pton( AF_INET6, iString, &dmy ) ) { return COM_IPV6; }
+    struct sockaddr_storage  dmy;
+    if( 1 == inet_pton( AF_INET,  iString, &dmy ) ) {return COM_IPV4;}
+    if( 1 == inet_pton( AF_INET6, iString, &dmy ) ) {return COM_IPV6;}
     return COM_NOTIP;
 }
 
 BOOL com_valIpAddress( char *ioData, void *iCond )
 {
-    com_valCondIpAddress_t* cond = iCond;
-    if( !cond ) { cond = &(com_valCondIpAddress_t){ true, true }; }
+    com_valCondIpAddress_t*  cond = iCond;
+    if( !cond ) {cond = &(com_valCondIpAddress_t){ true, true };}
     COM_AF_TYPE_t af = com_isIpAddr( ioData );
-    if( cond->ipv4 && af == COM_IPV4 ) { return true; }
-    if( cond->ipv6 && af == COM_IPV6 ) { return true; }
+    if( cond->ipv4 && af == COM_IPV4 ) {return true;}
+    if( cond->ipv6 && af == COM_IPV6 ) {return true;}
     return false;
 }
 
 BOOL com_valIpAddressCondCopy( void **oCond, void *iCond )
 {
-    com_valCondIpAddress_t* source = iCond;
-    com_valCondIpAddress_t* tmp =
+    com_valCondIpAddress_t*  source = iCond;
+    com_valCondIpAddress_t*  tmp =
         com_malloc(sizeof(com_valCondIpAddress_t), "copy ip address condition");
-    if( !tmp ) { return false; }
+    if( !tmp ) {return false;}
     *tmp = *source;
     *oCond = tmp;
     return true;
@@ -1275,14 +1275,14 @@ BOOL com_valIpAddressCondCopy( void **oCond, void *iCond )
 
 static socklen_t getAddrSin( void *iSockAddr, void **oAddr )
 {
-    struct sockaddr_in* sin = iSockAddr;
+    struct sockaddr_in*  sin = iSockAddr;
     *oAddr = &(sin->sin_addr.s_addr);
     return sizeof(sin->sin_addr.s_addr);
 }
 
 static socklen_t getAddrSin6( void *iSockAddr, void **oAddr )
 {
-    struct sockaddr_in6* sin6 = iSockAddr;
+    struct sockaddr_in6*  sin6 = iSockAddr;
     *oAddr = &(sin6->sin6_addr.s6_addr);
     return sizeof(sin6->sin6_addr.s6_addr);
 }
@@ -1290,7 +1290,7 @@ static socklen_t getAddrSin6( void *iSockAddr, void **oAddr )
 #ifdef LINUXOS
 static socklen_t getAddrLl( void *iSockAddr, void **oAddr )
 {
-    struct sockaddr_ll* sll = iSockAddr;
+    struct sockaddr_ll*  sll = iSockAddr;
     *oAddr = &(sll->sll_addr);
     return sll->sll_halen;
 }
@@ -1298,14 +1298,14 @@ static socklen_t getAddrLl( void *iSockAddr, void **oAddr )
 
 static socklen_t getAddrUn( void *iSockAddr, void **oAddr )
 {
-    struct sockaddr_un* sun = iSockAddr;
+    struct sockaddr_un*  sun = iSockAddr;
     *oAddr = &(sun->sun_path);
     return strlen(sun->sun_path);
 }
 
 static socklen_t getAddrLen( void *iSockAddr, void **oAddr )
 {
-    struct sockaddr* sa = iSockAddr;
+    struct sockaddr*  sa = iSockAddr;
     int family = sa->sa_family;
     if( family == AF_INET )   {return getAddrSin(  iSockAddr, oAddr ); }
     if( family == AF_INET6 )  {return getAddrSin6( iSockAddr, oAddr ); }
@@ -1320,9 +1320,9 @@ static socklen_t getAddrLen( void *iSockAddr, void **oAddr )
 BOOL com_compareAddr( void *iTarget, void *iSockAddr )
 {
     if( !iTarget || !iSockAddr ) {COM_PRMNG(false);}
-    void* addr = NULL;
+    void*  addr = NULL;
     socklen_t len = getAddrLen( iSockAddr, &addr );
-    if( !len ) { return false; }
+    if( !len ) {return false;}
     return !memcmp( iTarget, addr, len );
 }
 
@@ -1334,39 +1334,39 @@ static BOOL compareSockFamily(
 
 static BOOL compareSockAddr( void *iTarget, void *iSource )
 {
-    void* addrTarget = NULL;
+    void*  addrTarget = NULL;
     socklen_t lenTarget = getAddrLen( iTarget, &addrTarget );
-    if( !lenTarget ) { return false; }
-    void* addrSource = NULL;
+    if( !lenTarget ) {return false;}
+    void*  addrSource = NULL;
     socklen_t lenSource = getAddrLen( iSource, &addrSource );
-    if( !lenSource ) { return false; }
-    if( lenTarget != lenSource ) { return false; }
+    if( !lenSource ) {return false;}
+    if( lenTarget != lenSource ) {return false;}
     return !memcmp( addrTarget, addrSource, lenSource );
 }
 
 BOOL com_compareSock( void *iTargetSock, void *iSockAddr )
 {
     if( !iTargetSock || !iSockAddr ) {COM_PRMNG(false);}
-    if( !compareSockFamily( iTargetSock, iSockAddr ) ) { return false; }
+    if( !compareSockFamily( iTargetSock, iSockAddr ) ) {return false;}
     return compareSockAddr( iTargetSock, iSockAddr );
 }
 
 static BOOL isIp( struct sockaddr *iSock )
 {
-    if( iSock->sa_family == AF_INET )  { return true; }
-    if( iSock->sa_family == AF_INET6 ) { return true; }
+    if( iSock->sa_family == AF_INET )  {return true;}
+    if( iSock->sa_family == AF_INET6 ) {return true;}
     return false;
 }
 
 static ushort getSockPort( void *iSockAddr )
 {
-    struct sockaddr* sa = iSockAddr;
+    struct sockaddr*  sa = iSockAddr;
     if( sa->sa_family == AF_INET ) {
-        struct sockaddr_in* sin = iSockAddr;
+        struct sockaddr_in*  sin = iSockAddr;
         return sin->sin_port;
     }
     if( sa->sa_family == AF_INET6 ) {
-        struct sockaddr_in6* sin6 = iSockAddr;
+        struct sockaddr_in6*  sin6 = iSockAddr;
         return sin6->sin6_port;
     }
     return 0;
@@ -1374,17 +1374,17 @@ static ushort getSockPort( void *iSockAddr )
 
 static BOOL compareSockPort( void *iTarget, void *iSource )
 {
-    ushort portTarget = getSockPort( iTarget );
-    ushort portSource = getSockPort( iSource );
+    ushort  portTarget = getSockPort( iTarget );
+    ushort  portSource = getSockPort( iSource );
     return (portTarget == portSource);
 }
 
 BOOL com_compareSockWithPort( void *iTargetSock, void *iSockAddr )
 {
     if( !iTargetSock || !iSockAddr ) {COM_PRMNG(false);}
-    if( !isIp(iTargetSock) || !isIp(iSockAddr) ) { return false; }
-    if( !compareSockFamily( iTargetSock, iSockAddr ) ) { return false; }
-    if( !compareSockPort( iTargetSock, iSockAddr ) ) { return false; }
+    if( !isIp(iTargetSock) || !isIp(iSockAddr) ) {return false;}
+    if( !compareSockFamily( iTargetSock, iSockAddr ) ) {return false;}
+    if( !compareSockPort( iTargetSock, iSockAddr ) ) {return false;}
     return compareSockAddr( iTargetSock, iSockAddr );
 }
 
@@ -1392,10 +1392,10 @@ BOOL com_compareSockWithPort( void *iTargetSock, void *iSockAddr )
 
 // IF情報データ定義 ----------------------------------------------------------
 
-static struct ifaddrs* gIfAddr = NULL;
-static com_ifinfo_t* gIfInfo = NULL;
-static long gIfInfoCnt = 0;
-static int gIfInfoSock = COM_NO_SOCK;  // 情報取得用に生成するソケット
+static struct ifaddrs*  gIfAddr = NULL;
+static com_ifinfo_t*  gIfInfo = NULL;
+static long  gIfInfoCnt = 0;
+static int  gIfInfoSock = COM_NO_SOCK;  // 情報取得用に生成するソケット
 
 #ifndef LINUXOS
 #ifndef ETH_ALEN
@@ -1431,36 +1431,36 @@ static void setHwAddr( com_ifinfo_t *oInf, void *iMacAddr )
 static void setIfInfo( com_ifinfo_t *oInf, char *iIfname )
 {
     oInf->ifname = iIfname;
-    if( !openSocketForInfo() ) { return; }
-    struct ifreq ifr;
+    if( !openSocketForInfo() ) {return;}
+    struct ifreq  ifr;
     strcpy( ifr.ifr_name, iIfname );
     if( 0 > ioctl( gIfInfoSock, (int)SIOCGIFINDEX, &ifr ) ) {
         com_error( COM_ERR_GETIFINFO, "fail to get index for %s", iIfname );
     }
-    else { oInf->ifindex = ifr.ifr_ifindex; }
+    else {oInf->ifindex = ifr.ifr_ifindex;}
     if( 0 > ioctl( gIfInfoSock, (int)SIOCGIFHWADDR, &ifr ) ) {
         com_error( COM_ERR_GETIFINFO, "fail to get hwaddr for %s", iIfname );
     }
-    else { setHwAddr( oInf, ifr.ifr_hwaddr.sa_data ); }
+    else {setHwAddr( oInf, ifr.ifr_hwaddr.sa_data );}
 }
 
 static com_ifinfo_t *getIfInfo( char *iIfname )
 {
     for( long i = 0;  i < gIfInfoCnt;  i++ ) {
-        if( !strcmp( gIfInfo[i].ifname, iIfname ) ) { return &(gIfInfo[i]); }
+        if( !strcmp( gIfInfo[i].ifname, iIfname ) ) {return &(gIfInfo[i]);}
     }
-    com_ifinfo_t* newInfo =
+    com_ifinfo_t*  newInfo =
         com_reallocAddr( &gIfInfo, sizeof(*gIfInfo), COM_TABLEEND,
                          &gIfInfoCnt, 1, "ifinfo list" );
-    if( newInfo ) { setIfInfo( newInfo, iIfname ); }
+    if( newInfo ) {setIfInfo( newInfo, iIfname );}
     return newInfo;
 }
 
 static void freeIfInfo( void )
 {
-    if( gIfAddr ) { freeifaddrs( gIfAddr );  gIfAddr = NULL; }
-    if( gIfInfoSock >= 0 ) { close( gIfInfoSock );  gIfInfoSock = COM_NO_SOCK; }
-    if( !gIfInfoCnt ) { return; }
+    if( gIfAddr ) {freeifaddrs( gIfAddr );  gIfAddr = NULL;}
+    if( gIfInfoSock >= 0 ) {close( gIfInfoSock );  gIfInfoSock = COM_NO_SOCK;}
+    if( !gIfInfoCnt ) {return;}
     for( long i = 0;  i < gIfInfoCnt;  i++ ) {
         com_ifinfo_t* tmp = &(gIfInfo[i]);
         if( !tmp->ifaddrs ) {  // Netlink取得の場合
@@ -1479,7 +1479,7 @@ static void freeIfInfo( void )
 
 static struct ifaddrs *getifaddrsFunc( void )
 {
-    struct ifaddrs* ifaddr;
+    struct ifaddrs*  ifaddr;
     if( 0 > getifaddrs( &ifaddr ) ) {
         com_error( COM_ERR_GETIFINFO, "fail to getifaddrs()" );
         return NULL;
@@ -1499,17 +1499,17 @@ static void *reallocSync(
 
 static BOOL addIfAddr( struct ifaddrs *iIfa )
 {
-    com_ifinfo_t* inf = getIfInfo( iIfa->ifa_name );
-    if( !inf ) { return false; }
-    struct ifaddrs** ifAddr =
+    com_ifinfo_t*  inf = getIfInfo( iIfa->ifa_name );
+    if( !inf ) {return false;}
+    struct ifaddrs**  ifAddr =
         com_reallocAddr( &inf->ifaddrs, sizeof(struct ifaddrs*), 0,
                          &inf->cntAddrs, ADDRCNT_ADD, "addAddrInf (ifaddr)" );
-    if( !ifAddr ) { return false; }
+    if( !ifAddr ) {return false;}
     *ifAddr = iIfa;
-    com_ifaddr_t* soAddrs = reallocSync( &inf->soAddrs, sizeof(*soAddrs),
-                                         inf->cntAddrs, "sockaddr" );
-    if( !soAddrs ) { return false; }
-    struct sockaddr* sa = iIfa->ifa_addr;
+    com_ifaddr_t*  soAddrs = reallocSync( &inf->soAddrs, sizeof(*soAddrs),
+                                          inf->cntAddrs, "sockaddr" );
+    if( !soAddrs ) {return false;}
+    struct sockaddr*  sa = iIfa->ifa_addr;
     soAddrs->addr = (sa->sa_family == AF_INET || sa->sa_family == AF_INET6)
                     ? sa : NULL;
     return true;
@@ -1517,10 +1517,10 @@ static BOOL addIfAddr( struct ifaddrs *iIfa )
 
 static long collectIfInfo( void )
 {
-    if( !(gIfAddr = getifaddrsFunc()) ) { return COM_IFINFO_ERR; }
+    if( !(gIfAddr = getifaddrsFunc()) ) {return COM_IFINFO_ERR;}
     for( struct ifaddrs* ifa = gIfAddr;  ifa;  ifa = ifa->ifa_next ) {
-        if( !ifa->ifa_addr ) { continue; }
-        if( !addIfAddr( ifa ) ) { freeIfInfo();  return COM_IFINFO_ERR; }
+        if( !ifa->ifa_addr ) {continue;}
+        if( !addIfAddr( ifa ) ) {freeIfInfo();  return COM_IFINFO_ERR;}
     }
     return gIfInfoCnt;
 }
@@ -1556,8 +1556,8 @@ static void setNlmsgHdr( struct nlmsghdr *oHdr, size_t iSize, ushort iType )
         setNlmsgHdr( &msg.hdr, sizeof(msg), (MSGOP) ); \
     } while(0)
 
-static char gAddrBuff[COM_DATABUF_SIZE];
-static char gRouteBuff[COM_DATABUF_SIZE];
+static char  gAddrBuff[COM_DATABUF_SIZE];
+static char  gRouteBuff[COM_DATABUF_SIZE];
 
 typedef BOOL(*com_nlmsgFunc_t)(
     struct nlmsghdr *iMsg, size_t iMsgLen, void *iUserData );
@@ -1571,10 +1571,10 @@ static BOOL recvNlmsg(
         com_selectId_t iId, char *oBuf, size_t iBufSize,
         com_nlmsgFunc_t iFunc, void *iUserData )
 {
-    BOOL result = false;
+    BOOL  result = false;
     while(1) {
         memset( oBuf, 0, iBufSize );
-        ssize_t msgLen = 0;
+        ssize_t  msgLen = 0;
         if( !com_receiveSocket( iId, oBuf, iBufSize, false, &msgLen, NULL ) ) {
             BREAK( false );
         }
@@ -1582,9 +1582,9 @@ static BOOL recvNlmsg(
             com_error( COM_ERR_RECVNG, "received illegal packet (netlink)" );
             BREAK( false );
         }
-        struct nlmsghdr* msg = (struct nlmsghdr*)oBuf;
-        if( msg->nlmsg_type == NLMSG_DONE ) { BREAK( true ); } // 処理終了
-        if( !iFunc( msg, msgLen, iUserData ) ) { BREAK( false ); }
+        struct nlmsghdr* msg  = (struct nlmsghdr*)oBuf;
+        if( msg->nlmsg_type == NLMSG_DONE ) {BREAK( true );} // 処理終了
+        if( !iFunc( msg, msgLen, iUserData ) ) {BREAK( false );}
     }
     com_deleteSocket( iId );
     return result;
@@ -1601,21 +1601,21 @@ static BOOL setIfName( com_ifinfo_t *oInf, void *iIfname )
 static com_ifinfo_t *getLinkDataFromAttr(
         struct ifinfomsg *iIfMsg, int iMsgLen )
 {
-    com_ifinfo_t inf;
+    com_ifinfo_t  inf;
     memset( &inf, 0, sizeof(inf) );
     for( struct rtattr* attr = (struct rtattr*)IFLA_RTA( iIfMsg );
          RTA_OK( attr, iMsgLen );  attr = RTA_NEXT( attr, iMsgLen ) )
     {
         if( attr->rta_type == IFLA_IFNAME ) {
-            if( !setIfName( &inf, RTA_DATA(attr) ) ) { return NULL; }
+            if( !setIfName( &inf, RTA_DATA(attr) ) ) {return NULL;}
         }
         if( attr->rta_type == IFLA_ADDRESS ) {
             setHwAddr( &inf, RTA_DATA(attr) );
         }
     }
-    if( !inf.ifname ) { return NULL; }
-    com_ifinfo_t* tmp = getIfInfo( inf.ifname );
-    if( !tmp ) { return NULL; }
+    if( !inf.ifname ) {return NULL;}
+    com_ifinfo_t*  tmp = getIfInfo( inf.ifname );
+    if( !tmp ) {return NULL;}
     *tmp = inf;
     tmp->ifindex = iIfMsg->ifi_index;
     return tmp;
@@ -1623,36 +1623,36 @@ static com_ifinfo_t *getLinkDataFromAttr(
 
 static void *addSaForNetlink( com_ifinfo_t *oInf, int iFamily )
 {
-    struct sockaddr* tmp = NULL;
+    struct sockaddr*  tmp = NULL;
     if( iFamily == AF_INET ) {
         tmp = com_malloc( sizeof(struct sockaddr_in),  "IPv4 by Netlink" );
     }
     else {
         tmp = com_malloc( sizeof(struct sockaddr_in6), "IPv6 by Netlink" );
     }
-    if( !tmp ) { return NULL; }
+    if( !tmp ) {return NULL;}
     tmp->sa_family = iFamily;
 
-    com_ifaddr_t* soAddr =
+    com_ifaddr_t*  soAddr =
         com_reallocAddr( &oInf->soAddrs, sizeof(*soAddr), 0,
                          &oInf->cntAddrs, 1, "setIpAddr (sockaddr)" );
-    if( !soAddr ) { com_free( tmp );  return NULL; }
+    if( !soAddr ) {com_free( tmp );  return NULL;}
     soAddr->addr = tmp;
     return tmp;
 }
 
 static BOOL setIpAddr( com_ifinfo_t *oInf, struct ifaddrmsg *iMsg, void *iAddr )
 {
-    int family = iMsg->ifa_family;
+    int family  = iMsg->ifa_family;
     if( family == AF_INET ) {
-        struct sockaddr_in* sa = addSaForNetlink( oInf, family );
-        if( !sa ) { return false; }
+        struct sockaddr_in*  sa = addSaForNetlink( oInf, family );
+        if( !sa ) {return false;}
         memcpy( &sa->sin_addr.s_addr, iAddr, sizeof(struct in_addr) );
         
     }
     else if( family == AF_INET6 ) {
-        struct sockaddr_in6* sa6 = addSaForNetlink( oInf, family );
-        if( !sa6 ) { return false; }
+        struct sockaddr_in6*  sa6 = addSaForNetlink( oInf, family );
+        if( !sa6 ) {return false;}
         memcpy( &sa6->sin6_addr.s6_addr, iAddr, sizeof(struct in6_addr) );
     }
     oInf->soAddrs[0].preflen = iMsg->ifa_prefixlen;
@@ -1661,8 +1661,8 @@ static BOOL setIpAddr( com_ifinfo_t *oInf, struct ifaddrmsg *iMsg, void *iAddr )
 
 static BOOL setIfLabel( com_ifinfo_t *oInf, void *iLabel )
 {
-    char* tmp = com_strdup( (char*)iLabel, NULL );
-    if( !tmp ) { return false; }
+    char*  tmp = com_strdup( (char*)iLabel, NULL );
+    if( !tmp ) {return false;}
     oInf->soAddrs[0].label = tmp;
     return true;
 }
@@ -1679,7 +1679,7 @@ static BOOL getAddrDataFromAttr(
             }
         }
         if( attr->rta_type == IFA_LABEL ) {
-            if( !setIfLabel( oInf, RTA_DATA( attr ) ) ) { return false; }
+            if( !setIfLabel( oInf, RTA_DATA( attr ) ) ) {return false;}
         }
     }
     return true;
@@ -1693,11 +1693,11 @@ struct linkinfo {
 // com_nlmsgFunc_t型関数
 static BOOL getAddr( struct nlmsghdr *iMsg, size_t iMsgLen, void *iUserData )
 {
-    struct linkinfo* inf = iUserData;
+    struct linkinfo*  inf = iUserData;
 
-    for( ; NLMSG_OK(iMsg, iMsgLen); iMsg = NLMSG_NEXT(iMsg, iMsgLen) ) {
-        struct ifaddrmsg* msg = (void*)NLMSG_DATA( iMsg );
-        int msgLen = IFA_PAYLOAD( iMsg );
+    for( ;  NLMSG_OK(iMsg, iMsgLen);  iMsg = NLMSG_NEXT(iMsg, iMsgLen) ) {
+        struct ifaddrmsg*  msg = (void*)NLMSG_DATA( iMsg );
+        int  msgLen = IFA_PAYLOAD( iMsg );
         if( msg->ifa_index == inf->index ) {
             getAddrDataFromAttr( msg, msgLen, inf->ifInfo );
         }
@@ -1712,11 +1712,11 @@ static com_selectId_t createNetlinkSocket( void )
 
 static BOOL getAddrList( struct linkinfo *ioInf )
 {
-    com_selectId_t id = createNetlinkSocket();
-    if( id == COM_NO_SOCK ) { return false; }
+    com_selectId_t  id = createNetlinkSocket();
+    if( id == COM_NO_SOCK ) {return false;}
     SETMSGHDR( com_getAddrReq_t, RTM_GETADDR );
     msg.body.ifa_family = 0;  // AF_INET
-    if( !com_sendSocket( id, &msg, msg.hdr.nlmsg_len, NULL ) ) { return false; }
+    if( !com_sendSocket( id, &msg, msg.hdr.nlmsg_len, NULL ) ) {return false;}
     return recvNlmsg( id, gAddrBuff, sizeof(gAddrBuff), getAddr, ioInf );
 }
 
@@ -1724,20 +1724,20 @@ static BOOL getAddrList( struct linkinfo *ioInf )
 static BOOL getLink( struct nlmsghdr *iMsg, size_t iMsgLen, void *iUserData )
 {
     COM_UNUSED( iUserData );
-    for( ; NLMSG_OK( iMsg, iMsgLen ); iMsg = NLMSG_NEXT( iMsg, iMsgLen ) ) {
-        struct ifinfomsg* msg = (void*)NLMSG_DATA( iMsg );
-        int msgLen = IFLA_PAYLOAD( iMsg );
-        com_ifinfo_t* inf = getLinkDataFromAttr( msg, msgLen );
-        struct linkinfo linkInf = { (ulong)(msg->ifi_index), inf };
-        if( !getAddrList( &linkInf ) ) { return false; }
+    for( ;  NLMSG_OK( iMsg, iMsgLen );  iMsg = NLMSG_NEXT( iMsg, iMsgLen ) ) {
+        struct ifinfomsg*  msg = (void*)NLMSG_DATA( iMsg );
+        int  msgLen = IFLA_PAYLOAD( iMsg );
+        com_ifinfo_t*  inf = getLinkDataFromAttr( msg, msgLen );
+        struct linkinfo  linkInf = { (ulong)(msg->ifi_index), inf };
+        if( !getAddrList( &linkInf ) ) {return false;}
     }
     return true;
 }
 
 static long getIfInfoByNetlink( void )
 {
-    com_selectId_t id = createNetlinkSocket();
-    if( id == COM_NO_SOCK ) { return COM_IFINFO_ERR; }
+    com_selectId_t  id = createNetlinkSocket();
+    if( id == COM_NO_SOCK ) {return COM_IFINFO_ERR;}
     SETMSGHDR( com_getLinkReq_t, RTM_GETLINK );
     msg.body.ifi_family = ARPHRD_ETHER;
     if( !com_sendSocket( id, &msg, msg.hdr.nlmsg_len, NULL ) ) {
@@ -1751,18 +1751,18 @@ static long getIfInfoByNetlink( void )
 long com_collectIfInfo( com_ifinfo_t **oInf, BOOL iUseNetlink )
 {
 #ifndef LINUXOS
-    if( iUseNetlink ) {COM_PRMNG(COM_IFINFO_ERR); }
+    if( iUseNetlink ) {COM_PRMNG(COM_IFINFO_ERR);}
 #endif
     if( !oInf ) {COM_PRMNG(COM_IFINFO_ERR);}
     com_skipMemInfo( true );
     freeIfInfo();
-    long cnt = 0;
+    long  cnt = 0;
     *oInf = NULL;
     long(*func)(void) = collectIfInfo;
 #ifdef LINUXOS
-    if( iUseNetlink ) { func = getIfInfoByNetlink; }
+    if( iUseNetlink ) {func = getIfInfoByNetlink;}
 #endif
-    if( 0 <= (cnt = func()) ) { *oInf = gIfInfo; }
+    if( 0 <= (cnt = func()) ) {*oInf = gIfInfo;}
     com_skipMemInfo( false );
     return cnt;
 }
@@ -1773,29 +1773,29 @@ long com_getIfInfo( com_ifinfo_t **oInf, BOOL iUseNetlink )
     if( iUseNetlink ) {COM_PRMNG(COM_IFINFO_ERR);}
 #endif
     if( !oInf ) {COM_PRMNG(COM_IFINFO_ERR);}
-    long cnt = gIfInfoCnt;
-    if( !(*oInf = gIfInfo) ) { cnt = com_collectIfInfo( oInf, iUseNetlink ); }
+    long  cnt = gIfInfoCnt;
+    if( !(*oInf = gIfInfo) ) {cnt = com_collectIfInfo( oInf, iUseNetlink );}
     return cnt;
 }
 
 static BOOL setIfAddr( void **oAddr, struct addrinfo **oTmp, void *iAddr )
 {
-    if( !iAddr ) { return false; }
-    BOOL result = com_getaddrinfo(
+    if( !iAddr ) {return false;}
+    BOOL  result = com_getaddrinfo(
             oTmp, COM_SOCK_UDP, (strstr(iAddr, ".")) ? AF_INET : AF_INET6,
             iAddr, 0 );
-    if( !result ) { return false; }
+    if( !result ) {return false;}
     *oAddr = (*oTmp)->ai_addr;
     return true;
 }
 
 static BOOL setIfMac( uchar *oMac, char *iMac )
 {
-    uint mac[ETH_ALEN];
-    int cnt = sscanf( iMac, "%02x:%02x:%02x:%02x:%02x:%02x",
+    uint  mac[ETH_ALEN];
+    int  cnt = sscanf( iMac, "%02x:%02x:%02x:%02x:%02x:%02x",
                       &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5] );
-    if( cnt != ETH_ALEN ) { return false; }
-    for( int i = 0;  i < ETH_ALEN; i++ ) { oMac[i] = mac[i]; }
+    if( cnt != ETH_ALEN ) {return false;}
+    for( int i = 0;  i < ETH_ALEN;  i++ ) {oMac[i] = mac[i];}
     return true;
 }
 
@@ -1807,7 +1807,7 @@ static BOOL setIfMac( uchar *oMac, char *iMac )
 
 #define MAKEADDRS( SA, VAL ) \
     if( COM_CHECKBIT( iFlags, (SA) ) ) { \
-        if( !iCond->VAL ) { return false; } \
+        if( !iCond->VAL ) {return false;} \
         oCond->VAL = iCond->VAL; \
     } \
     do{} while(0)
@@ -1849,11 +1849,11 @@ static void *getAddrPoint( struct sockaddr *iSa )
 
 static BOOL seekIfLabel( com_ifinfo_t *iInf, char *iName )
 {
-    if( !iInf->soAddrs ) { return false; }
+    if( !iInf->soAddrs ) {return false;}
     for( long i = 0;  i < iInf->cntAddrs;  i++ ) {
-        char* label = iInf->soAddrs[i].label;
-        if( !label ) { continue; }
-        if( !strcmp( label, iName ) ) { return true; }
+        char*  label = iInf->soAddrs[i].label;
+        if( !label ) {continue;}
+        if( !strcmp( label, iName ) ) {return true;}
     }
     return false;
 }
@@ -1861,14 +1861,14 @@ static BOOL seekIfLabel( com_ifinfo_t *iInf, char *iName )
 static BOOL compareAddr(
         long iCnt, com_ifaddr_t *iAddrs, struct sockaddr *iCond )
 {
-    if( !iAddrs ) { return false; }
+    if( !iAddrs ) {return false;}
     for( long i = 0;  i < iCnt;  i++ ) {
-        if( !(iAddrs[i].addr) ) { continue; }  // AF_PACKETではあり得る
-        if( iAddrs[i].addr->sa_family != iCond->sa_family ) { continue; }
-        socklen_t len = (iCond->sa_family == AF_INET ) ? 4 : 16;
-        void* addrIf = getAddrPoint( iAddrs[i].addr );
-        void* addrCo = getAddrPoint( iCond );
-        if( !memcmp( addrIf, addrCo, len ) ) { return true; }
+        if( !(iAddrs[i].addr) ) {continue;}  // AF_PACKETではあり得る
+        if( iAddrs[i].addr->sa_family != iCond->sa_family ) {continue;}
+        socklen_t  len = (iCond->sa_family == AF_INET ) ? 4 : 16;
+        void*  addrIf = getAddrPoint( iAddrs[i].addr );
+        void*  addrCo = getAddrPoint( iCond );
+        if( !memcmp( addrIf, addrCo, len ) ) {return true;}
     }
     return false;
 }
@@ -1881,7 +1881,7 @@ static BOOL matchIfCond( int iFlags, com_ifinfo_t *iInf, com_seekIf_t *iCond )
         }
     }
     if( COM_CHECKBIT( iFlags, COM_IF_INDEX ) ) {
-        if( iInf->ifindex != iCond->ifindex ) { return false; }
+        if( iInf->ifindex != iCond->ifindex ) {return false;}
     }
     if( COM_CONTAINBIT( iFlags, (COM_IF_IPTXT | COM_IF_IPSA) ) ) {
         if( !compareAddr( iInf->cntAddrs, iInf->soAddrs, iCond->ipaddr ) ) {
@@ -1889,9 +1889,9 @@ static BOOL matchIfCond( int iFlags, com_ifinfo_t *iInf, com_seekIf_t *iCond )
         }
     }
     if( COM_CONTAINBIT( iFlags, (COM_IF_HWTXT | COM_IF_HWBIN) ) ) {
-        uchar* condMac = iCond->hwaddr;
+        uchar*  condMac = iCond->hwaddr;
         for( int i = 0;  i < ETH_ALEN;  i++ ) {
-            if( iInf->hwaddr[i] != condMac[i] ) { return false; }
+            if( iInf->hwaddr[i] != condMac[i] ) {return false;}
         }
     }
     return true;
@@ -1901,7 +1901,7 @@ static BOOL matchIfCond( int iFlags, com_ifinfo_t *iInf, com_seekIf_t *iCond )
 
 static com_ifinfo_t *seekIfResult( struct addrinfo **oTmp, com_ifinfo_t *iRet )
 {
-    if( oTmp ) { com_freeaddrinfo( oTmp ); }
+    if( oTmp ) {com_freeaddrinfo( oTmp );}
     com_skipMemInfo( false );
     return iRet;
 }
@@ -1912,20 +1912,20 @@ com_ifinfo_t *com_seekIfInfo(
 #ifndef LINUXOS
     if( iUseNetlink ) {COM_PRMNG(NULL);}
 #endif
-    if(iFlags <= 0 || iFlags > COM_IF_CONDMAX || !iCond) {COM_PRMNG(NULL);}
-    com_seekIf_t cond = {NULL, -1, NULL, NULL};
-    struct addrinfo* tmp = NULL;
-    uchar tmpMac[ETH_ALEN];
+    if( iFlags <= 0 || iFlags > COM_IF_CONDMAX || !iCond ) {COM_PRMNG(NULL);}
+    com_seekIf_t  cond = {NULL, -1, NULL, NULL};
+    struct addrinfo*  tmp = NULL;
+    uchar  tmpMac[ETH_ALEN];
     com_skipMemInfo( true );
     if( !makeSearchIfCond( iFlags, &cond, iCond, &tmp, tmpMac ) ) {
         SEEKIFRETURN( NULL );
     }
     com_ifinfo_t* inf = NULL;
-    long infCnt = com_getIfInfo( &inf, iUseNetlink );
-    if( infCnt <= 0 ) { SEEKIFRETURN( NULL ); }
+    long  infCnt = com_getIfInfo( &inf, iUseNetlink );
+    if( infCnt <= 0 ) {SEEKIFRETURN( NULL );}
     for( long i = 0;  i < infCnt;  i++ ) {
         com_ifinfo_t* ifinf = &(gIfInfo[i]);
-        if( matchIfCond( iFlags, ifinf, &cond ) ) { SEEKIFRETURN( ifinf ); }
+        if( matchIfCond( iFlags, ifinf, &cond ) ) {SEEKIFRETURN( ifinf );}
     }
     SEEKIFRETURN( NULL );
 }
@@ -1936,10 +1936,10 @@ com_ifinfo_t *com_seekIfInfo(
 
 static socklen_t getSockLen( const void *iAddr )
 {
-    const struct sockaddr* addr = iAddr;
-    size_t len = 0;
-    if( addr->sa_family == AF_INET )  { len = sizeof(struct sockaddr_in); }
-    if( addr->sa_family == AF_INET6 ) { len = sizeof(struct sockaddr_in6); }
+    const struct sockaddr*  addr = iAddr;
+    size_t  len = 0;
+    if( addr->sa_family == AF_INET )  {len = sizeof(struct sockaddr_in);}
+    if( addr->sa_family == AF_INET6 ) {len = sizeof(struct sockaddr_in6);}
     if( addr->sa_family == AF_UNIX ) {
         len = SUN_LEN( (struct sockaddr_un*)iAddr );
     }
@@ -1950,11 +1950,11 @@ BOOL com_getnameinfo(
         char **oAddr, char **oPort, const void *iAddr, socklen_t iLen )
 {
     if( !iAddr ) {COM_PRMNG(false);}
-    if( !iLen ) { iLen = getSockLen( iAddr ); }
-    if( !iLen ) { return false; }
+    if( !iLen ) {iLen = getSockLen( iAddr );}
+    if( !iLen ) {return false;}
 
-    static char hbuf[COM_LINEBUF_SIZE];
-    static char sbuf[COM_WORDBUF_SIZE];
+    static char  hbuf[COM_LINEBUF_SIZE];
+    static char  sbuf[COM_WORDBUF_SIZE];
     COM_CLEAR_BUF( hbuf );
     COM_CLEAR_BUF( sbuf );
     if( getnameinfo( (struct sockaddr*)iAddr, iLen,
@@ -1973,28 +1973,28 @@ BOOL com_getnameinfo(
 static void dumpSockAddr( const char *iLabel, com_sockaddr_t *iInf )
 {
     if( iInf->len > 0 ) {
-        char* addr = NULL;
-        char* port = NULL;
+        char*  addr = NULL;
+        char*  port = NULL;
         if( com_getnameinfo( &addr, &port, &iInf->addr, iInf->len ) ) {
             com_dbgCom( "     %s=[%s]:%s", iLabel, addr, port );
         }
-        else { com_dbgCom( "     %s=(illegal data?)", iLabel ); }
+        else {com_dbgCom( "     %s=(illegal data?)", iLabel );}
     }
-    else {  com_dbgCom( "     %s=(none)", iLabel ); }
+    else {    com_dbgCom( "     %s=(none)", iLabel );}
     com_dumpCom( &(iInf->addr), iInf->len, "     (len=%zu)", iInf->len );
 }
 
 static void dispConvertTime( struct timeval *iTime )
 {
-    char startDate[COM_DATE_DSIZE];
-    char startTime[COM_TIME_DSIZE];
+    char  startDate[COM_DATE_DSIZE];
+    char  startTime[COM_TIME_DSIZE];
     com_setTimeval( COM_FORM_DETAIL, startDate, startTime, NULL, iTime );
     com_dbgCom( "               (%s %s)", startDate, startTime );
 }
 
 void com_dispDebugSelect( void )
 {
-    if( !com_getDebugPrint() ) { return; }
+    if( !com_getDebugPrint() ) {return;}
     com_dbgCom( "=== Current Event Info List Start ===" );
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
         com_eventInf_t* tmp = &(gEventInf[id]);
@@ -2005,14 +2005,14 @@ void com_dispDebugSelect( void )
         com_dbgCom( "     expireFunc=%zx", (intptr_t)tmp->expireFunc );
         com_dbgCom( "     startTime=%ld.%06ld",
                       tmp->startTime.tv_sec, tmp->startTime.tv_usec );
-        if( tmp->timer != COM_NO_SOCK ) { dispConvertTime( &tmp->startTime ); }
+        if( tmp->timer != COM_NO_SOCK ) {dispConvertTime( &tmp->startTime );}
         com_dbgCom( "    sockId=%d", tmp->sockId );
         com_dbgCom( "     eventFunc=%zx", (intptr_t)tmp->eventFunc );
         com_dbgCom( "     stdinFunc=%zx", (intptr_t)tmp->stdinFunc );
         com_dbgCom( "     type=%d", tmp->type );
         dumpSockAddr( "srcInf", &tmp->srcInf );
         dumpSockAddr( "dstInf", &tmp->dstInf );
-        if( id < (gEventId - 1) ) { com_dbgCom( " "); }
+        if( id < (gEventId - 1) ) {com_dbgCom( " ");}
     }
     com_dbgCom( "=== Current Event Info List End ===" );
 }
@@ -2020,7 +2020,7 @@ void com_dispDebugSelect( void )
 
 // 初期化処理 ----------------------------------------------------------------
 
-static com_dbgErrName_t gErrorNameSelect[] = {
+static com_dbgErrName_t  gErrorNameSelect[] = {
     { COM_ERR_SOCKETNG,     "COM_ERR_SOCKETNG" },
     { COM_ERR_BINDNG,       "COM_ERR_BINDNG" },
     { COM_ERR_CONNECTNG,    "COM_ERR_CONNECTNG" },
@@ -2038,12 +2038,12 @@ static void finalizeSelect( void )
 {
     COM_DEBUG_AVOID_START( COM_NO_SKIPMEM );
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
-        com_eventInf_t* tmp = &(gEventInf[id]);
-        if( !tmp->isUse ) { continue; }
-        if( tmp->timer != COM_NO_SOCK ) { com_cancelTimer( id ); }
+        com_eventInf_t*  tmp = &(gEventInf[id]);
+        if( !tmp->isUse ) {continue;}
+        if( tmp->timer != COM_NO_SOCK ) {com_cancelTimer( id );}
         if( tmp->sockId != COM_NO_SOCK ) {
-            if( tmp->sockId != ID_STDIN ) { com_deleteSocket( id ); }
-            else { com_cancelStdin( id ); }
+            if( tmp->sockId != ID_STDIN ) {com_deleteSocket( id );}
+            else {com_cancelStdin( id );}
         }
     }
     com_skipMemInfo( true );

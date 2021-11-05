@@ -28,29 +28,29 @@ BOOL com_isYes( const char *iData )
 BOOL com_valOnlyEnter( char *ioData, void *iCond )
 {
     COM_UNUSED( iCond );
-    if( strlen( ioData ) ) { return false; }
+    if( strlen( ioData ) ) {return false;}
     return true;
 }
 
 BOOL com_valSaveFile( char *ioData, void *iCond )
 {
-    com_valCondSave_t* cond = iCond;
-    if( !com_checkExistFile( ioData ) ) { return true; }
+    com_valCondSave_t*  cond = iCond;
+    if( !com_checkExistFile( ioData ) ) {return true;}
     if( cond ) {
-        if( cond->forceRetry ) { return false; }
-        if( cond->forceOverwrite ) { return true; }
+        if( cond->forceRetry ) {return false;}
+        if( cond->forceOverwrite ) {return true;}
     }
-    com_actFlag_t flags = { .clear = false,  .enterSkip = false };
-    char* form = "%s already exist. are you sure to overwrite?\n";
-    if( cond ) { if(cond->fileExist) { form = cond->fileExist; } }
+    com_actFlag_t  flags = { .clear = false,  .enterSkip = false };
+    char*  form = "%s already exist. are you sure to overwrite?\n";
+    if( cond ) {if(cond->fileExist) {form = cond->fileExist;}}
     return com_askYesNo( &flags, form, ioData );
 }
 BOOL com_valSaveFileCondCopy( void **oCond, void *iCond )
 {
-    com_valCondSave_t* source = iCond;
-    com_valCondSave_t* tmp = com_malloc( sizeof( com_valCondSave_t ),
-                                         "copy save file condition" );
-    if( !tmp ) { return false; }
+    com_valCondSave_t*  source = iCond;
+    com_valCondSave_t*  tmp = com_malloc( sizeof( com_valCondSave_t ),
+                                          "copy save file condition" );
+    if( !tmp ) {return false;}
     *tmp = *source;
     if( !(tmp->fileExist = com_strdup( source->fileExist, NULL )) ) {
         com_free( tmp );
@@ -61,21 +61,21 @@ BOOL com_valSaveFileCondCopy( void **oCond, void *iCond )
 }
 void com_valSaveFileCondFree( void **oCond )
 {
-    com_valCondSave_t* target = *oCond;
-    if( target ) { com_free( target->fileExist ); }
+    com_valCondSave_t*  target = *oCond;
+    if( target ) {com_free( target->fileExist );}
 }
 
 BOOL com_valLoadFile( char *ioData, void *iCond )
 {
-    com_valCondLoad_t* cond = iCond;
-    char* cancel = "-";
-    if( cond ) { if( cond->cancel ) { cancel = cond->cancel; } }
-    if( !strcmp( ioData, cancel ) ) { return true; }
+    com_valCondLoad_t*  cond = iCond;
+    char*  cancel = "-";
+    if( cond ) {if( cond->cancel ) {cancel = cond->cancel;}}
+    if( !strcmp( ioData, cancel ) ) {return true;}
     if( !com_checkExistFile( ioData ) ) {
-        char* form = "%s not exist...\n";
+        char*  form = "%s not exist...\n";
         if( cond ) {
-            if( cond->noDisp ) { return false; }
-            if( cond->noFile ) { form = cond->noFile; }
+            if( cond->noDisp ) {return false;}
+            if( cond->noFile ) {form = cond->noFile;}
         }
         com_printf( form, ioData );
         return false;
@@ -84,10 +84,10 @@ BOOL com_valLoadFile( char *ioData, void *iCond )
 }
 BOOL com_valLoadFileCondCopy( void **oCond, void* iCond )
 {
-    com_valCondLoad_t* source = iCond;
-    com_valCondLoad_t* tmp = com_malloc( sizeof( com_valCondLoad_t),
-                                         "copy load file condition" );
-    if( !tmp ) { return false; }
+    com_valCondLoad_t*  source = iCond;
+    com_valCondLoad_t*  tmp = com_malloc( sizeof( com_valCondLoad_t),
+                                          "copy load file condition" );
+    if( !tmp ) {return false;}
     *tmp = *source;
     if( !(tmp->cancel = com_strdup( source->cancel, NULL )) ) {
         com_free( tmp );
@@ -103,7 +103,7 @@ BOOL com_valLoadFileCondCopy( void **oCond, void* iCond )
 }
 void com_valLoadFileCondFree( void **oCond )
 {
-    com_valCondLoad_t* target = *oCond;
+    com_valCondLoad_t*  target = *oCond;
     if( target ) {
         com_free( target->cancel );
         com_free( target->noFile );
@@ -116,8 +116,8 @@ void com_valLoadFileCondFree( void **oCond )
 
 static int dropOverBuffer( void )
 {
-    int count = 0;
-    int over;
+    int  count = 0;
+    int  over;
     // バッファサイズを超えてから入力された内容を読み捨てる
     do {
         over = getchar();
@@ -129,18 +129,18 @@ static int dropOverBuffer( void )
 static BOOL inputString( char *oData, size_t iSize, BOOL *oOnlyEnter )
 {
     *oOnlyEnter = false;
-    if( !fgets( oData, (int)iSize, stdin ) ) { return false; }
+    if( !fgets( oData, (int)iSize, stdin ) ) {return false;}
     size_t len = strlen( oData );
     if( oData[len - 1] == '\n' ) {
         oData[len - 1] = '\0';
-        if( 0 == strlen(oData) ) { *oOnlyEnter = true; }
+        if( 0 == strlen(oData) ) {*oOnlyEnter = true;}
     }
-    else { (void)dropOverBuffer(); }  // バッファサイズを超えた入力の読み捨て
+    else {(void)dropOverBuffer();}  // バッファサイズを超えた入力の読み捨て
     com_printfLogOnly( "%s\n", oData );
     return true;
 }
 
-static char gPromptBuff[COM_TEXTBUF_SIZE];
+static char  gPromptBuff[COM_TEXTBUF_SIZE];
 
 static size_t inputProc(
         char *oData, size_t iSize, const com_valFunc_t *iVal,
@@ -148,28 +148,28 @@ static size_t inputProc(
         const char *iFormat, va_list iAp )
 {
     if( !oData ) {COM_PRMNGF(iFuncName, 0);}
-    if( !iFlag ) { iFlag = &(com_actFlag_t){ false, false }; }
+    if( !iFlag ) {iFlag = &(com_actFlag_t){ false, false };}
     if( iFormat ) {vsnprintf( gPromptBuff, sizeof(gPromptBuff), iFormat, iAp );}
-    char* prompt = iFormat ? gPromptBuff : NULL;
-    BOOL onlyEnter = false;
+    char*  prompt = iFormat ? gPromptBuff : NULL;
+    BOOL  onlyEnter = false;
     while(1) {
-        if( iFlag->clear ) { com_clear(); }
-        if( prompt ) { com_printf( "%s", prompt ); }
-        if( !inputString( oData, iSize, &onlyEnter ) ) { continue; }
-        if( onlyEnter ) { if( iFlag->enterSkip ) {break;} else {continue;} }
+        if( iFlag->clear ) {com_clear();}
+        if( prompt ) {com_printf( "%s", prompt );}
+        if( !inputString( oData, iSize, &onlyEnter ) ) {continue;}
+        if( onlyEnter ) {if( iFlag->enterSkip ) {break;} else {continue;}}
         // データ入力に問題がなければループを抜けて返す
-        if( !iVal ) { break; }
-        if( (iVal->func)( oData, iVal->cond ) ) { break; }
+        if( !iVal ) {break;}
+        if( (iVal->func)( oData, iVal->cond ) ) {break;}
     }
-    if( onlyEnter ) { return 0; }
+    if( onlyEnter ) {return 0;}
     return strlen( oData );
 }
         
 // inputProc()を呼び、その結果を result に入れるマクロ
 #define INPUT( DATA, SIZE, VAL, FLAG ) \
-    size_t result = 0; \
+    size_t  result = 0; \
     do { \
-        va_list ap; \
+        va_list  ap; \
         va_start( ap, iFormat ); \
         result = inputProc( DATA, SIZE, VAL, FLAG, __func__, iFormat, ap ); \
         va_end( ap ); \
@@ -185,7 +185,7 @@ size_t com_inputVar(
 }
 
 // キー入力用共通バッファ
-static char gKeyBuff[COM_TEXTBUF_SIZE];
+static char  gKeyBuff[COM_TEXTBUF_SIZE];
 
 size_t com_input(
         char **oData, const com_valFunc_t *iVal,
@@ -202,10 +202,10 @@ size_t com_inputMutliLine( char *oData, size_t iSize, const char *iFormat, ... )
 {
     if( !oData ) {COM_PRMNG(0);}
     COM_SET_FORMAT( gPromptBuff );
-    if( iFormat ) { com_printf( gPromptBuff ); }
+    if( iFormat ) {com_printf( gPromptBuff );}
     memset( oData, 0, iSize );
     clearerr( stdin );
-    size_t result = fread( oData, 1, iSize, stdin );
+    size_t  result = fread( oData, 1, iSize, stdin );
     com_printfLogOnly( "%s", oData );
     if( ferror( stdin ) ) {
         com_error( COM_ERR_READTXTNG, "fail to read text" );
@@ -215,11 +215,11 @@ size_t com_inputMutliLine( char *oData, size_t iSize, const char *iFormat, ... )
 }
 
 #define INPUTWRAP( DEFAULT, FUNC, FLAGS ) \
-    char tmp[8] = {0}; \
+    char  tmp[8] = {0}; \
     do { \
-        const char defaultLabel[] = DEFAULT; \
-        if( !iFormat ) { iFormat = defaultLabel; } \
-        com_valFunc_t cond = { .func = (FUNC) }; \
+        const char  defaultLabel[] = DEFAULT; \
+        if( !iFormat ) {iFormat = defaultLabel;} \
+        com_valFunc_t  cond = { .func = (FUNC) }; \
         INPUT( tmp, sizeof(tmp), &cond, (FLAGS) ); \
         COM_UNUSED( result ); \
     } while(0)
@@ -232,7 +232,7 @@ BOOL com_askYesNo( const com_actFlag_t *iFlag, const char *iFormat, ... )
 
 void com_waitEnter( const char *iFormat, ... )
 {
-    com_actFlag_t flags = { .clear = false,  .enterSkip = true };
+    com_actFlag_t  flags = { .clear = false,  .enterSkip = true };
     INPUTWRAP( "  --- HIT ENTER KEY ---\n", com_valOnlyEnter, &flags );
 }
 
@@ -241,21 +241,21 @@ void com_waitEnter( const char *iFormat, ... )
 // 入力メニュー生成処理 ------------------------------------------------------
 
 // 入力メニュー共通ルーチン処理
-static char gMenuBuff[COM_DATABUF_SIZE];
-static int  gTimingLf = -1;
+static char  gMenuBuff[COM_DATABUF_SIZE];
+static int   gTimingLf = -1;
 
-static size_t gMenuCount = 0;     // メニューリストバッファのカウント
-static long*  gMenuList = NULL;   // メニューリストバッファ(終了処理で解放)
+static size_t  gMenuCount = 0;     // メニューリストバッファのカウント
+static long*   gMenuList = NULL;   // メニューリストバッファ(終了処理で解放)
 
 static void setListBuffer( const com_selector_t *iSelector )
 {
-    size_t count = 0;
-    for( ;  iSelector->code > 0;  iSelector++ ) { count++; }
+    size_t  count = 0;
+    for( ;  iSelector->code > 0;  iSelector++ ) {count++;}
     // 確保済みサイズに足りるなら何もしない
-    if( count <= gMenuCount ) { return; }
+    if( count <= gMenuCount ) {return;}
     gMenuList = com_reallocf( gMenuList, sizeof(int) * count, "gMenuList" );
     // メモリ不足の場合、処理続行不可能
-    if( !gMenuList ) { com_exit( COM_ERR_NOMEMORY ); }
+    if( !gMenuList ) {com_exit( COM_ERR_NOMEMORY );}
     gMenuCount = count;
     return;
 }
@@ -277,7 +277,7 @@ static void checkList( long iCount, long iCode )
 static void addWithPrompt( const char *iText, const char *iPrompt )
 {
     ADD_MENU_BUFF( iText );
-    if( iPrompt ) { ADD_MENU_BUFF( iPrompt ); }
+    if( iPrompt ) {ADD_MENU_BUFF( iPrompt );}
 }
 
 static void addMenu(
@@ -290,16 +290,16 @@ static void addMenu(
         gTimingLf = 0;
     }
     // 改行タイミングか判定
-    long code = iMenu->code;
-    if( gTimingLf != (code / iBorderLf) ) { addWithPrompt( "\n", iPrompt ); }
+    long  code = iMenu->code;
+    if( gTimingLf != (code / iBorderLf) ) {addWithPrompt( "\n", iPrompt );}
     // メニューを実際に出すかチェック
-    if( iMenu->check ) { if( !(iMenu->check)( code ) ) { code = 0; } }
+    if( iMenu->check ) {if( !(iMenu->check)( code ) ) {code = 0;}}
     if( code > 0 ) {
         ADD_MENU_BUFF( "  %2ld:%s", code, iMenu->label );
         checkList( *ioCount, code );
         gMenuList[(*ioCount)++] = code;
     }
-    else { ADD_MENU_BUFF( "     %*s", (int)strlen( iMenu->label ), " " ); }
+    else {ADD_MENU_BUFF( "     %*s", (int)strlen( iMenu->label ), " " );}
     gTimingLf = iMenu->code / iBorderLf;
 }
 
@@ -310,19 +310,19 @@ static void makeMenu(
     COM_CLEAR_BUF( gMenuBuff );
     gTimingLf = -1;    // 負数を入れて addMenu()に初期化を促す
 
-    if( iPrompt->head ) { (void)com_strcat( gMenuBuff, iPrompt->head ); }
+    if( iPrompt->head ) {(void)com_strcat( gMenuBuff, iPrompt->head );}
     setListBuffer( iSelector );
     for( const com_selector_t* tmp = iSelector;  tmp->code > 0;  tmp++ ) {
         addMenu( tmp, oCount, iPrompt->borderLf, iPrompt->prompt );
     }
-    if( iPrompt->foot ) { (void)com_strcat( gMenuBuff, iPrompt->foot ); }
+    if( iPrompt->foot ) {(void)com_strcat( gMenuBuff, iPrompt->foot );}
 }
 
 static BOOL callMenuFunc( long iCode, const com_selector_t *iSelector )
 {
-    while( iSelector->code != iCode ) { iSelector++; }
-    BOOL result = true;
-    if( iSelector->func ) { result = (iSelector->func)( iCode ); }
+    while( iSelector->code != iCode ) {iSelector++;}
+    BOOL  result = true;
+    if( iSelector->func ) {result = (iSelector->func)( iCode );}
     return result;
 }
 
@@ -331,11 +331,11 @@ BOOL com_execSelector(
         const com_actFlag_t *iFlag )
 {
     if( !iSelector ) {COM_PRMNG(false);}
-    long count = 0;
+    long  count = 0;
     makeMenu( iSelector, iPrompt, &count );
-    com_valCondDgtList_t cond = { count, gMenuList };
-    com_valFunc_t val = { .func = com_valDgtList,  .cond = &cond };
-    char key[10] = {0};
+    com_valCondDgtList_t  cond = { count, gMenuList };
+    com_valFunc_t  val = { .func = com_valDgtList,  .cond = &cond };
+    char  key[10] = {0};
     com_inputVar( key, sizeof(key), &val, iFlag, gMenuBuff );
     return callMenuFunc( com_atol(key), iSelector );
 }
@@ -355,17 +355,17 @@ void com_readyStat( com_calcStat_t *oStat, BOOL iNeedList )
 
 static BOOL addInputData( com_calcStat_t *oStat, long iData )
 {
-    if( !(oStat->needList) ) { return true; }
+    if( !(oStat->needList) ) {return true;}
     oStat->list = com_reallocf( oStat->list, sizeof(long) * (uint)oStat->count,
                                 "stat list (%ld)", oStat->count );
-    if( !(oStat->list) ) { return false; }
+    if( !(oStat->list) ) {return false;}
     oStat->list[oStat->count - 1] = iData;
     return true;
 }
 
 static BOOL checkOverflow( double *oTarget, double iInput )
 {
-    if( DBL_MAX - *oTarget < iInput ) { return false; }
+    if( DBL_MAX - *oTarget < iInput ) {return false;}
     *oTarget += iInput;
     return true;
 }
@@ -388,7 +388,7 @@ static double calcKurtosis(
 
 static void calcStat( com_calcStat_t *oStat )
 {
-    int cnt = oStat->count;
+    int  cnt = oStat->count;
     oStat->average = oStat->total / cnt;
     oStat->geoavr = oStat->existNegative ? 0 : exp( oStat->lgtotal / cnt );
     oStat->hrmavr = oStat->existNegative ? 0 : 1 / ( oStat->rvtotal / cnt );
@@ -407,18 +407,18 @@ static void calcStat( com_calcStat_t *oStat )
 BOOL com_inputStat( com_calcStat_t *oStat, long iData )
 {
     if( !oStat ) {COM_PRMNG(false);}
-    double tmp = (double)iData;
+    double  tmp = (double)iData;
     (oStat->count)++;
-    if( iData < 0 ) { oStat->existNegative = true; }
-    if( !addInputData( oStat, iData ) ) { return false; }
-    if( iData > oStat->max ) { oStat->max = iData; }
-    if( iData < oStat->min ) { oStat->min = iData; }
-    if( !checkOverflow( &(oStat->total), tmp ) ) { return false; }
-    if( !checkOverflow( &(oStat->sqtotal), tmp * tmp ) ) { return false; }
-    if( !checkOverflow( &(oStat->cbtotal), pow(tmp,3) ) ) { return false; }
-    if( !checkOverflow( &(oStat->fototal), pow(tmp,4) ) ) { return false; }
-    if( !checkOverflow( &(oStat->lgtotal), log(tmp) ) ) { return false; }
-    if( !checkOverflow( &(oStat->rvtotal), 1 / tmp ) ) { return false; }
+    if( iData < 0 ) {oStat->existNegative = true;}
+    if( !addInputData( oStat, iData ) ) {return false;}
+    if( iData > oStat->max ) {oStat->max = iData;}
+    if( iData < oStat->min ) {oStat->min = iData;}
+    if( !checkOverflow( &(oStat->total), tmp ) ) {return false;}
+    if( !checkOverflow( &(oStat->sqtotal), tmp * tmp ) ) {return false;}
+    if( !checkOverflow( &(oStat->cbtotal), pow(tmp,3) ) ) {return false;}
+    if( !checkOverflow( &(oStat->fototal), pow(tmp,4) ) ) {return false;}
+    if( !checkOverflow( &(oStat->lgtotal), log(tmp) ) ) {return false;}
+    if( !checkOverflow( &(oStat->rvtotal), 1 / tmp ) ) {return false;}
     calcStat( oStat );
     return true;
 }
@@ -426,7 +426,7 @@ BOOL com_inputStat( com_calcStat_t *oStat, long iData )
 void com_finishStat( com_calcStat_t *oStat )
 {
     if( !oStat ) {COM_PRMNG();}
-    if( oStat->needList ) { com_free( oStat->list ); }
+    if( oStat->needList ) {com_free( oStat->list );}
 }
 
 
@@ -435,11 +435,11 @@ void com_finishStat( com_calcStat_t *oStat )
 
 BOOL com_isPrime( ulong iNumber )
 {
-    if( iNumber < 2 ) { return false; }
-    long sqrtNum = lrint( sqrt( (double)iNumber ) );
-    if( sqrtNum < 2 ) { return true; }
+    if( iNumber < 2 ) {return false;}
+    long  sqrtNum = lrint( sqrt( (double)iNumber ) );
+    if( sqrtNum < 2 ) {return true;}
     for( long i = 2;  i <= sqrtNum;  i++ ) {
-        if( !(iNumber % i) ) { return false; }
+        if( !(iNumber % i) ) {return false;}
     }
     return true;
 }
@@ -449,17 +449,17 @@ BOOL com_isPrime( ulong iNumber )
 // 乱数関連 ------------------------------------------------------------------
 
 // マルチスレッドに耐えられるよう srandom_r() と random_r() を使う
-static __thread BOOL gSetSeed = false;
+static __thread BOOL  gSetSeed = false;
 
 #ifdef LINUXOS    // Linux用はリエントラントな関数群を使用を試みる
-static __thread struct random_data gRandomBuf;
+static __thread struct random_data  gRandomBuf;
 enum { STATE_SIZE = 64 };
-static __thread char gRandomState[STATE_SIZE];
+static __thread char  gRandomState[STATE_SIZE];
 
 static BOOL setSeed( void )
 {
-    static uint adjust = 0; // 同じ時間帯に複数呼ばれても seedが変わるように
-    uint seed = (uint)time(0) + adjust;
+    static uint  adjust = 0; // 同じ時間帯に複数呼ばれても seedが変わるように
+    uint  seed = (uint)time(0) + adjust;
     adjust++;
     // srandom_r()を呼ぶ前に gRandomBuf の内容を初期化
     if( initstate_r( seed, gRandomState, sizeof(gRandomState), &gRandomBuf ) ) {
@@ -477,22 +477,22 @@ static BOOL setSeed( void )
 int com_rand( int iMax )
 {
     if( iMax == 0 ) { return 0; }
-    BOOL negative = false;
-    if( iMax < 0 ) { iMax = abs( iMax );  negative = true; }
-    if( !gSetSeed ) { if( !(gSetSeed = setSeed()) ) { return 0; } }
-    int result = 0;
+    BOOL  negative = false;
+    if( iMax < 0 ) {iMax = abs( iMax );  negative = true;}
+    if( !gSetSeed ) {if( !(gSetSeed = setSeed()) ) {return 0;}}
+    int  result = 0;
     if( !random_r( &gRandomBuf, &result ) ) {
         result = result % iMax + 1;
-        if( negative ) { result *= -1; }
+        if( negative ) {result *= -1;}
     }
-    else { com_error( COM_ERR_RANDOMIZE, "random_r() NG" ); }
+    else {com_error( COM_ERR_RANDOMIZE, "random_r() NG" );}
     return result;
 }
 #else   // LINUXOS  (Windows版は こちらの一般的な標準関数で)
 static BOOL setSeed( void )
 {
-    static uint adjust = 0; // 同じ時間帯に複数呼ばれても seedが変わるように
-    uint seed = (uint)time(0) + adjust;
+    static uint  adjust = 0; // 同じ時間帯に複数呼ばれても seedが変わるように
+    uint  seed = (uint)time(0) + adjust;
     adjust++;
     srandom( seed );
     return true;
@@ -501,29 +501,29 @@ static BOOL setSeed( void )
 // Linux版とあわせるため int型で処理をすすめる
 int com_rand( int iMax )
 {
-    if( iMax == 0 ) { return 0; }
-    BOOL negative = false;
-    if( iMax < 0 ) { iMax = abs( iMax );  negative = true; }
-    if( !gSetSeed ) { if( !(gSetSeed = setSeed()) ) { return 0; } }
-    long randomValue = random();
-    int result = randomValue % iMax + 1;
-    if( negative ) { result *= -1; }
+    if( iMax == 0 ) {return 0;}
+    BOOL  negative = false;
+    if( iMax < 0 ) {iMax = abs( iMax );  negative = true;}
+    if( !gSetSeed ) {if( !(gSetSeed = setSeed()) ) {return 0;}}
+    long  randomValue = random();
+    int  result = randomValue % iMax + 1;
+    if( negative ) {result *= -1;}
     return result;
 }
 #endif  // LINUXOS
 
 BOOL com_checkChance( int iChance )
 {
-    int dice = com_rand( 100 );
-    if( dice > iChance ) { return false; }
+    int  dice = com_rand( 100 );
+    if( dice > iChance ) {return false;}
     return true;
 }
 
 static void dispAdjust( int iAdjust )
 {
     if( iAdjust ) {
-        if( iAdjust > 0 ) { com_printf( " +%d", iAdjust ); }
-        else { com_printf( " %d", iAdjust ); }
+        if( iAdjust > 0 ) {com_printf( " +%d", iAdjust );}
+        else {com_printf( " %d", iAdjust );}
     }
 }
 
@@ -534,20 +534,20 @@ int com_rollDice( int iDice, int iSide, int iAdjust, BOOL iDisp )
         dispAdjust( iAdjust );
         com_printf( ": " );
     }
-    int result = 0;
+    int  result = 0;
     for( int i = 0;  i < iDice;  i++ ) {
-        int dice = com_rand( iSide );
+        int  dice = com_rand( iSide );
         if( iDisp ) {
-            if( i > 0 ) { com_printf( "+" ); }
+            if( i > 0 ) {com_printf( "+" );}
             com_printf( "%d", dice );
         }
         result += dice;
     }
-    if( iDisp && iDice > 1 ) { com_printf( " = %d", result ); }
+    if( iDisp && iDice > 1 ) {com_printf( " = %d", result );}
     result += iAdjust;
     if( iDisp ) {
         dispAdjust( iAdjust );
-        if( iAdjust ) { com_printf( " = %d", result ); }
+        if( iAdjust ) {com_printf( " = %d", result );}
         com_printLf();
     }
     return result;
@@ -556,7 +556,7 @@ int com_rollDice( int iDice, int iSide, int iAdjust, BOOL iDisp )
 // シグナルハンドラー関連 ----------------------------------------------------
 
 static __thread com_sortTable_t  gSigOldAct;
-static __thread BOOL gInitSigOldAct = false;
+static __thread BOOL  gInitSigOldAct = false;
 
 static void initializeSigOldAct( void )
 {
@@ -566,31 +566,31 @@ static void initializeSigOldAct( void )
 
 static long countSignals( const com_sigact_t *iSigList )
 {
-    if( !iSigList ) { return 0; }
-    long count = 0;
-    for( ; iSigList->signal != COM_SIGACT_END;  iSigList++ ) { count++; }
+    if( !iSigList ) {return 0;}
+    long  count = 0;
+    for( ; iSigList->signal != COM_SIGACT_END;  iSigList++ ) {count++;}
     return count;
 }
 
 static BOOL procSigaction( long iCount, const com_sigact_t *iSigList )
 {
     for( long i = 0;  i < iCount;  i++ ) {
-        const com_sigact_t* tmp = &(iSigList[i]);
+        const com_sigact_t*  tmp = &(iSigList[i]);
         if( tmp->signal > INT_MAX ) {
             com_error( COM_ERR_DEBUGNG,
                        "signal code (%ld) is too large", tmp->signal );
             return false;
         }
-        struct sigaction oldact;
+        struct sigaction  oldact;
         if( 0 > sigaction( (int)tmp->signal, &(tmp->action), &oldact ) ) {
             com_error( COM_ERR_SIGNALNG, "fail to register sigaction(%ld/%d)",
                        tmp->signal, errno );
             return false;
         }
-        BOOL isCol = false;
-        BOOL result = com_addSortTableByKey( &gSigOldAct, tmp->signal,
-                                             &oldact, sizeof(oldact), &isCol );
-        if( !result ) { return false; }
+        BOOL  isCol = false;
+        BOOL  result = com_addSortTableByKey( &gSigOldAct, tmp->signal,
+                                              &oldact, sizeof(oldact), &isCol );
+        if( !result ) {return false;}
         if( isCol ) {  // 上書き発生時エラーは出すが、処理は続行する
             com_error( COM_ERR_DEBUGNG,
                        "same signal already registered(%ld)", tmp->signal );
@@ -602,12 +602,12 @@ static BOOL procSigaction( long iCount, const com_sigact_t *iSigList )
 
 BOOL com_setSignalAction( const com_sigact_t *iSigList )
 {
-    long count = countSignals( iSigList );
-    if( !count ) { return true; }
-    if( !gInitSigOldAct ) { initializeSigOldAct(); }
+    long  count = countSignals( iSigList );
+    if( !count ) {return true;}
+    if( !gInitSigOldAct ) {initializeSigOldAct();}
     com_skipMemInfo( true );
-    BOOL result = procSigaction( count, iSigList );
-    if( !result ) { com_resumeSignalAction( COM_SIGACT_ALL ); }
+    BOOL  result = procSigaction( count, iSigList );
+    if( !result ) {com_resumeSignalAction( COM_SIGACT_ALL );}
     com_skipMemInfo( false );
     return result;
 }
@@ -615,9 +615,9 @@ BOOL com_setSignalAction( const com_sigact_t *iSigList )
 void com_resumeSignalAction( long iSignum )
 {
     if( iSignum > INT_MAX ) {COM_PRMNG();}
-    BOOL resumed = false;
+    BOOL  resumed = false;
     for( long i = 0;  i < gSigOldAct.count;  i++ ) {
-        com_sigact_t* tmp = gSigOldAct.table[i].data;
+        com_sigact_t*  tmp = gSigOldAct.table[i].data;
         if( iSignum == COM_SIGACT_ALL || iSignum == tmp->signal ) {
             (void)sigaction( (int)tmp->signal, &(tmp->action), NULL );
             resumed = true;
@@ -628,8 +628,8 @@ void com_resumeSignalAction( long iSignum )
         return;
     }
     com_skipMemInfo( true );
-    if( iSignum == COM_SIGACT_ALL ) { com_freeSortTable( &gSigOldAct ); }
-    else { com_deleteSortTableByKey( &gSigOldAct, iSignum ); }
+    if( iSignum == COM_SIGACT_ALL ) {com_freeSortTable( &gSigOldAct );}
+    else {com_deleteSortTableByKey( &gSigOldAct, iSignum );}
     com_skipMemInfo( false );
 }
 
@@ -644,7 +644,7 @@ static BOOL existPackFile( com_packInf_t *ioInf, char *oArcName )
 {
     if( com_checkExistFile( ioInf->filename ) ) {return false;}
     if( ioInf->useZip ) {
-        char* tmp = ioInf->archive ? ioInf->archive : ioInf->filename;
+        char*  tmp = ioInf->archive ? ioInf->archive : ioInf->filename;
         (void)com_strncpy( oArcName, ARCHLEN, tmp, strlen(tmp) );
         if( !ioInf->noZip ) {
             (void)com_strncat( oArcName, ARCHLEN, EXTZIP, strlen(EXTZIP) );
@@ -656,7 +656,7 @@ static BOOL existPackFile( com_packInf_t *ioInf, char *oArcName )
 
 static BOOL extractPack( com_packInf_t *ioInf, char *iArchive )
 {
-    if( !ioInf->useZip ) { return true; }
+    if( !ioInf->useZip ) {return true;}
     if( !com_unzipFile( iArchive, NULL, ioInf->key, ioInf->delZip ) ) {
         return false;
     }
@@ -671,12 +671,12 @@ BOOL com_readyPack( com_packInf_t *ioInf, const char *iConfirm )
 {
     if( !ioInf ) {COM_PRMNG(false);}
     if( !ioInf->filename ) {COM_PRMNG(false);}
-    char archive[ARCHLEN] = {0};
-    BOOL exist = existPackFile( ioInf, archive );
+    char  archive[ARCHLEN] = {0};
+    BOOL  exist = existPackFile( ioInf, archive );
     if( ioInf->writeFile ) {
         if( exist && iConfirm ) {
-            if( !com_askYesNo( false, iConfirm ) ) { return false; }
-            if( strlen(archive) ) { remove( archive ); }
+            if( !com_askYesNo( false, iConfirm ) ) {return false;}
+            if( strlen(archive) ) {remove( archive );}
         } // 確認しない(iConfirm==NULL)時は無条件で上書きする。
         ioInf->fp = com_fopen( ioInf->filename, "wb" );
     }
@@ -685,7 +685,7 @@ BOOL com_readyPack( com_packInf_t *ioInf, const char *iConfirm )
             com_error( COM_ERR_FILEDIRNG, "no data file" );
             return false;
         }
-        if( !extractPack( ioInf, archive ) ) { return false; }
+        if( !extractPack( ioInf, archive ) ) {return false;}
         ioInf->fp = com_fopen( ioInf->filename, "rb" );
     }
     return (0 != ioInf->fp);
@@ -695,7 +695,7 @@ BOOL com_finishPack( com_packInf_t *ioInf, BOOL iFinal )
 {
     if( !ioInf ) {COM_PRMNG(false);}
     com_skipMemInfo( false );
-    BOOL result = true;
+    BOOL  result = true;
     com_fclose( ioInf->fp );
     if( iFinal ) {
         if( ioInf->useZip ) {
@@ -707,7 +707,7 @@ BOOL com_finishPack( com_packInf_t *ioInf, BOOL iFinal )
         }
     }
     else {  // 未完了の場合はファイル削除して終了
-        if( ioInf->writeFile || ioInf->useZip ) { remove( ioInf->filename ); }
+        if( ioInf->writeFile || ioInf->useZip ) {remove( ioInf->filename );}
     }
     com_skipMemInfo( true );
     return result;
@@ -718,35 +718,35 @@ enum { BINSIZE = 2 };
 static BOOL writeDataText( com_packInf_t *ioInf, void *iAddr, size_t iSize )
 {
     for( size_t i = 0;  i < iSize;  i++ ) {
-        uchar* tmp = iAddr;
-        if( BINSIZE != fprintf( ioInf->fp, "%02x", tmp[i] ) ) { return false; }
+        uchar*  tmp = iAddr;
+        if( BINSIZE != fprintf( ioInf->fp, "%02x", tmp[i] ) ) {return false;}
     }
     return true;
 }
 
 static BOOL writeDataBin( com_packInf_t *ioInf, void *iAddr, size_t iSize )
 {
-    size_t result = fwrite( iAddr, 1, iSize, ioInf->fp );
-    if( result < iSize ) { return false; }
+    size_t  result = fwrite( iAddr, 1, iSize, ioInf->fp );
+    if( result < iSize ) {return false;}
     return true;
 }
 
 static BOOL writeDataFile( com_packInf_t *ioInf, void *iAddr, size_t iSize )
 {
-    if( ioInf->byText ) { return writeDataText( ioInf, iAddr, iSize ); }
+    if( ioInf->byText ) {return writeDataText( ioInf, iAddr, iSize );}
     return writeDataBin( ioInf, iAddr, iSize );
 }
 
 static BOOL writeDataSize( com_packInf_t *ioInf, com_packElm_t *iElm )
 {
-    if( iElm->size > 0xFFFF ) { return false; }
+    if( iElm->size > 0xFFFF ) {return false;}
     ushort dataSize = iElm->size & 0xFFFF;
     return writeDataFile( ioInf, &dataSize, sizeof(dataSize) );
 }
 
 static BOOL writePackData( com_packInf_t *ioInf, com_packElm_t *iElm )
 {
-    if( iElm->varSize ) {if( !writeDataSize( ioInf, iElm ) ) { return false; }}
+    if( iElm->varSize ) {if( !writeDataSize( ioInf, iElm ) ) {return false;}}
     return writeDataFile( ioInf, iElm->data, iElm->size );
 }
 
@@ -768,17 +768,17 @@ BOOL com_writePackDirect(
         com_packInf_t *ioInf, void *iAddr, size_t iSize, BOOL iVarSize )
 {
     if( !ioInf || !iAddr ) {COM_PRMNG(false);}
-    com_packElm_t tmp = { iAddr, iSize, iVarSize };
+    com_packElm_t  tmp = { iAddr, iSize, iVarSize };
     return com_writePack( ioInf, &tmp, 1 );
 }
 
 
 static BOOL readPackText( com_packInf_t *ioInf, com_packElm_t *ioElm )
 {
-    uchar* target = ioElm->data;
+    uchar*  target = ioElm->data;
     for( size_t i = 0;  i < ioElm->size;  i++ ) {
-        char oct[BINSIZE + 1] = {0};
-        if( !fgets( oct, sizeof(oct), ioInf->fp ) ) { return false; }
+        char  oct[BINSIZE + 1] = {0};
+        if( !fgets( oct, sizeof(oct), ioInf->fp ) ) {return false;}
         target[i] = (uchar)com_strtoul( oct, 16, false );
     }
     return true;
@@ -786,7 +786,7 @@ static BOOL readPackText( com_packInf_t *ioInf, com_packElm_t *ioElm )
 
 static BOOL readPackBin( com_packInf_t *ioInf, com_packElm_t *ioElm )
 {
-    uchar* target = ioElm->data;
+    uchar*  target = ioElm->data;
     if( ioElm->size != fread( target, 1, ioElm->size, ioInf->fp ) ) {
         return false;
     }
@@ -795,15 +795,15 @@ static BOOL readPackBin( com_packInf_t *ioInf, com_packElm_t *ioElm )
 
 static BOOL readDataSize( com_packInf_t *ioInf, com_packElm_t *ioElm )
 {
-    ushort len = 0;
-    if( !com_readPackFix( ioInf, &len, sizeof(len) ) ) { return false; }
+    ushort  len = 0;
+    if( !com_readPackFix( ioInf, &len, sizeof(len) ) ) {return false;}
     ioElm->size = len;
     return true;
 }
 
 static BOOL allocPackMemory( com_packInf_t *ioInf, com_packElm_t *ioElm )
 {
-    if( ioElm->data ) { return true; }
+    if( ioElm->data ) {return true;}
     ioElm->data = com_malloc( ioElm->size, "allocate data pack from %s",
                               ioInf->filename );
     return (ioElm->data != NULL);
@@ -811,9 +811,9 @@ static BOOL allocPackMemory( com_packInf_t *ioInf, com_packElm_t *ioElm )
 
 static BOOL readPackData( com_packInf_t *ioInf, com_packElm_t *ioElm )
 {
-    if( ioElm->varSize ) {if( !readDataSize( ioInf, ioElm ) ) { return false; }}
-    if( !allocPackMemory( ioInf, ioElm ) ) { return false; }
-    if( ioInf->byText ) { return readPackText( ioInf, ioElm ); }
+    if( ioElm->varSize ) {if( !readDataSize( ioInf, ioElm ) ) {return false;}}
+    if( !allocPackMemory( ioInf, ioElm ) ) {return false;}
+    if( ioInf->byText ) {return readPackText( ioInf, ioElm );}
     return readPackBin( ioInf, ioElm );
 
 }
@@ -838,17 +838,17 @@ BOOL com_readPack( com_packInf_t *ioInf, com_packElm_t *iElm, long iCount )
 BOOL com_readPackFix( com_packInf_t *ioInf, void *iAddr, size_t iSize )
 {
     if( !ioInf || !iAddr ) {COM_PRMNG(false);}
-    com_packElm_t tmp = { iAddr, iSize, false };
-    if( !com_readPack( ioInf, &tmp, 1 ) ) { return false; }
+    com_packElm_t  tmp = { iAddr, iSize, false };
+    if( !com_readPack( ioInf, &tmp, 1 ) ) {return false;}
     return true;
 }
 
 BOOL com_readPackVar( com_packInf_t *ioInf, void *ioAddr, size_t *ioSize )
 {
     if( !ioInf || !ioAddr || !ioSize ) {COM_PRMNG(false);}
-    char** adr = ioAddr;
-    com_packElm_t tmp = { *adr, *ioSize, true };
-    if( !com_readPack( ioInf, &tmp, 1 ) ) { return false; }
+    char**  adr = ioAddr;
+    com_packElm_t  tmp = { *adr, *ioSize, true };
+    if( !com_readPack( ioInf, &tmp, 1 ) ) {return false;}
     *adr    = tmp.data;
     *ioSize = tmp.size;
     return true;
@@ -858,7 +858,7 @@ BOOL com_readPackVar( com_packInf_t *ioInf, void *ioAddr, size_t *ioSize )
 
 // 初期化/終了処理 ///////////////////////////////////////////////////////////
 
-static com_dbgErrName_t gErrorNameExtra[] = {
+static com_dbgErrName_t  gErrorNameExtra[] = {
     { COM_ERR_READTXTNG,   "COM_ERR_READTXTNG" },
     { COM_ERR_SIGNALNG,    "COM_ERR_SIGNALNG" },
     { COM_ERR_END,         "" }  // 最後は必ずこれで
@@ -868,7 +868,7 @@ static void finalizeExtra( void )
 {
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
     com_free( gMenuList );
-    if( gSigOldAct.count ) { com_freeSortTable( &gSigOldAct ); }
+    if( gSigOldAct.count ) {com_freeSortTable( &gSigOldAct );}
     COM_DEBUG_AVOID_END( COM_PROC_ALL );
 }
 

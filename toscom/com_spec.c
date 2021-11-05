@@ -22,8 +22,8 @@
 static BOOL checkEndian( void )
 {
     // この判定方法は C言語FAQ 20.9 に記載されている
-    int x = 1;
-    if( *(char*)&x == 1 ) { return false; }  // リトルエンディアン
+    int  x = 1;
+    if( *(char*)&x == 1 ) {return false;}  // リトルエンディアン
     return true;  // ビッグエンディアン
 }
 
@@ -52,7 +52,7 @@ BOOL com_is64bitOS( void )
 /* 個別エラー定義 ***********************************************************/
 
 // com_spec.hのエラー定義を変更したら、こちらも連動で変更する
-static com_dbgErrName_t gErrorNameSpec[] = {
+static com_dbgErrName_t  gErrorNameSpec[] = {
     { COM_ERR_DUMMY,        "COM_ERR_DUMMY" },  // これは自由に削除可能
 
     { COM_ERR_END, "" }  // 最後は必ずこれで(絶対削除しないこと)
