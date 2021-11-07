@@ -90,8 +90,8 @@
     これは main.cの main()で呼んでいる com_getOption()の働きです。
 
     以下のような記述をすると(メモリ捕捉だけして、わざと解放しない)
-        char *z = com_malloc( 30, "malloc test" );
-        memset( z, 0, 30 );
+        char* z = com_malloc( 30, "malloc test" );
+        memset( z, 0, 30 );    // 変数zの未使用警告対策
     ビルドして実行したら「not freed memory list」というのが出て、
     解放されずに浮いたままのメモリをプログラム終了時に出力します。
     com_free( z ); と文言を更にその後ろに足せば、何も言われなくなります。
@@ -99,7 +99,7 @@
 
     以下のような記述をすると(ファイルオープンだけして、わざとクローズしない)
         FILE* fp = com_fopen( "makefile", "r" );
-        fgetc( fp );
+        fgetc( fp );    // 変数fpの未使用警告対策
     プログラムを終了時に「not closed file list」というのが出ます。
     com_fclose( fp ); と更にその後ろに足せば、何も言われなくなります。
     これが toscomのファイル監視機能です。
