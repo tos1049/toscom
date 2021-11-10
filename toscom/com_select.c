@@ -1029,7 +1029,7 @@ static BOOL closeTcpConnection( com_selectId_t iId )
 {
     com_eventInf_t*  tmp = &(gEventInf[iId]);
     // 非TCP接続時は何もせずに返す(念の為の処理)
-    if( UNLIKELY( tmp->type <= COM_SOCK_UDP )) {return true;}
+    if( COM_UNLIKELY( tmp->type <= COM_SOCK_UDP )) {return true;}
 
     (void)closeSocket( tmp );  // close()に失敗しても気にしない(何も出来ない)
     return callEventFunc( tmp, iId, COM_EVENT_CLOSE, NULL, 0, COM_ERR_CLOSENG );

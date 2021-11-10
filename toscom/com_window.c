@@ -873,7 +873,7 @@ BOOL com_mixWindowKeymap( com_winId_t iId, com_winId_t iSourceId )
         dbgWin( ">> set[%ld] keymap no mix", iId );
         return true;
     }
-    if( UNLIKELY( !src )) {COM_PRMNG(false);}
+    if( COM_UNLIKELY( !src )) {COM_PRMNG(false);}
     win->mixKeyHash = src->keyHash;
     dbgWin( ">> set[%ld] mix keymap[%ld]", iId, iSourceId );
     return true;

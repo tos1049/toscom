@@ -46,23 +46,29 @@ void test_realloct( void )
     int* table = NULL;
     long count = 0;
 
-    if( UNLIKELY(!com_realloct( &table, sizeof(int), &count, 3, "TEST+3" )) ) {
+    if( COM_UNLIKELY(
+        !com_realloct( &table, sizeof(int), &count, 3, "TEST+3" )) )
+    {
         return;
     }
     viewTable( table, count );
     table[0] = 3;  table[1] = 2;  table[2] = 1;
     viewTable( table, count );
-    if( UNLIKELY(!com_realloct( &table, sizeof(int), &count, -2, "TEST-2" )) ) {
+    if( COM_UNLIKELY(
+         !com_realloct( &table, sizeof(int), &count, -2, "TEST-2" )) )
+    {
         return;
     }
     viewTable( table, count );
-    if( UNLIKELY(!com_realloct( &table, sizeof(int), &count, 5, "TEST+5" )) ) {
+    if( COM_UNLIKELY(
+        !com_realloct( &table, sizeof(int), &count, 5, "TEST+5" )) )
+    {
         return;
     }
     viewTable( table, count );
     int* newTable = com_reallocAddr( &table, sizeof(int), COM_TABLEEND,
                                      &count, 3, "TEST ADD" );
-    if( UNLIKELY( !newTable ) ) {return;}
+    if( COM_UNLIKELY( !newTable ) ) {return;}
     newTable[1] = 100;
     viewTable( table, count );
     table[3] = 3;  table[4] = 4;
@@ -166,12 +172,12 @@ void test_getOpt( void )
     com_printLf();
 
     char errMsg[] = "---error is correct result\n";
-    if( LIKELY(!GETOPTION( gOptList1 )) ) {com_printf( errMsg );}
-    if( LIKELY(!GETOPTION( gOptList2 )) ) {com_printf( errMsg );}
-    if( UNLIKELY(!GETOPTION( gOptList3 )) ) {com_printf( "** too bad **\n" );}
+    if( COM_LIKELY(!GETOPTION( gOptList1 )) ) {com_printf( errMsg );}
+    if( COM_LIKELY(!GETOPTION( gOptList2 )) ) {com_printf( errMsg );}
+    if( COM_UNLIKELY(!GETOPTION( gOptList3 )) ) {com_printf("** too bad **\n");}
     viewRestList( &cnt, &list );  // これだけはエラーにならず残り引数取得可能
-    if( LIKELY(!GETOPTION( gOptList4 )) ) {com_printf( errMsg );}
-    if( LIKELY(!GETOPTION( gOptList5 )) ) {com_printf( errMsg );}
+    if( COM_LIKELY(!GETOPTION( gOptList4 )) ) {com_printf( errMsg );}
+    if( COM_LIKELY(!GETOPTION( gOptList5 )) ) {com_printf( errMsg );}
 }
 
 ///// test_strdup() //////////////////////////////////////////////////////////
@@ -283,7 +289,7 @@ static void testTextLine( const char *iText )
 {
     com_repeat( "-", 40, true );
     char buf[COM_LINEBUF_SIZE];
-    if( UNLIKELY( !com_seekTextLine(
+    if( COM_UNLIKELY( !com_seekTextLine(
                     iText, strlen(iText), false,
                     dispSeekTextLine, NULL, buf, sizeof(buf) )) )
     {
@@ -328,11 +334,15 @@ void test_seekFile( void )
     int test;
 
     test = 100;
-    if( UNLIKELY( !com_seekFile("./makefile", seekMakefile, &test, NULL, 0)) ) {
+    if( COM_UNLIKELY(
+        !com_seekFile("./makefile", seekMakefile, &test, NULL, 0)) )
+    {
         com_printf( "something wrong at com_seekFile...\n" );
     }
     test = 500;
-    if( UNLIKELY( !com_pipeCommand("ls -l", seekObjFile, &test, NULL, 0)) ) {
+    if( COM_UNLIKELY(
+        !com_pipeCommand("ls -l", seekObjFile, &test, NULL, 0)) )
+    {
         com_printf( "something wrong at com_seekFile...\n" );
     }
 }
@@ -363,11 +373,17 @@ void test_removeDir( void )
     long fileCount, dirCount;
     long count = 0;
     
-    if( UNLIKELY( !com_makeDir( com_getString("%s/tmp", target) ) ) ) {return;}
+    if( COM_UNLIKELY(
+        !com_makeDir( com_getString("%s/tmp", target) ) ) )
+    {
+        return;
+    }
     com_system( "cp ../*.c %s", target );
     com_system( "ls -a %s", target );
 
-    if( UNLIKELY( !com_countFiles(&fileCount,&dirCount,NULL,target,true)) ) {
+    if( COM_UNLIKELY(
+        !com_countFiles(&fileCount,&dirCount,NULL,target,true)) )
+    {
         return;
     }
     com_printf( "remove %s\n", target );
@@ -375,7 +391,7 @@ void test_removeDir( void )
                 fileCount, dirCount, fileCount + dirCount );
     count = com_removeDir( target );
     com_printf( " delete result : %ld\n", count );
-    if( LIKELY( count == fileCount + dirCount + 1 ) ) {
+    if( COM_LIKELY( count == fileCount + dirCount + 1 ) ) {
         com_printf( "good result!\n" );
     }
 }
@@ -388,7 +404,7 @@ static char gSeekPath[COM_TEXTBUF_SIZE] = "..";
 static BOOL setPath( int iArgc, char **iArgv )
 {
     if( iArgc > 2 ) {
-        if( UNLIKELY( !com_strcpy( gSeekPath, iArgv[2] ) ) ) {
+        if( COM_UNLIKELY( !com_strcpy( gSeekPath, iArgv[2] ) ) ) {
             com_printf( "too long path(%zu)\n", strlen(iArgv[2]) );
             return false;
         }
@@ -406,7 +422,7 @@ void test_seekDir( int iArgc, char **iArgv )
     FILE* fp = com_fopen( "./makefile", "r" );  // ファイルオープン動作確認
     int closeErr = 0;
 
-    if( UNLIKELY( !setPath( iArgc, iArgv )) ) {
+    if( COM_UNLIKELY( !setPath( iArgc, iArgv )) ) {
         com_fclose( fp );
         return;
     }
@@ -418,7 +434,7 @@ void test_seekDir( int iArgc, char **iArgv )
     com_printf( "total size = %lu\n", totalSize );
 
     closeErr = com_fclose( fp );  // ファイルクローズ動作確認
-    if( UNLIKELY( closeErr ) ) {
+    if( COM_UNLIKELY( closeErr ) ) {
         com_printf( "fclose errno = %d\n", closeErr );
     }
 }
@@ -443,7 +459,7 @@ static BOOL dispCName( const com_seekDirResult_t *iInf )
 void test_seekDir2( void )
 {
     startFunc( __func__ );
-    if( UNLIKELY(
+    if( COM_UNLIKELY(
             !com_seekDir2("..", checkCSource, COM_SEEK_FILE, dispCName, NULL)))
     {
         com_printf( "com_seekDir2() NG\n" );
@@ -459,7 +475,7 @@ void test_scanDir( int iArgc, char **iArgv )
     struct dirent** list = NULL;
     com_buf_t path;
 
-    if( UNLIKELY( !setPath( iArgc, iArgv )) ) { return; }
+    if( COM_UNLIKELY( !setPath( iArgc, iArgv )) ) { return; }
     com_initBuffer( &path, strlen(gSeekPath)+16, gSeekPath );
     if( 0 > (count = com_scanDir( gSeekPath, checkCSource, &list )) ) {
         com_printf( "something error (%s)\n", gSeekPath );
@@ -616,7 +632,7 @@ void test_bufferData( void )
     startFunc( __func__ );
     com_buf_t* buf1 = NULL;
     com_buf_t  buf2, buf3;
-    if( UNLIKELY( !com_createBuffer( &buf1, 0, "TEST BUFFER" )) ) {return;}
+    if( COM_UNLIKELY( !com_createBuffer( &buf1, 0, "TEST BUFFER" )) ) {return;}
     printBuffer( "buf1", buf1 );
     com_initBuffer( &buf2, 0, NULL );
     com_initBuffer( &buf3, 0, "DUMMY" );
@@ -648,19 +664,19 @@ void test_strop( void )
     char text1[] = "aBcDeFgHiJ";
     char text2[] = "ABCDEFGHIJ";
 
-    if( LIKELY(
+    if( COM_LIKELY(
            !com_strncpy( testBuf, sizeof(testBuf), source, strlen(source) )) )
     {
         com_printf( "[1]buffer size over(%s)\n", testBuf );
     }
     COM_CLEAR_BUF( testBuf );
-    if( UNLIKELY( !com_strncpy( testBuf, sizeof(testBuf), source, 6 )) ) {
+    if( COM_UNLIKELY( !com_strncpy( testBuf, sizeof(testBuf), source, 6 )) ) {
         com_printf( "[2]buffer size over(%s)\n", testBuf );
     }
-    if( LIKELY( !com_strncat( testBuf, sizeof(testBuf), source, 6 )) ) {
+    if( COM_LIKELY( !com_strncat( testBuf, sizeof(testBuf), source, 6 )) ) {
         com_printf( "[3]buffer size over(%s)\n", testBuf );
     }
-    if( LIKELY( !com_strncat( testBuf, sizeof(testBuf), source, 6 )) ) {
+    if( COM_LIKELY( !com_strncat( testBuf, sizeof(testBuf), source, 6 )) ) {
         com_printf( "[4]buffer size over(%s)\n", testBuf );
     }
 
@@ -791,14 +807,14 @@ void test_archive( void )
     char testdir[] = "testDir1";
     com_zipFile( NULL, "makefile", NULL, false, true );
     com_unzipFile( "makefile.zip", testdir, NULL, true );
-    if( UNLIKELY( 0 > system( "ls" )) ) {return;}
-    if( UNLIKELY( 0 > dispLs( testdir )) ) {return;}
+    if( COM_UNLIKELY( 0 > system( "ls" )) ) {return;}
+    if( COM_UNLIKELY( 0 > dispLs( testdir )) ) {return;}
 
     char testzip[] = "testzip";
     com_zipFile( testzip, "makefile", "PASS", true, true );
     com_unzipFile( testzip, com_getString("%s/test2",testdir), "PASS", false );
-    if( UNLIKELY( 0 > system( "ls" )) ) {return;}
-    if( UNLIKELY( 0 > dispLs( testdir )) ) {return;}
+    if( COM_UNLIKELY( 0 > system( "ls" )) ) {return;}
+    if( COM_UNLIKELY( 0 > dispLs( testdir )) ) {return;}
 
     remove( testzip );
     com_removeDir( testdir );
@@ -1240,7 +1256,7 @@ void test_ringBuffer( void )
     char* tmp = NULL;
     com_ringBuf_t* ring =
         com_createRingBuf( sizeof(char*), 5, false, true, freeRingUnit );
-    if( UNLIKELY( !ring ) ) {return;}
+    if( COM_UNLIKELY( !ring ) ) {return;}
     if( (tmp = com_strdup( "ABCDE", "test1(ABCDE)" )) ) {
         if( !com_pushRingBuf( ring, &tmp, sizeof(tmp) ) ) {com_free(tmp);}
     }

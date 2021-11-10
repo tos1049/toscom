@@ -256,7 +256,7 @@ BOOL com_getnameinfo(
  * そのアドレス情報の内容を *oTargetにコピーする。
  * UDP接続で信号の送信先を生成する時に、本I/Fが役に立つはず。
  *
- * struct addrinfo_un *型(UNIXドメインソケット)が渡された場合は、
+ * iSourceに struct addrinfo_un *型(UNIXドメインソケット)が渡された場合は、
  * それに合わせた内容のコピーを実施して、*oTargetに設定する。
  */
 void com_copyAddr( com_sockaddr_t *oTarget, const void *iSource );

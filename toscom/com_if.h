@@ -289,13 +289,13 @@ enum {
 /*
  * 条件式の実現性について、コンパイラに示唆するマクロ
  *   if文等の条件式 CONDITION が
- *   ・よく真になり得るなら LIKELY(CONDITION) を記述
- *   ・まず起こり得ないなら UNLIKELY(CONDITION) と記述
+ *   ・よく真になり得るなら COM_LIKELY(CONDITION) を記述
+ *   ・まず起こり得ないなら COM_UNLIKELY(CONDITION) と記述
  *   とすることで、コンパイル時の処理が最適化されるとされている。
  *   このマクロの使用は必須というわけではないが、用意だけはする。
  */
-#define LIKELY( CONDITION )    __builtin_expect(!!(CONDITION), 1)
-#define UNLIKELY( CONDITION )  __builtin_expect(!!(CONDITION), 0)
+#define COM_LIKELY( CONDITION )    __builtin_expect(!!(CONDITION), 1)
+#define COM_UNLIKELY( CONDITION )  __builtin_expect(!!(CONDITION), 0)
 
 /*
  * 以後、I/Fのプロトタイプ宣言のコメント記述は
