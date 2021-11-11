@@ -8,6 +8,9 @@ smplfile="sample"
 anlzfile="Analyzer"
 checkpre="_CHECKF_"
 
+STAZ="smplcomm.tar.gz.dummy"   # smplCommの確認は今は省略させる
+ATAZ="analyzer.tar.gz"
+
 # 一番日付の新しいファイルを処理対象とする
 tarlist=(`ls -t toscom.*.tar.gz`)
 tarfile=${tarlist[0]}
@@ -52,29 +55,29 @@ cd NEWENV
 ./newenv
 checker "newenv.tar.gz" "rel" "$testfile" "newenv"
 
-if [ -e toscom/smplcomm.tar.gz ]; then
+if [ -e toscom/$STAZ ]; then
   cd ../..
-  tar xvfz toscom/smplcomm.tar.gz >& /dev/null
+  tar xvfz toscom/$STAZ >& /dev/null
   cd smplComm
-  checker "smplcomm.tar.gz (ver2.0)" "rel" "$smplfile" "smplcomm ver2"
+  checker "$STAZ (ver1.0)" "rel" "$smplfile" "smplcomm ver1"
   
   cd ../
-  ./xs1 >& /dev/null
-  checker "smplcomm.tar.gz (ver1.0)" "rel" "$smplfile" "smplcomm ver1"
+  ./xs3 >& /dev/null
+  checker "$STAZ (ver2.0)" "rel" "$smplfile" "smplcomm ver2"
   
   cd ../
-  checker "smplcomm.tar.gz (ver1.0) by checkf" "checkf" \
-          "$checkpre$smplfile" "smplcomm ver1 (checkf)"
+  checker "$STAZ (ver2.0) by checkf" "checkf" \
+          "$checkpre$smplfile" "smplcomm ver2 (checkf)"
 fi
 
-if [ -e toscom/analyzer.tar.gz ]; then
+if [ -e toscom/$ATAZ ]; then
   cd ../../
-  tar xvfz toscom/analyzer.tar.gz >& /dev/null
+  tar xvfz toscom/$ATAZ >& /dev/null
   cd analyzer
-  checker "analyzer.tar.gz" "rel" "$anlzfile" "analyzer"
+  checker "$ATAZ" "rel" "$anlzfile" "analyzer"
   
   cd ../
-  checker "analyzer.tar.gz by checkf" "checkf" \
+  checker "$ATAZ by checkf" "checkf" \
           "$checkpre$anlzfile" "analyzer (checkf)"
 fi
 
@@ -91,24 +94,24 @@ cd ../../toscom
 tar xvfz tos_testtos.tar.gz >& /dev/null
 checker "$tarfile (module rename)" "" "$testfile" "toscom"
 
-if [ -e toscom/smplcomm.tar.gz ]; then
+if [ -e toscom/$STAZ ]; then
   echo
   echo
   cd ../../smplComm
   sed -i.bak -e 's/NEWMODULE="com"/NEWMODULE="tos"/' newenv
   ./newenv
   rm tos_window.*
-  checker "smplcomm.tar.gz (ver1.0/module rename)" "rel" \
-          "$smplfile" "smplcomm ver1"
+  checker "$STAZ (ver2.0/module rename)" "rel" \
+          "$smplfile" "smplcomm ver2"
 fi
 
-if [ -e toscom/analyzer.tar.gz ]; then
+if [ -e toscom/$ATAZ ]; then
   echo
   echo
   cd ../../analyzer
   sed -i.bak -e 's/NEWMODULE="com"/NEWMODULE="tos"/' newenv
   ./newenv
-  checker "analyzer.tar.gz (module rename)" "rel" "$anlzfile" "analyzer"
+  checker "$ATAZ (module rename)" "rel" "$anlzfile" "analyzer"
 fi
 
 

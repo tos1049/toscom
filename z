@@ -69,8 +69,8 @@ echo "--- $testcheck: 全てのテスト関数がコメントアウト済み ---
 
 ##### sample1の状態になっていたら中断する
 if [ -d $SDIR ]; then
-  if [ ! -f $SDIR/com_window.c ] || [ ! -f $SDIR/com_window.h ]; then
-    echo "--- sample1の状態になっている。$SDIR/下で ./xs2の実行を ---"
+  if [ -f $SDIR/com_window.c ] || [ -f $SDIR/com_window.h ]; then
+    echo "--- sample2の状態になっている。$SDIR/下で ./xs1の実行を ---"
     exit
   fi
 fi
@@ -111,15 +111,31 @@ tartemp=""
 if [ -e $RDIR ]; then
   echo "--- resettxt.tar.gz を作成 ---"
   ./p resetTxt all >& /dev/null
-  tartemp+="resettxt_all.tar.gz "
+  tartemp+="resettxt_all.tar.gz"
 fi
 
 ##### smplCommのアーカイブ
+STAZ="smplcomm.tar.gz"
 if [  -e $SDIR ]; then
-  echo "--- smplcomm.tar.gz を作成 ---"
+  echo "--- $STAZ を作成 ---"
+  cd $SDIR
+  cp ../$CDIR/NEWENV/newenv .
+  patch newenv newenv.diff
+  cd BUILD
+  make allclean >& /dev/null
+  cd ../..
+  smplNrm="$SDIR/BUILD/makefile $SDIR/*.h $SDIR/*.c"
+  smplNrm+=" $SDIR/*.txt $SDIR/newenv"
+  smplExe="$SDIR/xs?"
+  smplRom="$SDIR/smpl_spec*.tar.gz"
+  chmod 555 $smplExe
+  chmod 444 $smplRom
+  tar cvfz $CDIR/$STAZ $smplNrm $smplExe $smplRom >& /dev/null
+  chmod 755 $smplExe
+  chmod 644 $smplRom
   # smplComm全体を別口で取っておく
   ./p smplComm all >& /dev/null
-  tartemp+="smplcomm_all.tar.gz "
+  tartemp+=" smplcomm_all.tar.gz"
 fi
 
 ##### Analyzerのアーカイブ
@@ -127,13 +143,14 @@ if [ -e $ADIR ]; then
   echo "--- analyzer.tar.gz を作成 ---"
   # analyzer全体を別口で取っておく
   ./p Analyzer all >& /dev/null
-  tartemp+="analyzer_all.tar.gz "
+  tartemp+=" analyzer_all.tar.gz"
 fi
 
 ##### toscomのアーカイブ
 cd $CDIR
 
 # まずは com_testtos.c をアーカイブ
+TTAZ="com_testtos.tar.gz"
 . ./_test
 if [ -f $TESTTOS ]; then
   echo "--- $TESTTOS をアーカイブ後 $ORG_TESTTOS にリネーム"
@@ -141,7 +158,7 @@ else
   echo "--- $ORG_TESTTOS を $TESTTOS としてアーカイブ後、再リネーム"
   cp $ORG_TESTTOS $TESTTOS
 fi
-tar cvfz com_testtos.tar.gz $TESTTOS >& /dev/null
+tar cvfz $TTAZ $TESTTOS >& /dev/null
 ./rt >& /dev/null
 
 cd BUILD
@@ -150,7 +167,8 @@ make allclean >& /dev/null
 cd ../..
 
 # 新規環境作成キットのアーカイブ
-echo "--- newenv.tar.gz を作成 ---"
+NTAZ="newenv.tar.gz"
+echo "--- $NTAZ を作成 ---"
 NDIR="NEWENV"
 NBDIR="${NDIR}/BUILD"
 cd $CDIR
@@ -163,7 +181,7 @@ patch $NDIR/main.c $NDIR/main.diff
 cp BUILD/makefile $NBDIR/makefile
 patch $NBDIR/makefile $NBDIR/makefile.diff
 NEWFILES="$NBDIR/makefile $NDIR/com_* $NDIR/main.c"
-tar cvfz newenv.tar.gz $NEWFILES $NDIR/newenv
+tar cvfz $NTAZ $NEWFILES $NDIR/newenv
 rm -fr $NEWFILES *.rej BUILD/*.rej
 cd ..
 
@@ -191,7 +209,7 @@ specfiles+=" $CDIR/com_test.c $CDIR/main.c"
 specfiles+=" $CDIR/xconv"
 specfiles+=" $CDIR/xname"
 
-tarfiles="$CDIR/newenv.tar.gz $CDIR/com_testtos.tar.gz"
+tarfiles="$CDIR/$NTAZ $CDIR/$TTAZ $CDIR/$STAZ"
 
 romfiles="${docfiles} ${comfiles} ${tarfiles}"
 chmod 444 $romfiles
