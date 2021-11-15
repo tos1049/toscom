@@ -50,15 +50,7 @@ function convArcFile() {
   chmod 444 $1
 }
 
-WINDOWTAZ="com_window.tar.gz"
-WINDOWFILES="com_window.h com_window.c"
-WINDOWPREF="tmp13579"
-
 function convSrc() {
-  if [ -e $WINDOWTAZ ]; then
-    tar xvfz $WINDOWTAZ >& /dev/null
-    mv $WINDOWTAZ ${WINDOWPREF}${WINDOWTAZ}
-  fi
   fileconv0 BUILD/makefile
   #fileconv1 HISTORY/*.txt
   fileconv1 com_if.h com_proc*.c com_debug.*
@@ -66,10 +58,6 @@ function convSrc() {
   #fileconv1 com_signal*
   fileconv0 main.c com_custom.h com_spec.* com_test*.c
   fileconv0 xname
-  if [ -e ${WINDOWPREF}${WINDOWTAZ} ]; then
-    tar cvfz $WINDOWTAZ $WINDOWFILES >& /dev/null
-    rm -fr ${WINDOWPREF}${WINDOWTAZ} $WINDOWFILES
-  fi
 }
 
 function convArcDir() {
@@ -94,8 +82,8 @@ function convArcSmpl() {
   fileconv0 $3
   spec="smpl_spec.h smpl_spec.c BUILD/makefile"
   chmod 664 smpl_spec*.tar.gz
-  tar cvfz smpl_spec2.tar.gz $spec > /dev/null
-  convArcFile smpl_spec1.tar.gz "$spec"
+  tar cvfz smpl_spec1.tar.gz $spec > /dev/null
+  convArcFile smpl_spec2.tar.gz "$spec"
   chmod 444 smpl_spec*.tar.gz
   cd ..
   tar cvfz $1 $2 > /dev/null

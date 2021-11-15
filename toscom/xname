@@ -62,18 +62,10 @@ function convert() {
   fi
 }
 
-WINDOWTAZ="_window.tar.gz"
-WINDOWFILES="${NEWMODULE}_window.h ${NEWMODULE}_window.c"
-
 function procFiles() {
   echo ">> convert document files"
   convert "*.txt" $1 $2 1
   convert "README.md" $1 $2 1
-
-  if [ -e ${1}${WINDOWTAZ} ]; then
-    tar xvfz ${1}${WINDOWTAZ} >& /dev/null
-  fi
-  tar xvfz ${1}_testtos.tar.gz >& /dev/null
 
   echo ">> convert C source files"
   convert "*.c" $1 $2 1
@@ -89,11 +81,6 @@ function procFiles() {
   echo ">> remove temporary files"
   rm -fr *.cnvbak BUILD/*.cnvbak
 
-  if [ -e ${1}${WINDOWTAZ} ]; then
-    tar cvfz ${2}$WINDOWTAZ $WINDOWFILES >& /dev/null
-    rm -fr ${1}${WINDOWTAZ} $WINDOWFILES
-    chmod 444 ${2}${WINDOWTAZ}
-  fi
   tar cvfz ${2}_testtos.tar.gz ${2}_testtos.c >& /dev/null
   rm -fr ${1}_testtos.tar.gz ${2}_testtos.c
   chmod 444 ${2}_testtos.tar.gz
