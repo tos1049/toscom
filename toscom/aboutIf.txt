@@ -305,6 +305,7 @@ toscom grimoire Ver3.00
    com_isYes()                 Yes文字列判定
    com_askYesNo()              共通用Yes/No文字列入力
    com_waitEnter()             共通用エンター待機
+   com_askFile()               共通用ファイル入力とオープン
    com_execSelector()          セレクター動作
 
    ********** COMEXSTAT:統計情報・数学計算I/F **********
