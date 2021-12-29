@@ -1,8 +1,8 @@
-85c85
+83c83
 < CFLAGS += -lm
 ---
 > #CFLAGS += -lm
-88c88
+86c86
 < LASTCFLAGS += -lpanel -lncursesw
 ---
 > #LASTCFLAGS += -lpanel -lncursesw

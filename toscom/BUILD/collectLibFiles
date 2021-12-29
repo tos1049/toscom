@@ -1,5 +1,9 @@
 #!/bin/bash
 
+#
+# make lib を打ったときに、必要なヘッダファイルを収集するシェルスクリプト
+#
+
 SRC=$1
 DST=$2
 
@@ -10,7 +14,7 @@ fi
 
 TOSCOM=../../toscom
 
-# toscom/BUILD/ $B$GF0$/;~$O(B $SRC$B$K<BBV%U%!%$%k$"$j$H$_$J$9(B
+# toscom/BUILD/ で動く時は $SRCに実体ファイルありとみなす
 if [ ! -e $TOSCOM ]; then
   echo "use $SRC as TOSCOM"
   TOSCOM=$SRC

@@ -18,6 +18,8 @@ VERSION := 0.0
 
 
 
+
+
 # コンパイラ指定(gcc以外での動作は未保証)
 CC := gcc
 
@@ -69,10 +71,6 @@ COPT2 := -Waggregate-return -Wbad-function-cast -Wcast-align -Winline \
 #    警告オプション -Wno-unused-parameter を追加する前に
 #    com_if.h で宣言しているマクロ COM_UNUSED() の使用を検討して欲しい
 
-
-
-
-
 # C99を標準としたコンパイルとする
 # コンパイルオプション切り替えは、こちらを変更して実施すること
 CFLAGS := -std=c99 -g3
@@ -92,6 +90,8 @@ LASTCFLAGS += -lpanel -lncursesw
 
 
 
+
+
 LDFLAGS := -r
 
 RELOPT := -DAPLNAME=\"$(COMMAND)\" -DVERSION=\"$(VERSION)\"
@@ -101,6 +101,8 @@ RELOPT += -D_POSIX_C_SOURCE=200809L
 
 # Linux時のみ設定 (Cygwin(＝Windows)ではコメントアウトすること)
 #RELOPT += -DLINUXOS
+
+
 
 
 
@@ -140,6 +142,8 @@ OPTION += -DWATCHFILE=COM_DEBUG_SILENT
 
 
 
+
+
 # ソース/ヘッダは全て同じディレクトリにある想定
 SRC := ..
 
@@ -151,6 +155,8 @@ OBJS = main.o com.o
 
 # ネームリストファイル名 (com_custom.hの COM_NAMELISTと同じ内容にすること)
 NAMELIST = .namelist.toscom
+
+
 
 
 
@@ -196,6 +202,8 @@ smpl.o: $(SRC)/smpl_*.c $(SRC)/smpl_*.h $(COMMON_HEAD)
 
 
 
+
+
 ########## 書式文字列チェックコンパイル (make checkf) ########################
 # com_printf()の書式出力パラメータは printf()のようなチェックをコンパイラが
 # 実施しないため、正しくない記述でも警告/エラー無しとなってしまう。
@@ -212,6 +220,8 @@ checkf: CFLAGS += -DCHECK_PRINT_FORMAT
 checkf: CHECKF := $(CHECKF_PRE)
 checkf: init
 	chmod 666 $(CHECKF)$(COMMAND)
+
+
 
 
 
@@ -256,7 +266,7 @@ checkf: init
 RELEASE := RELEASE
 RELDIR := $(RELEASE)_$(COMMAND)_$(VERSION)
 
-rel: CFLGAS += -Werror
+rel: CFLAGS += -Werror
 rel: CFLAGS += -Wmissing-declarations -O2
 rel: OPTION := $(RELOPT) -D_FORTIFY_SOURCE=1
 rel: init
@@ -265,7 +275,27 @@ rel: init
 	tar cvfz $(COMMAND)_$(VERSION).tar.gz $(RELDIR)
 
 
-########## ライブラリ作成
+
+
+
+
+
+########## ライブラリ作成 ####################################################
+#
+# toscomをライブラリ化する。＊まだ試験実装のためアーカイブ生成のみ＊
+# 生成されるアーカイブファイルは
+#   lib/libtoscom.a    (実際のライブラリ)
+#   include/*.h        (ヘッダファイル 兼 説明書
+# となる。
+#
+# 他ソースと混ぜる場合のイメージは、ビルドする際、
+# 他ソースファイルとともに上記のライブラリファイル指定するというもの。
+# -L でライブラリがあるパスを指定後、-ltoscom を指定でも良い。
+#
+# toscom使用時は、include/下にあるヘッダファイルをインクルードする。
+# -I でヘッダファイルのあるパスを指定すると、インクルード時に指定するのが
+# ヘッダファイル名のみで良くなる。
+#
 LIBDIR := LIB_$(COMMAND)_$(VERSION)
 LIBFILE := libtoscom.a
 
@@ -277,6 +307,12 @@ lib: rel
 	mkdir $(LIBDIR)/include
 	./collectLibFiles .. $(LIBDIR)/include
 	tar cvfz $(COMMAND)_$(VERSION)_lib.tar.gz $(LIBDIR)
+
+
+
+
+
+
 
 ########## まっさらテストコンパイル (make init) ##############################
 init: clean $(COMMAND)
@@ -297,9 +333,6 @@ specclean:
 
 ########## 生成物やログを全て削除 (make allclean) ############################
 allclean: clean logclean
-
-
-
 
 
 

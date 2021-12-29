@@ -80,7 +80,7 @@ function convArcSmpl() {
   tar xvfz $1 > /dev/null
   cd $2
   fileconv0 $3
-  spec="smpl_spec.h smpl_spec.c BUILD/makefile"
+  spec="smpl_spec.h smpl_spec.c"
   chmod 664 smpl_spec*.tar.gz
   tar cvfz smpl_spec1.tar.gz $spec > /dev/null
   convArcFile smpl_spec2.tar.gz "$spec"

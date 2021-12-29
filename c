@@ -92,7 +92,7 @@ echo
 cd ../../toscom
 ./xname
 tar xvfz tos_testtos.tar.gz >& /dev/null
-checker "$tarfile (module rename)" "" "$testfile" "toscom"
+checker "$tarfile (module rename)" "lib" "$testfile" "toscom"
 
 if [ -e toscom/$STAZ ]; then
   echo
