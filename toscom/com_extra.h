@@ -349,6 +349,57 @@ BOOL com_askYesNo( const com_actFlag_t *iFlag, const char *iFormat, ... );
  */
 void com_waitEnter( const char *iFormat, ... );
 
+/* ファイル入力とオープン  com_askFile()
+ *   入力された名前のファイルを com_fopen()で開き、その結果をそのまま返す。
+ *   (ファイルが開ければそのファイルポインタ、開けなければNULLを返す)
+ *   開いたファイルは com_fclose()で閉じる必要がある。
+ * ---------------------------------------------------------------------------
+ *   com_fopen()によるエラー
+ * ===========================================================================
+ *   排他制御はしていないため、必要に応じて呼び元で実施すること。
+ * ===========================================================================
+ * com_input()の処理を利用して、ファイル名入力を実施し、そのファイルを開く。
+ * 読込/書込2種類の用法がある。
+ *
+ * iFlagsはファイル名入力のための com_input()にそのまま渡すフラグとなる。
+ *
+ * iAskCondはファイル名問い合わせ条件で、以下の値を想定する。
+ *  .type  読込目的なら COM_ASK_LOADFILE、書込目的なら COM_ASK_SAVEFILE
+ *  .valCond.load  読込目的時に com_input()に渡す入力条件
+ *                 ＊入力文字列のチェックに com_valLoadFile()を使用する。
+ *                   構造体の内容については、本ファイルのそちらの説明を参照。
+ *  .valCond.save  書込目的時に com_input()に渡す入力条件
+ *                 ＊入力文字列のチェックに com_valSaveFile()を使用する。
+ *                   構造体の内容については、本ファイルのそちらの説明を参照。
+ * 読込か書込かで .valCondも設定内容が変わることに注意。
+ *
+ * iFormat以降で、ファイル名入力時のプロンプト文字列を指定する。
+ *
+ * com_input()の処理を使ったファイル名入力が適正であれば、
+ * (読込で指定ファイルが無い場合は不適切、書込で指定ファイルがある場合、
+ *  その上書きを許容するかどうかは .valCond.save の内容次第となる)
+ * com_fopen()を使用して、そのファイルを開き、その結果をそのまま返す。
+ *
+ * ファイルを開くことになるので、呼び元で適切な機会に com_fclose()で閉じること。
+ */
+
+// 取得ファイル種別
+typedef enum {
+    COM_ASK_LOADFILE,       // ファイル読み込み
+    COM_ASK_SAVEFILE        // ファイル書き込み
+} COM_ASK_TYPE_t;
+
+typedef struct {
+    long   type;            // 取得ファイル種別 (COM_ASK_TYPE_tの値を指定)
+    union {
+        com_valCondLoad_t load;   // ファイル読み込み時の入力条件
+        com_valCondSave_t save;   // ファイル書き込み時の入力条件
+    } valCond;              // ファイル名入力条件
+} com_askFile_t;
+
+FILE *com_askFile( const com_actFlag_t *iFlags, const com_askFile_t *iAskCond,
+                   const char *iFormat, ... );
+
 /*
  * セレクター動作  com_execSelector()
  *   メニュー実行結果を返す

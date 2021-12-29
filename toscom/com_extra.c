@@ -236,6 +236,21 @@ void com_waitEnter( const char *iFormat, ... )
     INPUTWRAP( "  --- HIT ENTER KEY ---\n", com_valOnlyEnter, &flags );
 }
 
+FILE *com_askFile( const com_actFlag_t *iFlags, const com_askFile_t *iAskCond,
+                   const char *iFormat, ... )
+{
+    char filename[COM_TEXTBUF_SIZE] = {0};
+    COM_ASK_TYPE_t askType = iAskCond->type;
+    com_valFunc_t val = {
+        (askType == COM_ASK_SAVEFILE) ?  com_valSaveFile : com_valLoadFile,
+        (void*)&(iAskCond->valCond)
+    };
+    INPUT( filename, sizeof(filename), &val, iFlags );
+    if( !result ) {return NULL;}
+    char* mode = (askType == COM_ASK_SAVEFILE) ? "w+" : "r+";
+    return com_fopen( filename, mode );
+}
+
 
 
 // 入力メニュー生成処理 ------------------------------------------------------
