@@ -265,13 +265,18 @@ rel: init
 	tar cvfz $(COMMAND)_$(VERSION).tar.gz $(RELDIR)
 
 
+########## ライブラリ作成
+LIBDIR := LIB_$(COMMAND)_$(VERSION)
+LIBFILE := libtoscom.a
 
-
-
-
-
-
-
+lib: rel
+	ar r $(LIBFILE) com.o
+	mkdir $(LIBDIR)
+	mkdir $(LIBDIR)/lib
+	cp $(LIBFILE) $(LIBDIR)/lib
+	mkdir $(LIBDIR)/include
+	./collectLibFiles .. $(LIBDIR)/include
+	tar cvfz $(COMMAND)_$(VERSION)_lib.tar.gz $(LIBDIR)
 
 ########## まっさらテストコンパイル (make init) ##############################
 init: clean $(COMMAND)
@@ -280,6 +285,7 @@ init: clean $(COMMAND)
 clean:
 	$(RM) -fr $(COMMAND) $(COMMAND).exe $(CHECKF_PRE)$(COMMAND)
 	$(RM) -fr *.o ../tags $(RELEASE)* $(COMMAND)*.tar.gz $(NAMELIST)
+	$(RM) -fr *.a LIB_$(COMMAND)_*
 
 ########## ログファイルやコアファイルを削除 (make logclean) ##################
 logclean: specclean
