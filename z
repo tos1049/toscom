@@ -67,7 +67,7 @@ if [ -n "$testFunc" ]; then
 fi
 echo "--- $testcheck: 全てのテスト関数がコメントアウト済み ---"
 
-##### sample1の状態になっていたら中断する
+##### sample2の状態になっていたら中断する
 if [ -d $SDIR ]; then
   if [ -f $SDIR/com_window.c ] || [ -f $SDIR/com_window.h ]; then
     echo "--- sample2の状態になっている。$SDIR/下で ./xs1の実行を ---"
@@ -130,7 +130,7 @@ if [  -e $SDIR ]; then
   smplRom="$SDIR/smpl_spec*.tar.gz"
   chmod 555 $smplExe
   chmod 444 $smplRom
-  tar cvfz $CDIR/$STAZ $smplNrm $smplExe $smplRom >& /dev/null
+  #tar cvfz $CDIR/$STAZ $smplNrm $smplExe $smplRom >& /dev/null
   chmod 755 $smplExe
   chmod 644 $smplRom
   # smplComm全体を別口で取っておく
@@ -209,7 +209,8 @@ specfiles+=" $CDIR/com_test.c $CDIR/main.c"
 specfiles+=" $CDIR/xconv"
 specfiles+=" $CDIR/xname"
 
-tarfiles="$CDIR/$NTAZ $CDIR/$TTAZ $CDIR/$STAZ"
+#tarfiles="$CDIR/$NTAZ $CDIR/$TTAZ $CDIR/$STAZ"
+tarfiles="$CDIR/$NTAZ $CDIR/$TTAZ"
 
 romfiles="${docfiles} ${comfiles} ${tarfiles}"
 chmod 444 $romfiles
