@@ -90,12 +90,9 @@ function makeFileName() {
 function setSymLink() {
   for file; do
     makeFileName $file
-    echo -n "$base  "
-    if [ -e $base ]; then
-      echo "-> exists"
-    else
+    if [ ! -e $base ]; then
       ln -s $target
-      echo "-> created"
+      echo "$base  -> created"
     fi
   done
 }
@@ -106,8 +103,6 @@ function delSymLink() {
     if [ -e $base ]; then
       rm -fr $base
       echo "$base  -> deleted"
-    #else
-    #  echo "-> not existed"
     fi
   done
 }
@@ -132,18 +127,49 @@ function deactLibs() {
   fi
 }
 
+MAINC="main.c"
+COMIFH="#include \"${NEWMODULE}_if.h\""
+
+function addHeads() {
+  if [ ! -e "$MAINC" ]; then return 0; fi
+  greplast=$(grep "#include \"com_" $MAINC | tail -n 1)
+  target="${greplast/\/\/*/}"
+  for head; do
+    addhead="#include \"${NEWMODULE}_$head\""
+    if [ ! -n "$(grep "$addhead" $MAINC)" ]; then
+      sed -i -e "/${target}/a $addhead" $MAINC
+      echo "$MAINC -> add: $addhead"
+    fi
+    target="$addhead"
+  done
+}
+
+function delHeads() {
+  if [ ! -e "$MAINC" ]; then return 0; fi
+  for head; do
+    target="#include \"${NEWMODULE}_$head\""
+    if [ -n "$(grep "$target" $MAINC)" ]; then
+      sed -i -e "/${target}/d" $MAINC
+      echo "$MAINC -> delete: $target"
+    fi
+  done
+}
+
 function setFiles() {
   judgeFlag $1
   flag=$?
   files=$2
-  libs=$3
+  heads=$3
+  libs=$4
   if [ $flag = 1 ]; then
-    setSymLink $2
+    setSymLink $files
+    addHeads $heads
     if [ -n "$libs" ]; then
       actLibs "$libs"
     fi
   else
-    delSymLink $2
+    delSymLink $files
+    delHeads $heads
     if [ -n "$libs" ]; then
       deactLibs "$libs"
     fi
@@ -164,27 +190,30 @@ setFiles x1 "${COMBASE[*]}"
 
 COMEXTRA=(extra.h extra.c)
 LIBEXTRA="\-lm"
-setFiles "x$USE_EXTRA" "${COMEXTRA[*]}" "${LIBEXTRA}"
+setFiles "x$USE_EXTRA" "${COMEXTRA[*]}" "extra.h" "$LIBEXTRA"
 
 COMSELECT=(select.h select.c)
-setFiles "x$USE_SELECT" "${COMSELECT[*]}"
+setFiles "x$USE_SELECT" "${COMSELECT[*]}" "select.h"
 
 COMWINDOW=(window.h window.c)
 LIBWINDOW="\-lncursesw"
-setFiles "x$USE_WINDOW" "${COMWINDOW[*]}" "$LIBWINDOW"
+setFiles "x$USE_WINDOW" "${COMWINDOW[*]}" "window.h" "$LIBWINDOW"
 
+# シグナル機能はまだ未実装だが、記述だけはしておく
 COMSIG1=(signal.h signal.c signalCom.h signalCom.c signalPrt1.h signalPrt1.c)
 COMSIG2=(signalPrt2.h signalPrt2.c)
 COMSIG3=(signalPrt3.h signalPrt3.c)
 # シグナル機能はセット1がある場合のみ、セット2以降も許容する
 judgeFlag "x$USE_SIGNAL1"
 if [ $? = 1 ]; then
-  setFiles "x$USE_SIGNAL1" "${COMSIG1[*]}"
-  setFiles "x$USE_SIGNAL2" "${COMSIG2[*]}"
-  setFiles "x$USE_SIGNAL3" "${COMSIG3[*]}"
+  setFiles "x$USE_SIGNAL1" "${COMSIG1[*]}" "signal.h signalCom.h signalPrt1.h"
+  setFiles "x$USE_SIGNAL2" "${COMSIG2[*]}" "signalPrt2.h"
+  setFiles "x$USE_SIGNAL3" "${COMSIG3[*]}" "signalPrt3.h"
 fi
 
 rm -fr *.txt
 ln -s ../toscom/aboutIf.txt
 ln -s ../toscom/aboutUpgrade.txt
+
+echo ">>> newenv done"
 
