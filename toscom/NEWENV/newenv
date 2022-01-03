@@ -24,20 +24,20 @@
 #    USE_EXTRA     -> エキストラ機能
 #    USE_SELECT    -> セレクト機能
 #    USE_WINDOW    -> ウィンドウ機能
-# 1 にした状態で newenvを実行すると、必要なファイルのシンボリックリンクを作成し
-# BUILD/makefile で必要な行のコメントアウトを外す。
 #
-#  ＊＊ もし 0 にしていると、その機能のファイルのシンボリックリンクを削除し
-#  ＊＊ BUILD/makefile でその機能に必要な部分をコメントアウトする。
+# 1 にした状態で newenvを実行すると、以下の処理を実施する。
+#  ・必要なファイルのシンボリックリンクを作成する(既存なら何もしない)。
+#  ・BUILD/makefile で必要な行のコメントアウトを外す。
+#  ・main.c でヘッダファイルのインクルード文を追記する。
+#
+# ちなみに もし 0 にしていると、以下の処理を実施する。
+#  ・その機能のファイルのシンボリックリンクを削除する(無いなら何もしない)。
+#  ・BUILD/makefile でその機能に必要な部分をコメントアウトする。
+#  ・main.c で対応するヘッダファイルのインクルード文を削除する。
 #
 # 複数回実行しても問題ないので、後でオプション機能がなにか必要になったら、
 # その機能のフラグを 1 にして ./newenv を実行すれば簡単に追加出来る。
 #
-# オプション機能を取り込むことにした場合、その機能の初期化処理も実行が必要。
-# 開発環境に入っていた main.c を使っているのであれば、そのファイルに
-# オプション機能のヘッダファイルのインクルード記述を追加すること。
-# そうでない場合も COM_INITILIZE() を使っているソースでインクルードすること。
-
 
 
 #####################################################
@@ -132,7 +132,7 @@ COMIFH="#include \"${NEWMODULE}_if.h\""
 
 function addHeads() {
   if [ ! -e "$MAINC" ]; then return 0; fi
-  greplast=$(grep "#include \"com_" $MAINC | tail -n 1)
+  greplast=$(grep "#include \"${NEWMODULE}_" $MAINC | tail -n 1)
   target="${greplast/\/\/*/}"
   for head; do
     addhead="#include \"${NEWMODULE}_$head\""
@@ -178,11 +178,14 @@ function setFiles() {
 
 # モジュール名が "com" から変更されている場合は何もしない
 if [ "x$NEWMODULE" != "xcom" ]; then
-  rm -fr com_if.h com_proc*.c com_debug.?
-  rm -fr com_extra.? com_select.? com_window.? com_signal*.?
-  ln -s ../toscom/xname
-  ./xname
-  rm -fr xname
+  if [ -e com_spec.c ]; then
+    echo "delete com_* files"
+    rm -fr com_if.h com_proc*.c com_debug.?
+    rm -fr com_extra.? com_select.? com_window.? com_signal*.?
+    ln -s ../toscom/xname
+    ./xname &> /dev/null
+    rm -fr xname
+  fi
 fi
 
 COMBASE=(if.h proc.c procThread.c debug.h debug.c)
