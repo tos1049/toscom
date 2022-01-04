@@ -83,6 +83,7 @@ function convArcSmpl() {
   spec="smpl_spec.h smpl_spec.c"
   chmod 664 smpl_spec*.tar.gz
   tar cvfz smpl_spec1.tar.gz $spec > /dev/null
+  echo "smpl_spec1.tar.gz (archived)"
   convArcFile smpl_spec2.tar.gz "$spec"
   chmod 444 smpl_spec*.tar.gz
   cd ..
