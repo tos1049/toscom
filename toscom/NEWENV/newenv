@@ -128,12 +128,14 @@ function deactLibs() {
 }
 
 MAINC="main.c"
-COMIFH="#include \"${NEWMODULE}_if.h\""
 
 function addHeads() {
   if [ ! -e "$MAINC" ]; then return 0; fi
+
+  # 一番最後の toscomヘッダ インクルード文を探し、コメントがついてたら削除
   greplast=$(grep "#include \"${NEWMODULE}_" $MAINC | tail -n 1)
-  target="${greplast/\/\/*/}"
+  target="${greplast%\"*/[/*]*}\""
+
   for head; do
     addhead="#include \"${NEWMODULE}_$head\""
     if [ ! -n "$(grep "$addhead" $MAINC)" ]; then
