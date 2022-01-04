@@ -15,7 +15,7 @@ ATAZ="analyzer.tar.gz"
 tarlist=(`ls -t toscom.*.tar.gz`)
 tarfile=${tarlist[0]}
 
-rm -fr $tesfdir
+rm -fr $testdir
 mkdir $testdir
 
 cp $tarfile $testdir
@@ -92,7 +92,7 @@ echo
 cd ../../toscom
 ./xname
 tar xvfz tos_testtos.tar.gz >& /dev/null
-checker "$tarfile (module rename)" "lib" "$testfile" "toscom"
+checker "$tarfile (lib with module rename)" "lib" "libtoscom.a" "toscom"
 
 if [ -e toscom/$STAZ ]; then
   echo
