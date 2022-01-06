@@ -134,7 +134,7 @@ function addHeads() {
 
   # 一番最後の toscomヘッダ インクルード文を探し、コメントがついてたら削除
   greplast=$(grep "#include \"${NEWMODULE}_" $MAINC | tail -n 1)
-  target="${greplast%\"*/[/*]*}\""
+  target="${greplast%\"*}\""
 
   for head; do
     addhead="#include \"${NEWMODULE}_$head\""
