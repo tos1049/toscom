@@ -24,7 +24,7 @@ HEADERS=($(ls $SRC/*.h))
 
 for HEADER in "${HEADERS[@]}"; do
   HNAME=$(basename "$HEADER")
-  if [ -e "$TOSCOM/$HNAME" ]; then
+  if [ -e "$TOSCOM/$HNAME" ] && [[ ! $HNAME =~ _debug ]]; then
     if [[ $HNAME =~ _spec ]] || [[ $HNAME =~ _custom ]]; then
       HNAME=$SRC/$HNAME
     else
