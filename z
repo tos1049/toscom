@@ -179,6 +179,7 @@ patch $NDIR/main.c $NDIR/main.diff
 cp BUILD/makefile $NBDIR
 patch $NBDIR/makefile $NBDIR/makefile.diff
 cp BUILD/collectLibFiles $NBDIR
+chmod 555 $NBDIR/collectLibFiles
 NEWFILES="$NDIR/com_* $NDIR/main.c"
 NEWFILES+=" $NBDIR/makefile $NBDIR/collectLibFiles"
 tar cvfz $NTAZ $NEWFILES $NDIR/newenv
@@ -209,14 +210,18 @@ specfiles+=" $CDIR/com_test.c $CDIR/main.c"
 specfiles+=" $CDIR/xconv"
 specfiles+=" $CDIR/xname"
 
-buildfiles="$CDIR/BUILD/makefile $CDIR/BUILD/collectLibFiles"
+CBUILD="$CDIR/BUILD"
+buildfiles="$CBUILD/makefile $CBUILD/collectLibFiles"
 
 tarfiles="$CDIR/$NTAZ $CDIR/$TTAZ $CDIR/$STAZ"
 
 romfiles="${docfiles} ${comfiles} ${tarfiles}"
+romexes="$CBUILD/collectLibFiles"
 chmod 444 $romfiles
+chmod 555 $romexes
 tar cvfz $relfile $buildfiles $comfiles $specfiles $docfiles $tarfiles
 chmod 644 $romfiles
+chmod 755 $romexes
 
 echo "--- 不要なファイルを削除 ---"
 rm -f $CDIR/README.md $tarfiles
