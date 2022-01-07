@@ -76,6 +76,7 @@ USE_WINDOW=0
 ### 以後の処理は何も手を加えないこと ###
 ########################################
 
+# 文字なし または "0" なら 0を返す。文字あり かつ 非0なら 1を返す
 function judgeFlag() {
   if [ "$1" = "x" ]; then return 0; fi
   if [ "$1" = "x0" ]; then return 0; fi
@@ -84,33 +85,37 @@ function judgeFlag() {
 
 MOD="../toscom/${NEWMODULE}"
 
+# ファイル名の取得
 function makeFileName() {
-  target="${MOD}_$1"
-  base=$(basename "$target")
+  TARGET="${MOD}_$1"
+  BASE=$(basename "$TARGET")
 }
 
+# 必要なシンボリックリンクを生成する
 function setSymLink() {
-  for file; do
-    makeFileName $file
-    if [ ! -e $base ]; then
-      ln -s $target
-      echo "$base  -> created"
+  for FILE; do
+    makeFileName $FILE
+    if [ ! -e $BASE ]; then
+      ln -s $TARGET
+      echo "$BASE  -> created"
     fi
   done
 }
 
+# 不要なシンボリックリンクを削除する
 function delSymLink() {
-  for file; do
-    makeFileName $file
-    if [ -e $base ]; then
-      rm -fr $base
-      echo "$base  -> deleted"
+  for FILE; do
+    makeFileName $FILE
+    if [ -e $BASE ]; then
+      rm -fr $BASE
+      echo "$BASE  -> deleted"
     fi
   done
 }
 
 MAKEFILE="BUILD/makefile"
 
+# makefileで必要なライブラリ記述のコメントアウトを外す
 function actLibs() {
   GREP="^#.*FLAGS.*=.*${1}"
   TARGET=$(grep "${GREP}" $MAKEFILE)
@@ -120,6 +125,7 @@ function actLibs() {
   fi
 }
 
+# makefileで不要なライブラリ記述をコメントアウトする
 function deactLibs() {
   GREP="^[^#].*FLAGS.*=.*${1}"
   TARGET=$(grep "${GREP}" $MAKEFILE)
@@ -131,55 +137,62 @@ function deactLibs() {
 
 MAINC="main.c"
 
+# main.cで必要なヘッダのインクルード文を追記する
 function addHeads() {
   if [ ! -e "$MAINC" ]; then return 0; fi
 
-  # 一番最後の toscomヘッダ インクルード文を探し、コメントがついてたら削除
-  greplast=$(grep "#include \"${NEWMODULE}_" $MAINC | tail -n 1)
-  target="${greplast%\"*}\""
+  # 一番最後の toscomヘッダ インクルード文を探し、コメント等は除外して保持
+  GREPLAST=$(grep "#include \"${NEWMODULE}_" $MAINC | tail -n 1)
+  TARGET="${GREPLAST%\"*}\""
+  # 「#include "cmo_if.h"」というような部分が $TARGETに入る想定
 
-  for head; do
-    addhead="#include \"${NEWMODULE}_$head\""
-    if [ ! -n "$(grep "$addhead" $MAINC)" ]; then
-      sed -i -e "/${target}/a $addhead" $MAINC
-      echo "$MAINC -> add: $addhead"
+  for HEAD; do
+    ADDHEAD="#include \"${NEWMODULE}_$HEAD\""
+    if [ ! -n "$(grep "$ADDHEAD" $MAINC)" ]; then
+      sed -i -e "/${TARGET}/a $ADDHEAD" $MAINC
+      echo "$MAINC -> add: $ADDHEAD"
     fi
-    target="$addhead"
+    # 追加したインクルード文の次に追加できるようにする
+    TARGET="$ADDHEAD"
   done
 }
 
+# main.cで不要なヘッダのインクルード文を削除する
 function delHeads() {
   if [ ! -e "$MAINC" ]; then return 0; fi
-  for head; do
-    target="#include \"${NEWMODULE}_$head\""
-    if [ -n "$(grep "$target" $MAINC)" ]; then
-      sed -i -e "/${target}/d" $MAINC
-      echo "$MAINC -> delete: $target"
+  for HEAD; do
+    TARGET="#include \"${NEWMODULE}_$HEAD\""
+    if [ -n "$(grep "$TARGET" $MAINC)" ]; then
+      sed -i -e "/${TARGET}/d" $MAINC
+      echo "$MAINC -> delete: $TARGET"
     fi
   done
 }
 
+# 各機能の追加/削除に必要な処理を実施する
 function setFiles() {
   judgeFlag $1
-  flag=$?
-  files=$2
-  heads=$3
-  libs=$4
-  if [ $flag = 1 ]; then
-    setSymLink $files
-    addHeads $heads
-    if [ -n "$libs" ]; then
-      actLibs "$libs"
+  FLAG=$?
+  FILES=$2
+  HEADS=$3
+  LIBS=$4
+
+  if [ $FLAG = 1 ]; then
+    setSymLink $FILES
+    addHeads $HEADS
+    if [ -n "$LIBS" ]; then
+      actLibs "$LIBS"
     fi
   else
-    delSymLink $files
-    delHeads $heads
-    if [ -n "$libs" ]; then
-      deactLibs "$libs"
+    delSymLink $FILES
+    delHeads $HEADS
+    if [ -n "$LIBS" ]; then
+      deactLibs "$LIBS"
     fi
   fi
 }
 
+# リンクのないテキストファイルのシンボリックリンクを生成する
 function setText() {
   if [ ! -e "$1" ]; then
     ln -s ../toscom/$1
@@ -187,8 +200,14 @@ function setText() {
   fi
 }
 
+
+##############################################################################
+##############################################################################
+
+
 # モジュール名が "com" から変更されている場合は何もしない
 if [ "x$NEWMODULE" != "xcom" ]; then
+  # 代表して com_spec.cあり ＝ モジュール名変更前のファイルあり、と判断
   if [ -e com_spec.c ]; then
     echo "delete com_* files"
     rm -fr com_if.h com_proc*.c com_debug.?
@@ -199,32 +218,45 @@ if [ "x$NEWMODULE" != "xcom" ]; then
   fi
 fi
 
+# 各機能で必要なファイルやライブラリについて定義し、共通処理に掛ける
+# モジュール名は com から変更される可能性があるので、ファイル名に含めない
+
+### 基本機能 (必須) ###
 COMBASE=(if.h proc.c procThread.c debug.h debug.c)
+# ライブラリの記述は修正不要
 setFiles x1 "${COMBASE[*]}"
 
+### エキストラ機能 (USE_EXTRA) ###
 COMEXTRA=(extra.h extra.c)
 LIBEXTRA="\-lm"
+# makefileで -lm の記述がある行を修正対象とする
 setFiles "x$USE_EXTRA" "${COMEXTRA[*]}" "extra.h" "$LIBEXTRA"
 
+### セレクト機能 (USE_SELECT) ###
 COMSELECT=(select.h select.c)
+# ライブラリの記述は修正不要
 setFiles "x$USE_SELECT" "${COMSELECT[*]}" "select.h"
 
+### ウィンドウ機能 (USE_WINDOW) ###
 COMWINDOW=(window.h window.c)
 LIBWINDOW="\-lncursesw"
+# makefileで -lncursesw の記述がある行を修正対象とする
 setFiles "x$USE_WINDOW" "${COMWINDOW[*]}" "window.h" "$LIBWINDOW"
 
-# シグナル機能はまだ未実装だが、記述だけはしておく
+### シグナル機能 (未実装だが記述だけしておく) ###
 COMSIG1=(signal.h signal.c signalCom.h signalCom.c signalPrt1.h signalPrt1.c)
 COMSIG2=(signalPrt2.h signalPrt2.c)
 COMSIG3=(signalPrt3.h signalPrt3.c)
 # シグナル機能はセット1がある場合のみ、セット2以降も許容する
 judgeFlag "x$USE_SIGNAL1"
 if [ $? = 1 ]; then
+  # ライブラリの記述は修正不要
   setFiles "x$USE_SIGNAL1" "${COMSIG1[*]}" "signal.h signalCom.h signalPrt1.h"
   setFiles "x$USE_SIGNAL2" "${COMSIG2[*]}" "signalPrt2.h"
   setFiles "x$USE_SIGNAL3" "${COMSIG3[*]}" "signalPrt3.h"
 fi
 
+### 説明テキストファイル ###
 setText README.md
 setText aboutIf.txt
 setText aboutUpgrade.txt
