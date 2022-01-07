@@ -52,7 +52,8 @@ checker "$tarfile with test by checkf" "checkf" \
 echo
 echo
 cd ../..
-tar xvfz toscom/newenv.tar.gz >& /dev/null
+tar xvfz toscom/newenv.tar.gz
+echo
 cd NEWENV
 sed -i -e "/^USE_EXTRA=0/c USE_EXTRA=1" newenv
 ./newenv
