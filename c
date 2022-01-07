@@ -49,6 +49,8 @@ rm com_test.c
 checker "$tarfile with test by checkf" "checkf" \
         "$checkpre$testfile" "toscom with test"
 
+echo
+echo
 cd ../..
 tar xvfz toscom/newenv.tar.gz >& /dev/null
 cd NEWENV
