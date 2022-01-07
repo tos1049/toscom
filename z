@@ -210,13 +210,12 @@ specfiles+=" $CDIR/com_test.c $CDIR/main.c"
 specfiles+=" $CDIR/xconv"
 specfiles+=" $CDIR/xname"
 
-CBUILD="$CDIR/BUILD"
-buildfiles="$CBUILD/makefile $CBUILD/collectLibFiles"
-
+CBDIR="$CDIR/BUILD"
+buildfiles="$CBDIR/makefile $CBDIR/collectLibFiles"
 tarfiles="$CDIR/$NTAZ $CDIR/$TTAZ $CDIR/$STAZ"
-
 romfiles="${docfiles} ${comfiles} ${tarfiles}"
-romexes="$CBUILD/collectLibFiles"
+romexes="$CBDIR/collectLibFiles"
+
 chmod 444 $romfiles
 chmod 555 $romexes
 tar cvfz $relfile $buildfiles $comfiles $specfiles $docfiles $tarfiles
