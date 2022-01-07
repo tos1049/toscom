@@ -29,10 +29,8 @@
 
     アーカイブファイルを展開すると、toscom/ がディレクトリ生成されます。
     実際のビルドは BUILD/に移動し、makeを打つことで実行できます。
-    
-    > cd toscom/BUILD
-    > make
-
+      > cd toscom/BUILD
+      > make
     これにより test (Cygwinの場合は test.exe)が生成されます。
 
     ただ、curses系のライブラリがインストールされていない場合エラーになります。
