@@ -178,6 +178,13 @@ function setFiles() {
   fi
 }
 
+function setText() {
+  if [ ! -e "$1" ]; then
+    ln -s ../toscom/$1
+    echo "$1  -> created"
+  fi
+}
+
 # モジュール名が "com" から変更されている場合は何もしない
 if [ "x$NEWMODULE" != "xcom" ]; then
   if [ -e com_spec.c ]; then
@@ -216,9 +223,9 @@ if [ $? = 1 ]; then
   setFiles "x$USE_SIGNAL3" "${COMSIG3[*]}" "signalPrt3.h"
 fi
 
-rm -fr *.txt
-ln -s ../toscom/aboutIf.txt
-ln -s ../toscom/aboutUpgrade.txt
+setText README.md
+setText aboutIf.txt
+setText aboutUpgrade.txt
 
 echo ">>> newenv done"
 
