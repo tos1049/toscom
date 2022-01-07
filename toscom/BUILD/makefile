@@ -2,9 +2,11 @@
 # makefile サンプル
 #   makeのみ       ->開発中のコンパイル(ついでにタグ生成も)
 #   make clean     ->ビルド生成物のクリア
-#   make logclean  ->ログやcoreファイルなどをクリア
-#   make allclean  ->生成物やログをすべてクリア
+#   make logclean  ->ログやcoreファイルなどをクリア(speccleanも実施)
+#   make specclean ->プログラム個別の生成物をクリア
+#   make allclean  ->生成物やログをすべてクリア(cleanと logcleanを実施)
 #   make init      ->make cleanしてからの全コンパイル
+#   make checkf    ->書式文字列チェック (詳細は com_if.hの com_printf()参照)
 #   make rel       ->リリース物件のビルド(make initでコンパイルする)
 #   make tags      ->タグ生成のみ
 # というイメージで作ったサンプル
@@ -13,8 +15,6 @@
 # 実行用ファイル名とバージョン設定
 COMMAND := test
 VERSION := 0.0
-
-
 
 
 
