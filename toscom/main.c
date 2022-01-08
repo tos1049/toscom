@@ -38,6 +38,7 @@ static BOOL clearLogs( com_getOptInf_t *iOptInf )
     COM_UNUSED( iOptInf );
     com_system( "rm -fr .%s.log_*", com_getAplName() );
     com_printf( "<<< cleared all past logs >>>\n" );
+    com_exit( COM_NO_ERROR );
     return true;
 }
 
