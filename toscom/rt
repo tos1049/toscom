@@ -1,5 +1,5 @@
 #!/bin/bash
-. ./_test
+. ./TEST/_test
 
 if [ ! -f $TESTTOS ]; then
   echo "$TESTTOS not exists"

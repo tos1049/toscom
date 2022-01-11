@@ -1,7 +1,0 @@
-#!/bin/bash
-
-ORG_TESTC="_com_test1"
-TESTC="com_test.c"
-ORG_TESTTOS="_com_testtos"
-TESTTOS="com_testtos.c"
-

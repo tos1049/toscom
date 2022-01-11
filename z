@@ -54,10 +54,11 @@ checkSwp $FDIR
 echo "--- スワップファイルなし(編集中ファイルは多分なし) ---"
 
 ##### コメントアウトしてないテスト関数があったら中断する
-if [ -f $CDIR/com_testtos.c ]; then
-  testcheck="com_testtos.c"
+. $CDIR/TEST/_test
+if [ -f $CDIR/$TESTTOS ]; then
+  testcheck="$TESTTOS"
 else
-  testcheck="_com_testtos"
+  testcheck="$ORG_TESTTOS"
 fi
 testFunc=$(grep "^\s*test_" $CDIR/$testcheck)
 if [ -n "$testFunc" ]; then
@@ -149,12 +150,12 @@ cd $CDIR
 
 # まずは com_testtos.c をアーカイブ
 TTAZ="com_testtos.tar.gz"
-. ./_test
+## toscom/TEST/_test はテスト関数コメント化チェック時に実行済み ##
 if [ -f $TESTTOS ]; then
   echo "--- $TESTTOS をアーカイブ後 $ORG_TESTTOS にリネーム"
 else
   echo "--- $ORG_TESTTOS を $TESTTOS としてアーカイブ後、再リネーム"
-  cp $ORG_TESTTOS $TESTTOS
+  ./xt >& /dev/null
 fi
 tar cvfz $TTAZ $TESTTOS >& /dev/null
 ./rt >& /dev/null

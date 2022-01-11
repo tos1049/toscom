@@ -1,5 +1,5 @@
 #!/bin/bash
-. ./_test
+. ./TEST/_test
 
 if [ -f $TESTTOS ]; then
   echo "$TESTTOS already exists"
@@ -7,6 +7,6 @@ if [ -f $TESTTOS ]; then
 fi
 
 echo "### use $TESTTOS"
+mv $TESTC $ORG_TESTC
 cp $ORG_TESTTOS $TESTTOS
-rm $TESTC
 

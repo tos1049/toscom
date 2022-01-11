@@ -1,0 +1,7 @@
+#!/bin/bash
+
+ORG_TESTC="TEST/com_test.c"
+TESTC="com_test.c"
+ORG_TESTTOS="TEST/com_testtos.c"
+TESTTOS="com_testtos.c"
+
