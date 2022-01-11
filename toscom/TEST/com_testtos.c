@@ -16,7 +16,7 @@
 
 #include <unistd.h>
 #include "com_if.h"
-#include "com_debug.h"
+#include "com_debug.h"     // デバッグ機能確認のためインクルード (通常は不要)
 #include "com_extra.h"
 #include "com_select.h"
 #include "com_window.h"
@@ -518,7 +518,7 @@ void test_checkFiles( void )
 static void testPrintTag( char *iTag, size_t iWidth, const char *iFormat, ... )
 {
     char label[COM_LINEBUF_SIZE];
-    COM_SET_FORMAT( label );
+    COM_SET_FORMAT( label );    // [DBG] com_debug.h が必要
     for( COM_PTAG_POS_t pos = COM_PTAG_LEFT; pos <= COM_PTAG_RIGHT; pos++ ) {
         com_printTag( iTag, iWidth, pos, label );
     }
@@ -539,11 +539,11 @@ void test_debugLog( void )
 {
     startFunc( __func__ );
     com_debug( "test\ndebug\nmode\n" );
-    com_dbgCom( "\ntest\ndebug\nmode" );
+    com_dbgCom( "\ntest\ndebug\nmode" );       // [DBG] com_debug.h が必要
     com_debug( "test\ndebug\nmode" );
     com_noComDebugLog( true );
     com_printf( " (disable COM log)\n" );
-    com_dbgCom( "THIS LOG IS NOT WRITTEN" );
+    com_dbgCom( "THIS LOG IS NOT WRITTEN" );   // [DBG] com_debug.h が必要
 }
 
 /////test_chainData() ////////////////////////////////////////////////////////
@@ -1197,6 +1197,7 @@ void test_prmNG( void )
     int num = 2;
     char text[] = "text";
 
+    // [DBG] com_prmNG() は com_debug.h が必要
     com_prmNG( "ABC" );
     com_prmNG( "%s -ABC%d", text, num );
     com_prmNG( NULL );

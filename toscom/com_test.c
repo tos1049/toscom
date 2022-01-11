@@ -15,7 +15,6 @@
  */
 
 #include "com_if.h"
-#include "com_debug.h"
 
 #ifdef    USE_TESTFUNC
 void com_testCode( int iArgc, char **iArgv )
