@@ -40,15 +40,20 @@ CHECKNG
   fi
 }
 
+########## make rel
 cd toscom
 checker "$tarfile" "rel" "$testfile" "toscom"
 
+########## com_testtos.c とともに make checkf (com_test.c はここで削除)
+echo
+echo
 cd ..
 tar xvfz com_testtos.tar.gz
 rm com_test.c
 checker "$tarfile with test by checkf" "checkf" \
         "$checkpre$testfile" "toscom with test"
 
+########## newenv.tar.gz をエキストラ機能追加してから make rel
 echo
 echo
 cd ../..
@@ -60,45 +65,53 @@ sed -i -e "/^USE_EXTRA=0/c USE_EXTRA=1" newenv
 checker "newenv.tar.gz" "rel" "$testfile" "newenv"
 
 if [ -e toscom/$STAZ ]; then
+########## smplcomm.tar.gz の make rel (ver1.0)
   cd ../..
   tar xvfz toscom/$STAZ >& /dev/null
   cd smplComm
   checker "$STAZ (ver1.0)" "rel" "$smplfile" "smplcomm ver1"
   
+########## smplcomm.tar.gz の make rel (ver2.0)
   cd ../
-  ./xs3 >& /dev/null
+  ./xs2 >& /dev/null
   checker "$STAZ (ver2.0)" "rel" "$smplfile" "smplcomm ver2"
   
+########## smplcomm.tar.gz の make checkf (ver2.0)
   cd ../
   checker "$STAZ (ver2.0) by checkf" "checkf" \
           "$checkpre$smplfile" "smplcomm ver2 (checkf)"
 fi
 
 if [ -e toscom/$ATAZ ]; then
+########## analyzer.tar.gz の make rel
   cd ../../
   tar xvfz toscom/$ATAZ >& /dev/null
   cd analyzer
   checker "$ATAZ" "rel" "$anlzfile" "analyzer"
   
+########## analyzer.tar.gz の make checkf
   cd ../
   checker "$ATAZ by checkf" "checkf" \
           "$checkpre$anlzfile" "analyzer (checkf)"
 fi
 
+########## xconvを使ってEUC変換後、make rel
 echo 
 echo 
 cd ../../toscom
 ./xconv
 checker "$tarfile (convert to EUC)" "rel" "$testfile" "toscom"
 
+########## xnameを使ってモジュール名を tosに変換後、make lib
 echo 
 echo 
 cd ../../toscom
 ./xname
 tar xvfz tos_testtos.tar.gz >& /dev/null
-checker "$tarfile (lib with module rename)" "lib" "libtoscom.a" "toscom"
+checker "$tarfile (lib with module rename)" "lib" "libtoscom.a" "libtoscom.a"
 
 if [ -e toscom/$STAZ ]; then
+########## smplcomm.tar.gz を tosモジュールに変更して make rel
   echo
   echo
   cd ../../smplComm
@@ -110,6 +123,7 @@ if [ -e toscom/$STAZ ]; then
 fi
 
 if [ -e toscom/$ATAZ ]; then
+########## analyzer.tar.gz を tosモジュールに変更して make rel
   echo
   echo
   cd ../../analyzer
