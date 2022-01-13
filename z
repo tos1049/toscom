@@ -181,7 +181,6 @@ cd ../..
 NTAZ="newenv.tar.gz"
 echo "--- $NTAZ を作成 ---"
 NDIR="NEWENV"
-NBDIR="${NDIR}/BUILD"
 cd $CDIR
 cp com_custom.h $NDIR
 cp com_spec.h $NDIR
@@ -189,9 +188,9 @@ cp com_spec.c $NDIR
 cp com_test.c $NDIR
 cp main.c $NDIR
 patch $NDIR/main.c $NDIR/main.diff
-cp $MAKEF $NBDIR
-patch $NBDIR/makefile $NBDIR/makefile.diff
-cp $COLLIB $NBDIR
+cp $MAKEF $NDIR/BUILD
+patch $NDIR/$MAKEF $NDIR/${MAKEF}.diff
+cp $COLLIB $NDIR/BUILD
 chmod 555 $NDIR/$COLLIB
 NEWFILES="$NDIR/com_* $NDIR/main.c"
 NEWFILES+=" $NDIR/$MAKEF $NDIR/$COLLIB"
