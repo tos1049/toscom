@@ -7,7 +7,6 @@ fi
 
 function swapFiles() {
   echo "### overwrite from $1"
-  cp smpl_spec.? $2
   cp $1/smpl_spec.? .
 }
 
@@ -18,11 +17,12 @@ function delFile() {
   fi
 }
 
-swapFiles spec1 spec2
+./s2
+swapFiles spec1
 
 delFile com_window.h
 delFile com_window.c
 
-# makefileの curses関連ライブラリの記述をコメントアウト
 sed -i -E "/^[^#].*FLAGS.*=.*\-lncursesw/s/^(.*)/#&/" BUILD/makefile
+echo "deactivate ncurses in makefile"
 

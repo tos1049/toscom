@@ -7,7 +7,6 @@ fi
 
 function swapFiles() {
   echo "### overwrite from $1"
-  cp smpl_spec.? $2
   cp $1/smpl_spec.? .
 }
 
@@ -18,11 +17,12 @@ function linkFile() {
   fi
 }
 
-swapFiles spec2 spec1
+./s1
+swapFiles spec2
 
 linkFile com_window.h
 linkFile com_window.c
 
-# makefileの curses関連のライブラリ記述のコメントアウトを外す
 sed -i -e "/^#.*FLAGS.*=.*\-lncursesw/s/#//g" BUILD/makefile
+echo "activate ncurses in makefile"
 
