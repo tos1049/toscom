@@ -330,7 +330,7 @@ logclean: specclean
 ########## プログラム固有のファイルを削除 (make specclean) ###################
 # 何か削除する必要のあるものがあれば、削除文をここに追記する。
 specclean:
-	$(RM) -fr charlog.*
+	$(RM) -fr chatlog.*
 	$(RM) -fr dst1/.$(COMMAND)* dst1/chatlog.* dst1/core.* dst1/*.stackdump
 	$(RM) -fr dst2/.$(COMMAND)* dst2/chatlog.* dst2/core.* dst2/*.stackdump
 
