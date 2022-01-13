@@ -482,8 +482,9 @@ BOOL com_mprintw(
     GET_WIN( false );
     COM_SET_FORMAT( gFrmBuff );
     com_winpos_t*  usePos = NULL;
-    com_winpos_t  pos = *iPos;
+    com_winpos_t  pos = {0,0};
     if( iPos ) {
+        pos = *iPos;
         checkWinPos( win, &pos );
         usePos = &pos;
     }
