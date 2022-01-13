@@ -20,6 +20,6 @@ function linkFile() {
 linkFile com_window.h
 linkFile com_window.c
 
-# makefile$B$N(B curses$B4XO"$N%i%$%V%i%j5-=R$N%3%a%s%H%"%&%H$r30$9(B
+# makefileの curses関連のライブラリ記述のコメントアウトを外す
 sed -i -e "/^#.*FLAGS.*=.*\-lncursesw/s/#//g" BUILD/makefile
 

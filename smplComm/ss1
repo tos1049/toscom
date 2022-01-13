@@ -23,6 +23,6 @@ swapFiles spec1 spec2
 delFile com_window.h
 delFile com_window.c
 
-# makefile$B$N(B curses$B4XO"%i%$%V%i%j$N5-=R$r%3%a%s%H%"%&%H(B
+# makefileの curses関連ライブラリの記述をコメントアウト
 sed -i -E "/^[^#].*FLAGS.*=.*\-lncursesw/s/^(.*)/#&/" BUILD/makefile
 
