@@ -8,9 +8,17 @@
  *   その他の差分については smpl_com.h を参照。
  */
 
-#include "com_if.h"
+#include "smpl_if.h"
 #include "smpl_com.h"
 #include "smpl_spec.h"
+
+
+///// ウィンドウ関連処理 /////////////////////////////////////////////////////
+
+void smpl_printLog( int iAttr, const char *iFormat, ... )
+{
+    // 今後追加予定
+}
 
 
 ///// 共有個別関数 ///////////////////////////////////////////////////////////
