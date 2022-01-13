@@ -1,9 +1,8 @@
 #!/bin/bash
 
+#######################################################################
 CHANGETO="EUCJP"
-
-
-
+#######################################################################
 
 
 
@@ -57,7 +56,6 @@ function convSrc() {
   fileconv1 com_extra.* com_select.* com_window.*
   #fileconv1 com_signal*
   fileconv0 main.c com_custom.h com_spec.* com_test*.c
-  fileconv0 xname
 }
 
 function convArcDir() {
@@ -93,7 +91,9 @@ function convArcSmpl() {
 }
 
 echo " toscom/"
-fileconv1 README* *.txt
+fileconv1 README* *.txt xname
+chmod 555 xname
+fileconv0 xnameconf
 convSrc
 convArcFile com_testtos.tar.gz "com_testtos.c"
 convArcDir newenv.tar.gz NEWENV \
