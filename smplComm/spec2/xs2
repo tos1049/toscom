@@ -22,6 +22,6 @@ function linkFile() {
 linkFile ${NEWMODULE}_window.h
 linkFile ${NEWMODULE}_window.c
 
-# makefileの curses関連のライブラリ記述のコメントアウトを外す
 sed -i -e "/^#.*FLAGS.*=.*\-lncursesw/s/#//g" BUILD/makefile
+echo "activate ncurses in makefile"
 

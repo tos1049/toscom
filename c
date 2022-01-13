@@ -119,6 +119,8 @@ if [ -e toscom/$STAZ ]; then
   tar xvfz toscom/smplcomm.tar.gz >& /dev/null
   cd smplComm
   ./newenv
+  echo
+  echo
   ./xs2
   checker "$STAZ (ver2.0/module rename)" "rel" \
           "$smplfile" "smplcomm ver2"

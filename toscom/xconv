@@ -5,6 +5,7 @@ CHANGETO="EUCJP"
 #######################################################################
 
 
+. ./xnameconf
 
 ISUTF8=`file -i aboutIf.txt | grep utf-8`
 if [ -n "$ISUTF8" ]; then
@@ -52,10 +53,11 @@ function convArcFile() {
 function convSrc() {
   fileconv0 BUILD/makefile
   #fileconv1 HISTORY/*.txt
-  fileconv1 com_if.h com_proc*.c com_debug.*
-  fileconv1 com_extra.* com_select.* com_window.*
-  #fileconv1 com_signal*
-  fileconv0 main.c com_custom.h com_spec.* com_test*.c
+  fileconv1 ${NEWMODULE}_if.h ${NEWMODULE}_proc*.c ${NEWMODULE}_debug.*
+  fileconv1 ${NEWMODULE}_extra.* ${NEWMODULE}_select.* ${NEWMODULE}_window.*
+  #fileconv1 ${NEWMODULE}_signal*
+  fileconv0 ${NEWMODULE}_custom.h ${NEWMODULE}_spec.*
+  fileconv0 ${NEWMODULE}_test*.c main.c
 }
 
 function convArcDir() {
@@ -95,11 +97,11 @@ fileconv1 README* *.txt xname
 chmod 555 xname
 fileconv0 xnameconf
 convSrc
-convArcFile com_testtos.tar.gz "com_testtos.c"
+convArcFile ${NEWMODULE}_testtos.tar.gz "${NEWMODULE}_testtos.c"
 convArcDir newenv.tar.gz NEWENV \
        "BUILD/makefile *.c *.h newenv"
 convArcDir analyzer.tar.gz analyzer \
-       "BUILD/makefile anlz_* com_spec.* com_test.c main.c newenv"
+       "BUILD/makefile anlz_* ${NEWMODULE}_spec.* ${NEWMODULE}_test.c main.c newenv"
 convArcSmpl smplcomm.tar.gz smplComm \
-       "BUILD/makefile com_spec.* com_test.c smpl_*.c smpl_*.h main.c newenv"
+       "BUILD/makefile ${NEWMODULE}_spec.* ${NEWMODULE}_test.c smpl_*.c smpl_*.h main.c newenv"
 

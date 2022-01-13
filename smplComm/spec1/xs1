@@ -22,6 +22,6 @@ function delFile() {
 delFile ${NEWMODULE}_window.h
 delFile ${NEWMODULE}_window.c
 
-# makefileの curses関連ライブラリの記述をコメントアウト
 sed -i -E "/^[^#].*FLAGS.*=.*\-lncursesw/s/^(.*)/#&/" BUILD/makefile
+echo "deactivate ncurses in makefile"
 
