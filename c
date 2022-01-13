@@ -8,7 +8,7 @@ smplfile="sample"
 anlzfile="Analyzer"
 checkpre="_CHECKF_"
 
-STAZ="smplcomm.tar.gz.dummy"   # smplCommの確認は今は省略させる
+STAZ="smplcomm.tar.gz"
 ATAZ="analyzer.tar.gz"
 
 # 一番日付の新しいファイルを処理対象とする
@@ -38,6 +38,7 @@ CHECKTOP
 CHECKNG
     exit
   fi
+  cd ../..
 }
 
 ########## make rel
@@ -47,7 +48,7 @@ checker "$tarfile" "rel" "$testfile" "toscom"
 ########## com_testtos.c とともに make checkf (com_test.c はここで削除)
 echo
 echo
-cd ..
+cd toscom
 tar xvfz com_testtos.tar.gz
 rm com_test.c
 checker "$tarfile with test by checkf" "checkf" \
@@ -56,7 +57,6 @@ checker "$tarfile with test by checkf" "checkf" \
 ########## newenv.tar.gz をエキストラ機能追加してから make rel
 echo
 echo
-cd ../..
 tar xvfz toscom/newenv.tar.gz
 echo
 cd NEWENV
@@ -66,31 +66,29 @@ checker "newenv.tar.gz" "rel" "$testfile" "newenv"
 
 if [ -e toscom/$STAZ ]; then
 ########## smplcomm.tar.gz の make rel (ver1.0)
-  cd ../..
   tar xvfz toscom/$STAZ >& /dev/null
   cd smplComm
   checker "$STAZ (ver1.0)" "rel" "$smplfile" "smplcomm ver1"
   
-########## smplcomm.tar.gz の make rel (ver2.0)
-  cd ../
-  ./xs2 >& /dev/null
-  checker "$STAZ (ver2.0)" "rel" "$smplfile" "smplcomm ver2"
+########## smplcomm.tar.gz の make rel (ver2.0) ＊まだ未実装のため省略
+  #cd ../
+  #./xs2 >& /dev/null
+  #checker "$STAZ (ver2.0)" "rel" "$smplfile" "smplcomm ver2"
   
-########## smplcomm.tar.gz の make checkf (ver2.0)
-  cd ../
+########## smplcomm.tar.gz の make checkf (ver2.0) ＊さしあたら ver1で
+  cd smplComm
   checker "$STAZ (ver2.0) by checkf" "checkf" \
           "$checkpre$smplfile" "smplcomm ver2 (checkf)"
 fi
 
 if [ -e toscom/$ATAZ ]; then
 ########## analyzer.tar.gz の make rel
-  cd ../../
   tar xvfz toscom/$ATAZ >& /dev/null
   cd analyzer
   checker "$ATAZ" "rel" "$anlzfile" "analyzer"
   
 ########## analyzer.tar.gz の make checkf
-  cd ../
+  cd analyzer
   checker "$ATAZ by checkf" "checkf" \
           "$checkpre$anlzfile" "analyzer (checkf)"
 fi
@@ -98,14 +96,14 @@ fi
 ########## xconvを使ってEUC変換後、make rel
 echo 
 echo 
-cd ../../toscom
+cd toscom
 ./xconv
 checker "$tarfile (convert to EUC)" "rel" "$testfile" "toscom"
 
 ########## xnameを使ってモジュール名を tosに変換後、make lib
 echo 
 echo 
-cd ../../toscom
+cd toscom
 ./xname
 tar xvfz tos_testtos.tar.gz >& /dev/null
 checker "$tarfile (lib with module rename)" "lib" "libtoscom.a" "libtoscom.a"
@@ -114,10 +112,9 @@ if [ -e toscom/$STAZ ]; then
 ########## smplcomm.tar.gz を tosモジュールに変更して make rel
   echo
   echo
-  cd ../../smplComm
+  cd smplComm
   sed -i.bak -e 's/NEWMODULE="com"/NEWMODULE="tos"/' newenv
   ./newenv
-  rm tos_window.*
   checker "$STAZ (ver2.0/module rename)" "rel" \
           "$smplfile" "smplcomm ver2"
 fi
@@ -126,7 +123,7 @@ if [ -e toscom/$ATAZ ]; then
 ########## analyzer.tar.gz を tosモジュールに変更して make rel
   echo
   echo
-  cd ../../analyzer
+  cd analyzer
   sed -i.bak -e 's/NEWMODULE="com"/NEWMODULE="tos"/' newenv
   ./newenv
   checker "$ATAZ (module rename)" "rel" "$anlzfile" "analyzer"

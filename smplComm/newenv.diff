@@ -1,0 +1,8 @@
+15c15
+< USE_EXTRA=0
+---
+> USE_EXTRA=1
+18c18
+< USE_SELECT=0
+---
+> USE_SELECT=1

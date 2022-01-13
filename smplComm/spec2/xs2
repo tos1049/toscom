@@ -1,0 +1,25 @@
+#!/bin/bash
+
+if [ -f com_window.h ]; then
+  echo "this is already sample2"
+  exit
+fi
+  
+TARGET=smpl_spec2.tar.gz
+
+echo "### extract ${TARGET}"
+tar xvfz ${TARGET}
+
+function linkFile() {
+  if [ ! -f $1 ]; then
+    echo "link $1"
+    ln -s ../toscom/$1
+  fi
+}
+
+linkFile com_window.h
+linkFile com_window.c
+
+# makefileの curses関連のライブラリ記述のコメントアウトを外す
+sed -i -e "/^#.*FLAGS.*=.*\-lncursesw/s/#//g" BUILD/makefile
+

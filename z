@@ -121,19 +121,29 @@ if [  -e $SDIR ]; then
   echo "--- $STAZ を作成 ---"
   cd $SDIR/BUILD
   make allclean >& /dev/null
+  smplSpec="smpl_spec.h smpl_spec.c"
+  smplSpec1="smpl_spec1.tar.gz"
+  smplSpec2="smpl_spec2.tar.gz"
+  cd ../spec1
+  tar cvfz $smplSpec1 $smplSpec >& /dev/null
+  mv $smplSpec1 ..
+  cp xs1 ..
+  cd ../spec2
+  tar cvfz $smplSpec2 $smplSpec >& /dev/null
+  mv $smplSpec2 ..
+  cp xs2 ..
   cd ../..
-  smplNrm="$SDIR/BUILD/makefile $SDIR/collectLibFiles"
+  smplNrm="$SDIR/BUILD/makefile $SDIR/BUILD/collectLibFiles"
   smplNrm+=" $SDIR/*.h $SDIR/*.c"
   smplNrm+=" $SDIR/*.txt $SDIR/newenv"
   smplExe="$SDIR/xs?"
-  smplRom="$SDIR/smpl_spec*.tar.gz"
+  smplTaz="$SDIR/smpl_spec*.tar.gz"
   chmod 555 $smplExe
-  chmod 444 $smplRom
-  tar cvfz $CDIR/$STAZ $smplNrm $smplExe $smplRom >& /dev/null
-  chmod 755 $smplExe
-  chmod 644 $smplRom
+  chmod 444 $smplTaz
+  tar cvfz $CDIR/$STAZ $smplNrm $smplExe $smplTaz
+  rm -fr $smplExe $smplTaz
   # smplComm全体を別口で取っておく
-  ./p smplComm all >& /dev/null
+  #./p smplComm all >& /dev/null
   tartemp+=" smplcomm_all.tar.gz"
 fi
 
@@ -157,7 +167,7 @@ else
   echo "--- $ORG_TESTTOS を $TESTTOS としてアーカイブ後、再リネーム"
   ./xt >& /dev/null
 fi
-tar cvfz $TTAZ $TESTTOS >& /dev/null
+tar cvfz $TTAZ $TESTTOS
 ./rt >& /dev/null
 
 cd BUILD

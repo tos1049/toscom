@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ -f com_window.h ]; then
+  echo "this is sample2"
+  exit
+fi
+  
+TARGET=spec1
+
+echo "### smpl_spec.? -> ${TARGET}"
+cp smpl_spec.? ${TARGET}
+
