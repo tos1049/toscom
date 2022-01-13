@@ -107,6 +107,8 @@ echo "--- アーカイブファイル名 = $relfile ---"
 tartemp=""
 
 ##### プロトタイプのアーカイブ (現状処理省略)
+MAKEF="BUILD/makefile"
+COLLIB="BUILD/collectLibFiles"
 
 ##### resetTextのアーカイブ (.svnはアーカイブから除外する)
 if [ -e $RDIR ]; then
@@ -133,7 +135,7 @@ if [  -e $SDIR ]; then
   mv $smplSpec2 ..
   cp xs2 ..
   cd ../..
-  smplNrm="$SDIR/BUILD/makefile $SDIR/BUILD/collectLibFiles"
+  smplNrm="$SDIR/$MAKEF"
   smplNrm+=" $SDIR/*.h $SDIR/*.c"
   smplNrm+=" $SDIR/*.txt $SDIR/newenv"
   smplExe="$SDIR/xs?"
@@ -187,12 +189,12 @@ cp com_spec.c $NDIR
 cp com_test.c $NDIR
 cp main.c $NDIR
 patch $NDIR/main.c $NDIR/main.diff
-cp BUILD/makefile $NBDIR
+cp $MAKEF $NBDIR
 patch $NBDIR/makefile $NBDIR/makefile.diff
-cp BUILD/collectLibFiles $NBDIR
-chmod 555 $NBDIR/collectLibFiles
+cp $COLLIB $NBDIR
+chmod 555 $NDIR/$COLLIB
 NEWFILES="$NDIR/com_* $NDIR/main.c"
-NEWFILES+=" $NBDIR/makefile $NBDIR/collectLibFiles"
+NEWFILES+=" $NDIR/$MAKEF $NDIR/$COLLIB"
 tar cvfz $NTAZ $NEWFILES $NDIR/newenv
 rm -fr $NEWFILES *.rej BUILD/*.rej
 cd ..
@@ -221,11 +223,10 @@ specfiles+=" $CDIR/com_test.c $CDIR/main.c"
 specfiles+=" $CDIR/xconv"
 specfiles+=" $CDIR/xname"
 
-CBDIR="$CDIR/BUILD"
-buildfiles="$CBDIR/makefile $CBDIR/collectLibFiles"
+buildfiles="$CDIR/$MAKEF $CDIR/$COLLIB"
 tarfiles="$CDIR/$NTAZ $CDIR/$TTAZ $CDIR/$STAZ"
 romfiles="${docfiles} ${comfiles} ${tarfiles}"
-romexes="$CBDIR/collectLibFiles"
+romexes="$CDIR/$COLLIB"
 
 chmod 444 $romfiles
 chmod 555 $romexes
