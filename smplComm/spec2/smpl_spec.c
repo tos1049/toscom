@@ -10,7 +10,6 @@
 
 #include "smpl_if.h"
 #include "smpl_com.h"
-#include "smpl_spec.h"
 
 
 ///// ウィンドウ関連処理 /////////////////////////////////////////////////////

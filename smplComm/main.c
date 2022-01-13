@@ -5,10 +5,8 @@
  *   実行しても何もせず終了となる。
  */
 
-#include "com_if.h"                 // toscom基本機能
-#include "com_extra.h"
-#include "com_select.h"
-#include "smpl_if.h"
+#include "smpl_if.h"      // toscomヘッダも、このファイルでインクルード済み
+
 
 /* 独自処理があれば記述 ******************************************************/
 
