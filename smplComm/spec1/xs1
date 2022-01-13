@@ -1,6 +1,8 @@
 #!/bin/bash
 
-if [ ! -f com_window.h ]; then
+. ../toscom/xnameconf
+
+if [ ! -f ${NEWMODULE}_window.h ]; then
   echo "this is already sample1"
   exit
 fi
@@ -17,8 +19,8 @@ function delFile() {
   fi
 }
 
-delFile com_window.h
-delFile com_window.c
+delFile ${NEWMODULE}_window.h
+delFile ${NEWMODULE}_window.c
 
 # makefileの curses関連ライブラリの記述をコメントアウト
 sed -i -E "/^[^#].*FLAGS.*=.*\-lncursesw/s/^(.*)/#&/" BUILD/makefile

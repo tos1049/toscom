@@ -1,6 +1,8 @@
 #!/bin/bash
 
-if [ -f com_window.h ]; then
+. ../toscom/xnameconf
+
+if [ -f ${NEWMODULE}_window.h ]; then
   echo "this is already sample2"
   exit
 fi
@@ -17,8 +19,8 @@ function linkFile() {
   fi
 }
 
-linkFile com_window.h
-linkFile com_window.c
+linkFile ${NEWMODULE}_window.h
+linkFile ${NEWMODULE}_window.c
 
 # makefileの curses関連のライブラリ記述のコメントアウトを外す
 sed -i -e "/^#.*FLAGS.*=.*\-lncursesw/s/#//g" BUILD/makefile

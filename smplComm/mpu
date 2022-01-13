@@ -1,0 +1,11 @@
+#/bin/bash
+
+# newenv と makefile を最新に保つパッチ処理
+# 元が変わったときに、アーカイブ(z)前に実施すること
+
+cp ../toscom/NEWENV/newenv .
+patch newenv newenv.diff
+
+cp ../toscom/BUILD/makefile BUILD/
+patch BUILD/makefile BUILD/makefile.diff
+

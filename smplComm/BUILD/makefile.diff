@@ -24,7 +24,7 @@
 ---
 > OBJS = main.o com.o smpl.o
 332a333,335
-> 	$(RM) -fr charlog.*
+> 	$(RM) -fr chatlog.*
 > 	$(RM) -fr dst1/.$(COMMAND)* dst1/chatlog.* dst1/core.* dst1/*.stackdump
 > 	$(RM) -fr dst2/.$(COMMAND)* dst2/chatlog.* dst2/core.* dst2/*.stackdump
 340,342d342

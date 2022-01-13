@@ -70,12 +70,14 @@ if [ -e toscom/$STAZ ]; then
   cd smplComm
   checker "$STAZ (ver1.0)" "rel" "$smplfile" "smplcomm ver1"
   
-########## smplcomm.tar.gz の make rel (ver2.0) ＊まだ未実装のため省略
-  #cd ../
-  #./xs2 >& /dev/null
-  #checker "$STAZ (ver2.0)" "rel" "$smplfile" "smplcomm ver2"
+########## smplcomm.tar.gz の make rel (ver2.0)
+  echo
+  echo
+  cd smplComm
+  ./xs2
+  checker "$STAZ (ver2.0)" "rel" "$smplfile" "smplcomm ver2"
   
-########## smplcomm.tar.gz の make checkf (ver2.0) ＊さしあたら ver1で
+########## smplcomm.tar.gz の make checkf (ver2.0)
   cd smplComm
   checker "$STAZ (ver2.0) by checkf" "checkf" \
           "$checkpre$smplfile" "smplcomm ver2 (checkf)"
@@ -104,17 +106,20 @@ checker "$tarfile (convert to EUC)" "rel" "$testfile" "toscom"
 echo 
 echo 
 cd toscom
+sed -i -e 's/NEWMODULE="com"/NEWMODULE="tos"/' xnameconf
 ./xname
 tar xvfz tos_testtos.tar.gz >& /dev/null
-checker "$tarfile (lib with module rename)" "lib" "libtoscom.a" "libtoscom.a"
+checker "$tarfile (lib with module rename)" "lib" "libtoscom.a" "libtoscom"
 
 if [ -e toscom/$STAZ ]; then
-########## smplcomm.tar.gz を tosモジュールに変更して make rel
+########## smplcomm.tar.gz を tosモジュールに変更して Ver2 を make rel
   echo
   echo
+  rm -fr smplComm
+  tar xvfz toscom/smplcomm.tar.gz >& /dev/null
   cd smplComm
-  sed -i.bak -e 's/NEWMODULE="com"/NEWMODULE="tos"/' newenv
   ./newenv
+  ./xs2
   checker "$STAZ (ver2.0/module rename)" "rel" \
           "$smplfile" "smplcomm ver2"
 fi
@@ -124,7 +129,6 @@ if [ -e toscom/$ATAZ ]; then
   echo
   echo
   cd analyzer
-  sed -i.bak -e 's/NEWMODULE="com"/NEWMODULE="tos"/' newenv
   ./newenv
   checker "$ATAZ (module rename)" "rel" "$anlzfile" "analyzer"
 fi

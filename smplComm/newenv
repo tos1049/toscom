@@ -1,24 +1,22 @@
 #!/bin/bash
 
 #####################################################
-### toscom/xconv を使ったモジュール名変更実施時は ###
-### NEWMODULEの内容を同じ名前に変更すること。     ###
-#####################################################
-NEWMODULE="com"
-
-#####################################################
 ### 使用するオプション機能の設定を実施する。      ###
 ### 0 を指定して、関係ファイルがある場合削除する。###
 #####################################################
 
-# エキストラ機能を使いたい場合は 1 を設定
+# エキストラ機能を使いたい場合は 非0 を設定
 USE_EXTRA=1
 
-# セレクト機能を使いたい場合は 1 を設定
+# セレクト機能を使いたい場合は 非0 を設定
 USE_SELECT=1
 
-# ウィンドウ機能を使いたい場合は 1 を設定
+# ウィンドウ機能を使いたい場合は 非0 を設定
 USE_WINDOW=0
+
+
+
+
 
 
 
@@ -66,9 +64,16 @@ USE_WINDOW=0
 
 
 
+
+
+
+
 ########################################
 ### 以後の処理は何も手を加えないこと ###
 ########################################
+
+# モジュール名について toscom本体の設定を取得する
+. ../toscom/xnameconf
 
 # 文字なし または "0" なら 0を返す。文字あり かつ 非0なら 1を返す
 function judgeFlag() {
@@ -137,6 +142,8 @@ function addHeads() {
 
   # 一番最後の toscomヘッダ インクルード文を探し、コメント等は除外して保持
   GREPLAST=$(grep "#include \"${NEWMODULE}_" $MAINC | tail -n 1)
+  # インクルード文が見つからないときは何もしない
+  if [ -z "${GREPLAST}" ]; then return 0; fi
   TARGET="${GREPLAST%\"*}\""
   # 「#include "cmo_if.h"」というような部分が $TARGETに入る想定
 
@@ -206,9 +213,9 @@ if [ "x$NEWMODULE" != "xcom" ]; then
     echo "delete com_* files"
     rm -fr com_if.h com_proc*.c com_debug.?
     rm -fr com_extra.? com_select.? com_window.? com_signal*.?
-    ln -s ../toscom/xname
+    cp ../toscom/xname* .
     ./xname &> /dev/null
-    rm -fr xname
+    rm -fr xname*
   fi
 fi
 
