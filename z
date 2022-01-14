@@ -26,7 +26,6 @@ echo
 echo "======= アーカイブ作業 開始 ======="
 
 CDIR="toscom"
-RDIR="resetTxt"
 SDIR="smplComm"
 ADIR="analyzer"
 FDIR="proto"
@@ -47,7 +46,6 @@ function checkSwp() {
 }
 checkSwp "."
 checkSwp $CDIR
-checkSwp $RDIR
 checkSwp $SDIR
 checkSwp $ADIR
 checkSwp $FDIR
@@ -109,13 +107,6 @@ tartemp=""
 ##### プロトタイプのアーカイブ (現状処理省略)
 MAKEF="BUILD/makefile"
 COLLIB="BUILD/collectLibFiles"
-
-##### resetTextのアーカイブ (.svnはアーカイブから除外する)
-if [ -e $RDIR ]; then
-  echo "--- resettxt.tar.gz を作成 ---"
-  ./p resetTxt all >& /dev/null
-  tartemp+="resettxt_all.tar.gz"
-fi
 
 ##### smplCommのアーカイブ
 STAZ="smplcomm.tar.gz"

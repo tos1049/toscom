@@ -1,0 +1,10 @@
+16,17c16,17
+< COMMAND := test
+< VERSION := 0.0
+---
+> COMMAND := resetTxt
+> VERSION := 1.0
+86c86
+< LASTCFLAGS += -lpanel -lncursesw
+---
+> #LASTCFLAGS += -lpanel -lncursesw
