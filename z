@@ -69,7 +69,7 @@ echo "--- $testcheck: 全てのテスト関数がコメントアウト済み ---
 ##### sample2の状態になっていたら中断する
 if [ -d $SDIR ]; then
   if [ -f $SDIR/com_window.c ] || [ -f $SDIR/com_window.h ]; then
-    echo "--- sample2の状態になっている。$SDIR/下で ./xs1の実行を ---"
+    echo "--- sample2の状態になっている。$SDIR/下で ./ss1の実行を ---"
     exit
   fi
 fi
@@ -125,7 +125,9 @@ if [  -e $SDIR ]; then
   tar cvfz $smplSpec2 $smplSpec >& /dev/null
   mv $smplSpec2 ..
   cp xs2 ..
-  cd ../..
+  cd ..
+  ./mpu
+  cd ..
   smplNrm="$SDIR/$MAKEF"
   smplNrm+=" $SDIR/*.h $SDIR/*.c"
   smplNrm+=" $SDIR/*.txt $SDIR/newenv"
@@ -137,15 +139,15 @@ if [  -e $SDIR ]; then
   rm -fr $smplExe $smplTaz
   # smplComm全体を別口で取っておく
   #./p smplComm all >& /dev/null
-  tartemp+=" smplcomm_all.tar.gz"
+  #tartemp+=" smplcomm_all.tar.gz"
 fi
 
 ##### Analyzerのアーカイブ
 if [ -e $ADIR ]; then
   echo "--- analyzer.tar.gz を作成 ---"
   # analyzer全体を別口で取っておく
-  ./p Analyzer all >& /dev/null
-  tartemp+=" analyzer_all.tar.gz"
+  #./p Analyzer all >& /dev/null
+  #tartemp+=" analyzer_all.tar.gz"
 fi
 
 ##### toscomのアーカイブ
