@@ -14,12 +14,6 @@ USE_SELECT=0
 # ウィンドウ機能を使いたい場合は 非0 を設定
 USE_WINDOW=0
 
-
-
-
-
-
-
 #
 # toscomから開発環境を作成するスクリプト
 # (1)toscom/ があるディレクトリで newenv.tar.gz を展開する。
@@ -252,7 +246,7 @@ COMSIG3=(signalPrt3.h signalPrt3.c)
 judgeFlag "x$USE_SIGNAL1"
 if [ $? = 1 ]; then
   # ライブラリの記述は修正不要
-  setFiles "x$USE_SIGNAL1" "${COMSIG1[*]}" "signal.h signalCom.h signalPrt1.h"
+  setFiles "x$USE_SIGNAL1" "${COMSIG1[*]}" "signalPrt1.h"
   setFiles "x$USE_SIGNAL2" "${COMSIG2[*]}" "signalPrt2.h"
   setFiles "x$USE_SIGNAL3" "${COMSIG3[*]}" "signalPrt3.h"
 fi
