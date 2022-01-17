@@ -41,3 +41,4 @@ OLDMODULE="com"
 ### をコマンド入力して Ver1 に不要なソースを削除すること。          ###
 #######################################################################
 
+echo ">>> read xnameconf (NEWMODULE=\"${NEWMODULE}\" OLDMODULE=\"${OLDMODULE}\")"
