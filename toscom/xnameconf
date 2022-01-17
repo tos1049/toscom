@@ -2,7 +2,7 @@
 
 # xname パラメータ
 #######################################################################
-# NEWMODULE＝変更後モジュール名(comから任意の名前に変える             #
+# NEWMODULE＝変更後モジュール名。(comから任意の名前に変える           #
 # OLDMODULE＝変更前モジュール名。(最初は comのままにすること)         #
 #######################################################################
 
@@ -41,4 +41,12 @@ OLDMODULE="com"
 ### をコマンド入力して Ver1 に不要なソースを削除すること。          ###
 #######################################################################
 
-echo ">>> read xnameconf (NEWMODULE=\"${NEWMODULE}\" OLDMODULE=\"${OLDMODULE}\")"
+if [ -z "$NEWMODULE" ]; then NEWMODULE="com"; fi
+if [ -z "$OLDMODULE" ]; then OLDMODULE="com"; fi
+
+if [ $NEWMODULE = $OLDMODULE ]; then
+  echo ">>> read xnameconf (MODULE NAME=\"${NEWMODULE}\")"
+else
+  echo ">>> read xnameconf (NEWMODULE=\"${NEWMODULE}\" OLDMODULE=\"${OLDMODULE}\")"
+fi
+

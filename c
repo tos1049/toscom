@@ -151,7 +151,7 @@ CHECKOK
 read
 
 # 最後にチェック用ディレクトリを削除して終了
-cd ../../..
+cd ..
 rm -fr $testdir
 echo "removed $testdir"
 
