@@ -88,7 +88,7 @@ function makeFileName() {
 function setSymLink() {
   for FILE; do
     makeFileName $FILE
-    if [ ! -e $BASE ]; then
+    if [ ! -e $BASE ] && [ ! -L $BASE ]; then
       ln -s $TARGET
       echo "$BASE  -> created"
     fi
@@ -99,7 +99,7 @@ function setSymLink() {
 function delSymLink() {
   for FILE; do
     makeFileName $FILE
-    if [ -e $BASE ]; then
+    if [ -e $BASE ] || [ -L $BASE ]; then
       rm -fr $BASE
       echo "$BASE  -> deleted"
     fi
@@ -189,7 +189,7 @@ function setFiles() {
 
 # リンクのないテキストファイルのシンボリックリンクを生成する
 function setText() {
-  if [ ! -e "$1" ]; then
+  if [ ! -e "$1" ] && [ ! -L "$1" ]; then
     ln -s ../toscom/$1
     echo "$1  -> created"
   fi
@@ -199,18 +199,18 @@ function setText() {
 ##############################################################################
 ##############################################################################
 
-
-# モジュール名が "com" から変更されている場合は何もしない
-if [ "x$NEWMODULE" != "xcom" ]; then
-  # 代表して com_spec.cあり ＝ モジュール名変更前のファイルあり、と判断
-  if [ -e com_spec.c ]; then
-    echo "delete ${NEWMODULE}_* files"
-    rm -fr com_if.h com_proc*.c com_debug.?
-    rm -fr com_extra.? com_select.? com_window.? com_signal*.?
-    cp ../toscom/xname* .
-    ./xname &> /dev/null
-    rm -fr xname*
-  fi
+# 旧モジュール名のファイルがあると判断したら、削除する
+if [ ${NEWMODULE} != ${OLDMODULE} ] && [ -e ${OLDMODULE}_spec.c ]; then
+  echo "delete ${OLDMODULE}_* links"
+  rm -fr ${OLDMODULE}_if.h ${OLDMODULE}_proc*.c ${OLDMODULE}_debug.?
+  rm -fr ${OLDMODULE}_extra.?
+  rm -fr ${OLDMODULE}_select.?
+  rm -fr ${OLDMODULE}_window.?
+  rm -fr ${OLDMODULE}_signal*.?
+  echo "convert rest ${OLDMODULE}_* files"
+  cp ../toscom/xname* .
+  ./xname &> /dev/null
+  rm -fr xname*
 fi
 
 # 各機能で必要なファイルやライブラリについて定義し、共通処理に掛ける
