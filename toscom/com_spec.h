@@ -120,7 +120,7 @@ BOOL com_is32bitOS( void );
 BOOL com_is64bitOS( void );
 
 /*
- * (サンプル) OS判定  com_getOS()
+ * (サンプル) 動作環境取得  com_getEnvName()
  *   OS種別を返す。
  *   未サポートOSの場合 COM_OS_NOT_SUPPORTED を返す。
  * ---------------------------------------------------------------------------
@@ -135,5 +135,5 @@ typedef enum {
     COM_OS_CYGWIN = 2
 } COM_OS_TYPE_t;
 
-COM_OS_TYPE_t com_getOS( void );
+COM_OS_TYPE_t com_getEnvName( void );
 

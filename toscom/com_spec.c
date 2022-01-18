@@ -47,7 +47,7 @@ BOOL com_is64bitOS( void )
     return (sizeof(long) != sizeof(int));
 }
 
-COM_OS_TYPE_t com_getOS( void )
+COM_OS_TYPE_t com_getEnvName( void )
 {
 #if defined __linux__
     return COM_OS_LINUX;
