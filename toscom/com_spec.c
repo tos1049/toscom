@@ -47,6 +47,16 @@ BOOL com_is64bitOS( void )
     return (sizeof(long) != sizeof(int));
 }
 
+COM_OS_TYPE_t com_getOS( void )
+{
+#if defined __linux__
+    return COM_OS_LINUX;
+#elif defined  __CYGWIN__
+    return COM_OS_CYGWIN;
+#else
+    return COM_OS_NOT_SUPPORTED;
+#endif
+}
 
 
 /* 個別エラー定義 ***********************************************************/

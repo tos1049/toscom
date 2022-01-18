@@ -3026,7 +3026,7 @@ BOOL com_getFileInfo( com_fileInfo_t *oInfo, const char *iPath, BOOL iLink )
     if( oInfo ) {
         *oInfo = (com_fileInfo_t){
             st.st_dev, major(st.st_dev), minor(st.st_dev),
-#ifndef LINUXOS
+#ifdef __CYGWIN__
             DMY,
 #endif
             st.st_ino, st.st_mode, DMY,

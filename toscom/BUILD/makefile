@@ -99,8 +99,8 @@ RELOPT += -D_BSD_SOURCE
 RELOPT += -D_DEFAULT_SOURCE
 RELOPT += -D_POSIX_C_SOURCE=200809L
 
-# Linux時のみ設定 (Cygwin(＝Windows)ではコメントアウトすること)
-#RELOPT += -DLINUXOS
+
+
 
 
 

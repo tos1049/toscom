@@ -59,7 +59,7 @@
 #include <netdb.h>
 #include <fcntl.h>
 #include <ifaddrs.h>
-#ifdef LINUXOS   // Cygwinでは存在が確認できなかったヘッダファイル
+#ifdef __linux__   // Cygwinでは存在が確認できなかったヘッダファイル
 #include <net/ethernet.h>
 #include <linux/if_packet.h>
 #include <linux/netlink.h>

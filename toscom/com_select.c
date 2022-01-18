@@ -12,7 +12,7 @@
 #include "com_debug.h"
 #include "com_select.h"
 
-#ifdef LINUXOS
+#ifdef __linux__
 #include <linux/rtnetlink.h>
 #include <net/if_arp.h>
 #endif
@@ -227,7 +227,7 @@ static void setSockCondNormal(
     *oProtocol = iSrc->ai_protocol;
 }
 
-#ifdef LINUXOS
+#ifdef __linux__
 static BOOL setSockCondRawSnd(
         const struct addrinfo *iSrc,
         int *oFamily, int *oType, int *oProtocol )
@@ -270,7 +270,7 @@ static void setSockCondNetlink(
     if( !iSrc ) {*oProtocol = NETLINK_ROUTE;}
     else {*oProtocol = *iSrc;}
 }
-#endif // LINUXOS
+#endif // __linux__
 
 static void setSockCondUnix(
         COM_SOCK_TYPE_t iType, const struct sockaddr_un *iSun,
@@ -293,7 +293,7 @@ static void setSocketCondition(
         COM_SOCK_TYPE_t iType, const struct addrinfo *iSrc,
         int *oFamily, int *oType, int *oProtocol, BOOL *oIsPkt, BOOL *oIsUnix )
 {
-#ifdef LINUXOS
+#ifdef __linux__
     if( iType == COM_SOCK_RAWSND ) {
         *oIsPkt = setSockCondRawSnd( iSrc, oFamily, oType, oProtocol );
         return;
@@ -306,9 +306,9 @@ static void setSocketCondition(
         setSockCondNetlink( (void*)iSrc, oFamily, oType, oProtocol );
         return;
     }
-#else  // LINUXOS
+#else  // __linux__
     COM_UNUSED( oIsPkt );
-#endif // LINUXOS
+#endif // __linux__
     if( !isUnixSocket( iSrc ) ) {  // 通常のUDP/TCPソケット生成
         setSockCondNormal( iSrc, oFamily, oType, oProtocol );
         return;
@@ -422,7 +422,7 @@ static BOOL execBind(
     return true;
 }
 
-#ifdef LINUXOS
+#ifdef __linux__
 static BOOL bindPacketRaw(
         com_selectId_t iId, com_eventInf_t *oInf,
         const struct sockaddr_ll *iSrc )
@@ -433,7 +433,7 @@ static BOOL bindPacketRaw(
     sll.sll_family = AF_PACKET;
     return execBind( iId, oInf, &sll, sizeof(sll) );
 }
-#endif // LINUXOS
+#endif // __linux__
 
 static BOOL bindUnixDomain(
         com_selectId_t iId, com_eventInf_t *oInf,
@@ -447,7 +447,7 @@ static BOOL makeBind(
         COM_SOCK_TYPE_t iType, com_selectId_t iId, com_eventInf_t *oInf,
         const void *iSrc )
 {
-#ifdef LINUXOS
+#ifdef __linux__
     if( iType == COM_SOCK_RAWSND || iType == COM_SOCK_NETLINK ) {return true;}
     if( iType == COM_SOCK_RAWRCV ) {return bindPacketRaw( iId, oInf, iSrc );}
 #else
@@ -543,7 +543,7 @@ static BOOL dummyEventFunc(
 static BOOL checkCreatePrm(
         COM_SOCK_TYPE_t iType, const void *iSrcInf, const void *iDstInf )
 {
-#ifndef LINUXOS
+#ifdef __CYGWIN__
     if( iType <= COM_SOCK_NETLINK ) {return false;}
 #endif
     if( !iSrcInf && iType != COM_SOCK_NETLINK ) {return false;}
@@ -1287,7 +1287,7 @@ static socklen_t getAddrSin6( void *iSockAddr, void **oAddr )
     return sizeof(sin6->sin6_addr.s6_addr);
 }
 
-#ifdef LINUXOS
+#ifdef __linux__
 static socklen_t getAddrLl( void *iSockAddr, void **oAddr )
 {
     struct sockaddr_ll*  sll = iSockAddr;
@@ -1309,7 +1309,7 @@ static socklen_t getAddrLen( void *iSockAddr, void **oAddr )
     int family = sa->sa_family;
     if( family == AF_INET )   {return getAddrSin(  iSockAddr, oAddr ); }
     if( family == AF_INET6 )  {return getAddrSin6( iSockAddr, oAddr ); }
-#ifdef LINUXOS
+#ifdef __linux__
     if( family == AF_PACKET ) {return getAddrLl(   iSockAddr, oAddr ); }
 #endif
     if( family == AF_UNIX )   {return getAddrUn(   iSockAddr, oAddr ); }
@@ -1397,11 +1397,11 @@ static com_ifinfo_t*  gIfInfo = NULL;
 static long  gIfInfoCnt = 0;
 static int  gIfInfoSock = COM_NO_SOCK;  // 情報取得用に生成するソケット
 
-#ifndef LINUXOS
+#ifdef __CYGWIN__
 #ifndef ETH_ALEN
 #define   ETH_ALEN  6
 #endif // ETH_ALEN
-#endif // LINUXOS
+#endif // __CYGWIN__
 
 // 旧来のIF情報取得関連 ------------------------------------------------------
 
@@ -1525,7 +1525,7 @@ static long collectIfInfo( void )
     return gIfInfoCnt;
 }
 
-#ifdef LINUXOS
+#ifdef __linux__
 /////////////// Netlinkソケットを使ったI/F情報取得処理
 /////////////// 処理起点は getIfInfoByNetlink()
 
@@ -1746,11 +1746,11 @@ static long getIfInfoByNetlink( void )
     (void)recvNlmsg( id, gRouteBuff, sizeof(gRouteBuff), getLink, NULL );
     return gIfInfoCnt;
 }
-#endif // LINUXOS
+#endif // __linux__
 
 long com_collectIfInfo( com_ifinfo_t **oInf, BOOL iUseNetlink )
 {
-#ifndef LINUXOS
+#ifdef __CYGWIN__
     if( iUseNetlink ) {COM_PRMNG(COM_IFINFO_ERR);}
 #endif
     if( !oInf ) {COM_PRMNG(COM_IFINFO_ERR);}
@@ -1759,7 +1759,7 @@ long com_collectIfInfo( com_ifinfo_t **oInf, BOOL iUseNetlink )
     long  cnt = 0;
     *oInf = NULL;
     long(*func)(void) = collectIfInfo;
-#ifdef LINUXOS
+#ifdef __linux__
     if( iUseNetlink ) {func = getIfInfoByNetlink;}
 #endif
     if( 0 <= (cnt = func()) ) {*oInf = gIfInfo;}
@@ -1769,7 +1769,7 @@ long com_collectIfInfo( com_ifinfo_t **oInf, BOOL iUseNetlink )
 
 long com_getIfInfo( com_ifinfo_t **oInf, BOOL iUseNetlink )
 {
-#ifndef LINUXOS
+#ifdef __CYGWIN__
     if( iUseNetlink ) {COM_PRMNG(COM_IFINFO_ERR);}
 #endif
     if( !oInf ) {COM_PRMNG(COM_IFINFO_ERR);}
@@ -1909,7 +1909,7 @@ static com_ifinfo_t *seekIfResult( struct addrinfo **oTmp, com_ifinfo_t *iRet )
 com_ifinfo_t *com_seekIfInfo(
         int iFlags, com_seekIf_t *iCond, BOOL iUseNetlink )
 {
-#ifndef LINUXOS
+#ifdef __CYGWIN__
     if( iUseNetlink ) {COM_PRMNG(NULL);}
 #endif
     if( iFlags <= 0 || iFlags > COM_IF_CONDMAX || !iCond ) {COM_PRMNG(NULL);}

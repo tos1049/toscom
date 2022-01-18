@@ -466,7 +466,7 @@ BOOL com_isPrime( ulong iNumber )
 // マルチスレッドに耐えられるよう srandom_r() と random_r() を使う
 static __thread BOOL  gSetSeed = false;
 
-#ifdef LINUXOS    // Linux用はリエントラントな関数群を使用を試みる
+#ifdef __linux__  // Linux用はリエントラントな関数群を使用を試みる
 static __thread struct random_data  gRandomBuf;
 enum { STATE_SIZE = 64 };
 static __thread char  gRandomState[STATE_SIZE];
@@ -503,7 +503,7 @@ int com_rand( int iMax )
     else {com_error( COM_ERR_RANDOMIZE, "random_r() NG" );}
     return result;
 }
-#else   // LINUXOS  (Windows版は こちらの一般的な標準関数で)
+#else   // __linux__  (Windows版は こちらの一般的な標準関数で)
 static BOOL setSeed( void )
 {
     static uint  adjust = 0; // 同じ時間帯に複数呼ばれても seedが変わるように
@@ -525,7 +525,7 @@ int com_rand( int iMax )
     if( negative ) {result *= -1;}
     return result;
 }
-#endif  // LINUXOS
+#endif  // __linux__
 
 BOOL com_checkChance( int iChance )
 {

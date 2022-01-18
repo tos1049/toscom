@@ -4023,7 +4023,7 @@ typedef struct {                        // 型定義は cygwin [Windows 19042]�
     dev_t    device;    // デバイスID              (unsigned long/int）
       uint dev_major;   //  major(device)の結果
       uint dev_minor;   //  minor(device)の結果
-#ifndef LINUXOS   // Cygwin環境下でダミー必要 (dev_tの定義差分)
+#ifdef __CYGWIN__   // Cygwin環境下でダミー必要 (dev_tの定義差分)
     int dummy1;
 #endif
     ino_t    inode;     // inode番号               (unsigned long/int)
