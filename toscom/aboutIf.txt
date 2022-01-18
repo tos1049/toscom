@@ -285,6 +285,20 @@ toscom grimoire Ver3.00
 
 
 
+===== 基本機能(個別) (com_spec.h) ============================================
+
+   ********** サンプルなので変更も可能 **********
+   com_initializeSpec()        個別初期化処理
+   com_finalizeSpec()          個別終了処理
+
+   com_isBigEndian()           ビッグエンディアン判定
+   com_isLittleEndian()        リトルエンディアン判定
+   com_is32bitOS()             32bitOS判定
+   com_is64bitOS()             64bitOS判定
+   com_getEnvName()            動作環境取得
+
+
+
 ===== エキストラ機能 (com_extra.h) ===========================================
 
    ********** COMEXBASE:基本 **********
