@@ -74,6 +74,17 @@ if [ -d $SDIR ]; then
   fi
 fi
 
+##### xnameconfが初期状態になっていなかったら中断する
+. toscom/xnameconf
+if [ "x$NEWMODULE" != "xcom" ]; then
+  echo "NEWMODULE が com ではない($NEWMODULE)。"
+  exit
+fi
+if [ "x$OLDMODULE" != "xcom" ]; then
+  echo "OLDMODULE が com ではない($OLDMODULE)。"
+  exit
+fi
+
 ##### ファイル名生成
 if (( $isBeta == 1 )); then
   echo "--- ベータ版をこれから作成 ---"
@@ -106,7 +117,8 @@ tartemp=""
 
 ##### プロトタイプのアーカイブ (現状処理省略)
 MAKEF="BUILD/makefile"
-COLLIB="BUILD/collectLibFiles"
+LIBDIR="BUILD/.lib"
+COLLIB="collectLibFiles"
 
 ##### smplCommのアーカイブ
 STAZ="smplcomm.tar.gz"
@@ -183,10 +195,10 @@ cp main.c $NDIR
 patch $NDIR/main.c $NDIR/main.diff
 cp $MAKEF $NDIR/BUILD
 patch $NDIR/$MAKEF $NDIR/${MAKEF}.diff
-cp $COLLIB $NDIR/BUILD
-chmod 555 $NDIR/$COLLIB
+cp -r $LIBDIR $NDIR/BUILD
+chmod 555 $NDIR/$LIBDIR/$COLLIB
 NEWFILES="$NDIR/com_* $NDIR/main.c"
-NEWFILES+=" $NDIR/$MAKEF $NDIR/$COLLIB"
+NEWFILES+=" $NDIR/$MAKEF $NDIR/$LIBDIR"
 tar cvfz $NTAZ $NEWFILES $NDIR/newenv
 rm -fr $NEWFILES *.rej BUILD/*.rej
 cd ..
@@ -215,10 +227,10 @@ specfiles+=" $CDIR/com_test.c $CDIR/main.c"
 specfiles+=" $CDIR/xconv"
 specfiles+=" $CDIR/xname $CDIR/xnameconf"
 
-buildfiles="$CDIR/$MAKEF $CDIR/$COLLIB"
+buildfiles="$CDIR/$MAKEF $CDIR/$LIBDIR"
 tarfiles="$CDIR/$NTAZ $CDIR/$TTAZ $CDIR/$STAZ"
 romfiles="${docfiles} ${comfiles} ${tarfiles}"
-romexes="$CDIR/xname $CDIR/$COLLIB"
+romexes="$CDIR/xname $CDIR/$LIBDIR/$COLLIB"
 
 chmod 444 $romfiles
 chmod 555 $romexes

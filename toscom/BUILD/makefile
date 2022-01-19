@@ -298,6 +298,7 @@ rel: init
 #
 LIBDIR := LIB_$(COMMAND)_$(VERSION)
 LIBFILE := libtoscom.a
+LIB := .lib
 
 lib: rel
 	ar r $(LIBFILE) com.o
@@ -305,10 +306,9 @@ lib: rel
 	mkdir $(LIBDIR)/lib
 	cp $(LIBFILE) $(LIBDIR)/lib
 	mkdir $(LIBDIR)/include
-	./collectLibFiles .. $(LIBDIR)/include
+	$(LIB)/collectLibFiles .. $(LIBDIR)/include
+	cp $(LIB)/gcc_sample $(LIBDIR)
 	tar cvfz $(COMMAND)_$(VERSION)_lib.tar.gz $(LIBDIR)
-
-
 
 
 
