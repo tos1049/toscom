@@ -9,3 +9,5 @@ patch newenv newenv.diff
 cp ../toscom/BUILD/makefile BUILD/
 patch BUILD/makefile BUILD/makefile.diff
 
+cp -r ../toscom/BUILD/.lib BUILD/.lib
+

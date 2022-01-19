@@ -140,12 +140,12 @@ if [  -e $SDIR ]; then
   cd ..
   ./mpu
   cd ..
-  smplNrm="$SDIR/$MAKEF"
+  smplNrm="$SDIR/$MAKEF $SDIR/$LIBDIR"
   smplNrm+=" $SDIR/*.h $SDIR/*.c"
   smplNrm+=" $SDIR/*.txt $SDIR/newenv"
   smplExe="$SDIR/xs?"
   smplTaz="$SDIR/smpl_spec*.tar.gz"
-  chmod 555 $smplExe
+  chmod 555 $smplExe $SDIR/$LIBDIR/$COLLIB
   chmod 444 $smplTaz
   tar cvfz $CDIR/$STAZ $smplNrm $smplExe $smplTaz
   rm -fr $smplExe $smplTaz
