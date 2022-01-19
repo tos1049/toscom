@@ -51,7 +51,7 @@ function convArcFile() {
 }
 
 function convSrc() {
-  fileconv0 BUILD/makefile
+  fileconv0 BUILD/makefile BUILD/.lib/gcc_sample
   #fileconv1 HISTORY/*.txt
   fileconv1 ${NEWMODULE}_if.h ${NEWMODULE}_proc*.c ${NEWMODULE}_debug.*
   fileconv1 ${NEWMODULE}_extra.* ${NEWMODULE}_select.* ${NEWMODULE}_window.*
@@ -99,7 +99,7 @@ fileconv0 xnameconf
 convSrc
 convArcFile ${NEWMODULE}_testtos.tar.gz "${NEWMODULE}_testtos.c"
 convArcDir newenv.tar.gz NEWENV \
-       "BUILD/makefile *.c *.h newenv"
+       "BUILD/makefile BUILD/.lib/gcc_sample *.c *.h newenv"
 convArcDir analyzer.tar.gz analyzer \
        "BUILD/makefile anlz_* ${NEWMODULE}_spec.* ${NEWMODULE}_test.c main.c newenv"
 convArcSmpl smplcomm.tar.gz smplComm \
