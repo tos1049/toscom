@@ -149,6 +149,7 @@ if [  -e $SDIR ]; then
   chmod 444 $smplTaz
   tar cvfz $CDIR/$STAZ $smplNrm $smplExe $smplTaz
   rm -fr $smplExe $smplTaz
+  chmod 755  $SDIR/$LIBDIR/$COLLIB
   # smplComm全体を別口で取っておく
   #./p smplComm all >& /dev/null
   #tartemp+=" smplcomm_all.tar.gz"
