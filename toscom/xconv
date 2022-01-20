@@ -103,5 +103,5 @@ convArcDir newenv.tar.gz NEWENV \
 convArcDir analyzer.tar.gz analyzer \
        "BUILD/makefile anlz_* ${NEWMODULE}_spec.* ${NEWMODULE}_test.c main.c newenv"
 convArcSmpl smplcomm.tar.gz smplComm \
-       "BUILD/makefile ${NEWMODULE}_spec.* ${NEWMODULE}_test.c smpl_*.c smpl_*.h main.c newenv"
+       "BUILD/makefile BUILD/.lib/gcc_sample ${NEWMODULE}_spec.* ${NEWMODULE}_test.c smpl_*.c smpl_*.h main.c newenv"
 

@@ -66,7 +66,9 @@ checker "newenv.tar.gz" "rel" "$testfile" "newenv"
 
 if [ -e toscom/$STAZ ]; then
 ########## smplcomm.tar.gz の make rel (ver1.0)
-  tar xvfz toscom/$STAZ >& /dev/null
+  echo
+  echo
+  tar xvfz toscom/$STAZ
   cd smplComm
   checker "$STAZ (ver1.0)" "rel" "$smplfile" "smplcomm ver1"
   
