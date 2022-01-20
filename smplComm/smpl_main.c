@@ -531,7 +531,7 @@ static BOOL cmdList( char *iData )
 {
     int srchId = COM_NO_SOCK;
     char* id = nextPrm( iData );
-    if( com_valDigit( id, NULL ) ) { srchId = com_atoi( id ); }
+    if( id && com_valDigit( id, NULL ) ) { srchId = com_atoi( id ); }
     SMPL_PRINT( "\n--- connection list start ---\n" );
     for( int i = 0;  i < gDstCount;  i++ ) {
         smpl_profile_t* tmp = &(gDstList[i]);
