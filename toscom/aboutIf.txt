@@ -16,6 +16,14 @@ toscom grimoire Ver3.00
 ===== 基本機能 (com_if.h) ====================================================
 
    ********** COMDEF:共通データ宣言 **********
+   uint/ulong/ushort/uchar     符号無し型
+
+   COM_WORDBUF_SIZE            サイズ指定定数(64)
+   COM_TERMBUF_SIZE            サイズ指定定数(80)
+   COM_LINEBUF_SIZE            サイズ指定定数(256)
+   COM_TEXTBUF_SIZE            サイズ指定定数(1024)
+   COM_DATABUF_SIZE            サイズ指定定数(4096)
+
    COM_UNUSED()                未使用引数の明示マクロ
    COM_CLEAR_BUF()             バッファクリアマクロ
    COM_SET_IF_EXIST()          ポインタ設定ありで値設定するマクロ
