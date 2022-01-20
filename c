@@ -15,6 +15,11 @@ ATAZ="analyzer.tar.gz"
 tarlist=(`ls -t toscom.*.tar.gz`)
 tarfile=${tarlist[0]}
 
+if [ -z "$tarfile" ]; then
+  echo "no archive file..."
+  exit
+fi
+
 rm -fr $testdir
 mkdir $testdir
 
