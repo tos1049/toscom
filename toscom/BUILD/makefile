@@ -301,7 +301,7 @@ LIBFILE := libtoscom.a
 LIB := .lib
 
 lib: rel
-	ar r $(LIBFILE) com.o
+	ar rcs $(LIBFILE) com.o
 	mkdir $(LIBDIR)
 	mkdir $(LIBDIR)/lib
 	cp $(LIBFILE) $(LIBDIR)/lib
