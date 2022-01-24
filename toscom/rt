@@ -7,6 +7,6 @@ if [ ! -f $TESTTOS ]; then
 fi
 
 echo "### remove $TESTTOS"
-mv $TESTTOS $ORG_TESTTOS
-cp $ORG_TESTC $TESTC
+rm -fr $TESTTOS
+ln -s $ORG_TESTC
 

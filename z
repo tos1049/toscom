@@ -166,17 +166,25 @@ fi
 ##### toscomのアーカイブ
 cd $CDIR
 
+echo "--- com_testtos.tar.gz を作成 ---"
 # まずは com_testtos.c をアーカイブ
 TTAZ="com_testtos.tar.gz"
-## toscom/TEST/_test はテスト関数コメント化チェック時に実行済み ##
+
+## com_testtos.cのリンクがある場合は一旦削除
+existTesttos=0
 if [ -f $TESTTOS ]; then
-  echo "--- $TESTTOS をアーカイブ後 $ORG_TESTTOS にリネーム"
-else
-  echo "--- $ORG_TESTTOS を $TESTTOS としてアーカイブ後、再リネーム"
-  ./xt >& /dev/null
+  rm -fr $TESTTOS
+  existTesttos=1
 fi
+# com_testtos.c の実体をアーカイブ後削除
+cp $ORG_TESTTOS $TESTTOS 
 tar cvfz $TTAZ $TESTTOS
-./rt >& /dev/null
+rm -fr $TESTTOS
+
+# リンクではなく実体ファイルを toscom/ に配置
+rm -fr $TESTC
+cp $ORG_TESTC $TESTC
+# スクリプトの最後で実体を削除しリンクを貼り直す
 
 cd BUILD
 make allclean >& /dev/null
@@ -241,6 +249,14 @@ chmod 755 $romexes
 
 echo "--- 不要なファイルを削除 ---"
 rm -f $CDIR/README.md $tarfiles
+
+cd $CDIR
+rm -f $TESTC
+if [ $existTesttos = 0 ]; then
+  ln -s $ORG_TESTC
+else
+  ln -s $ORG_TESTTOS
+fi
 
 echo "======= アーカイブ作業 終了 ======="
 echo
