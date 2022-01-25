@@ -15,10 +15,10 @@
 > VERSION := 1.0
 > 
 > 
-86c86
-< LASTCFLAGS += -lpanel -lncursesw
+85c85
+< CFLAGS += -lpanel -lncursesw
 ---
-> #LASTCFLAGS += -lpanel -lncursesw
+> #CFLAGS += -lpanel -lncursesw
 154c154
 < OBJS = main.o com.o
 ---
