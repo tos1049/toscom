@@ -23,6 +23,11 @@ VERSION := 1.0
 # コンパイラ指定(gcc以外での動作は未保証)
 CC := gcc
 
+# C99を標準としたコンパイルとする
+# コンパイルオプション切り替えは、こちらを変更して実施すること(以後 追加あり)
+CFLAGS := -std=c99 -g3
+
+
 # 緩やかチェック (最低限これで警告は出ないようにすること)
 # -pedantic
 #   gcc拡張構文は無効にして警告
@@ -41,8 +46,8 @@ CC := gcc
 # -Wstrict-prototypes
 #   引数の型が示されていない(＝K&Rスタイルの)プロトタイプ宣言に対して警告
 #
-COPT1 := -pedantic -Wall -Wextra -Wshadow -Wdisabled-optimization \
-         -Wfloat-equal -Wold-style-definition -Wstrict-prototypes
+CFLAGS += -pedantic -Wall -Wextra -Wshadow -Wdisabled-optimization \
+          -Wfloat-equal -Wold-style-definition -Wstrict-prototypes
 
 # 追加の厳し目チェック (これで警告が出るコードは基本的に避けたほうが良い)
 # -Waggregate-return
@@ -64,19 +69,14 @@ COPT1 := -pedantic -Wall -Wextra -Wshadow -Wdisabled-optimization \
 # -Wsequence-point
 #   C言語で規定されていない計算の順序などで問題が起こりそうなら警告
 #
-COPT2 := -Waggregate-return -Wbad-function-cast -Wcast-align -Winline \
-         -Wlogical-op -Wmultichar -Wpadded -Wpointer-arith -Wsequence-point
+CFLAGS += -Waggregate-return -Wbad-function-cast -Wcast-align -Winline \
+          -Wlogical-op -Wmultichar -Wpadded -Wpointer-arith -Wsequence-point
 
 # 関数の未使用引数を警告されるのが鬱陶しい？
 #    警告オプション -Wno-unused-parameter を追加する前に
 #    com_if.h で宣言しているマクロ COM_UNUSED() の使用を検討して欲しい
 
-# C99を標準としたコンパイルとする
-# コンパイルオプション切り替えは、こちらを変更して実施すること
-CFLAGS := -std=c99 -g3
-# 警告オプション群
-CFLAGS += $(COPT1)
-CFLAGS += $(COPT2)
+
 # 基本機能で使うライブラリ指定
 CFLAGS += -lpthread
 # com_extra.h(エキストラ機能)を使用する場合、このライブラリ使用が必要
