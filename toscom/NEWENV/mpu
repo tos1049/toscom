@@ -1,0 +1,25 @@
+#/bin/bash
+
+# NEWENVのリリース用ファイルを揃える (z から呼ばれる)
+
+# 個別ソースをコピー
+cp ../com_custom.h .
+cp ../com_spec.h .
+cp ../com_spec.c .
+cp ../com_test.c .
+
+# newenv と makefile を最新に保つパッチ処理
+# 元が変わったときに、アーカイブ(z)前に実施すること
+
+rm -fr main.orig main.rej
+cp ../main.c .
+patch main.c main.diff
+
+rm -fr BUILD/makefile.orig BUILD/makefile.rej
+cp ../BUILD/makefile BUILD/
+patch BUILD/makefile BUILD/makefile.diff
+
+# BUILD/.lib をコピー
+cp -r ../BUILD/.lib BUILD/
+chmod 555 BUILD/.lib/collectLibFiles
+

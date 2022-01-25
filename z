@@ -195,21 +195,13 @@ cd ../..
 NTAZ="newenv.tar.gz"
 echo "--- $NTAZ を作成 ---"
 NDIR="NEWENV"
-cd $CDIR
-cp com_custom.h $NDIR
-cp com_spec.h $NDIR
-cp com_spec.c $NDIR
-cp com_test.c $NDIR
-cp main.c $NDIR
-patch $NDIR/main.c $NDIR/main.diff
-cp $MAKEF $NDIR/BUILD
-patch $NDIR/$MAKEF $NDIR/${MAKEF}.diff
-cp -r $LIBDIR $NDIR/BUILD
-chmod 555 $NDIR/$LIBDIR/$COLLIB
+cd $CDIR/$NDIR
+./mpu
+cd ..
 NEWFILES="$NDIR/com_* $NDIR/main.c"
 NEWFILES+=" $NDIR/$MAKEF $NDIR/$LIBDIR"
 tar cvfz $NTAZ $NEWFILES $NDIR/newenv
-rm -fr $NEWFILES *.rej BUILD/*.rej
+rm -fr $NEWFILES
 cd ..
 
 # リリースファイルのアーカイブ
