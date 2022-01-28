@@ -1397,10 +1397,10 @@ static com_ifinfo_t*  gIfInfo = NULL;
 static long  gIfInfoCnt = 0;
 static int  gIfInfoSock = COM_NO_SOCK;  // 情報取得用に生成するソケット
 
-#ifdef __CYGWIN__
-#ifndef ETH_ALEN
+#ifdef __CYGWIN__      // Cygwinには linux/if_ether.h が無いので、敢えて定義
+#ifndef COM_SIGNAL1    // もしシグナル機能が実装されていたら、そちらを優先
 #define   ETH_ALEN  6
-#endif // ETH_ALEN
+#endif // COM_SIGNAL1
 #endif // __CYGWIN__
 
 // 旧来のIF情報取得関連 ------------------------------------------------------
