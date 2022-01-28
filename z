@@ -249,6 +249,7 @@ if [ $existTesttos = 0 ]; then
 else
   ln -s $ORG_TESTTOS
 fi
+cd ..
 
 echo "======= アーカイブ作業 終了 ======="
 echo
