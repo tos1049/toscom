@@ -198,7 +198,7 @@ size_t com_input(
     return result;
 }
 
-size_t com_inputMutliLine( char *oData, size_t iSize, const char *iFormat, ... )
+size_t com_inputMultiLine( char *oData, size_t iSize, const char *iFormat, ... )
 {
     if( !oData ) {COM_PRMNG(0);}
     COM_SET_FORMAT( gPromptBuff );

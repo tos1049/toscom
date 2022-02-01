@@ -312,7 +312,7 @@ size_t com_inputVar(
  * iFormat以降は先に表示する入力プロンプトの内容となる。書式文字列が使用可能。
  * 入力プロンプト不要の場合、NULLを指定する。
  */
-size_t com_inputMutliLine(
+size_t com_inputMultiLine(
         char *oData, size_t iSize, const char *iFormat, ... );
 
 /*
