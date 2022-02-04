@@ -700,14 +700,14 @@ static BOOL addText( com_workInput_t *iWork, wint_t *iInput )
 // 関数ポインタは void*型と直接交換できないため、構造体を噛ませる
 typedef struct {
     com_intrKeyCB_t func;
-} tmpIntrKeyCBFunc_t;
+} com_tmpIntrKeyCBFunc_t;
 
 static BOOL setInterruptKey(
         com_winId_t iId, const com_intrKey_t *iIntrKey, com_hashId_t iHash )
 {
     long  key;
     for( ;  (key = iIntrKey->key);  iIntrKey++ ) {
-        tmpIntrKeyCBFunc_t  tmp = { iIntrKey->func };
+        com_tmpIntrKeyCBFunc_t  tmp = { iIntrKey->func };
         if( !com_addHash( iHash,true,&key,sizeof(key),&tmp,sizeof(tmp) ) ) {
             return false;
         }
@@ -838,14 +838,14 @@ void com_cancelInputWindow( com_winId_t iId )
 // 関数ポインタは void*型と直接交換できないため、構造体を噛ませる
 typedef struct {
     com_keyCB_t func;
-} tmpKeyCBfunc_t;
+} com_tmpKeyCBfunc_t;
 
 static BOOL setWindowKeymap(
         com_winId_t iId, const com_keymap_t *iKeymap, com_hashId_t iHash )
 {
     long  key;
     for( ;  (key = iKeymap->key);  iKeymap++ ) {
-        tmpKeyCBfunc_t  tmp = { iKeymap->func };
+        com_tmpKeyCBfunc_t  tmp = { iKeymap->func };
         if( !com_addHash( iHash,true,&key,sizeof(key),&tmp,sizeof(tmp) ) ) {
             return false;
         }
@@ -891,7 +891,7 @@ static BOOL searchWindowKeymap( com_keyCB_t *iFunc, com_hashId_t iHash )
 {
     const void*  data;
     if( !searchKeyHash( iHash, (long)gLastKey, &data ) ) {return false;}
-    tmpKeyCBfunc_t tmp;
+    com_tmpKeyCBfunc_t  tmp;
     memcpy( &tmp, data, sizeof(*iFunc) );
     *iFunc = tmp.func;
     return true;
