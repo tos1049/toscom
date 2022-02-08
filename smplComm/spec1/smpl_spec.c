@@ -87,7 +87,7 @@ static char gWideBuff[COM_DATABUF_SIZE];
 BOOL smpl_specWideInput( smpl_wideInf_t *ioInf )
 {
     COM_CLEAR_BUF( gWideBuff );
-    size_t result = com_inputMutliLine( gWideBuff, sizeof(gWideBuff),
+    size_t result = com_inputMultiLine( gWideBuff, sizeof(gWideBuff),
                                         " >> input text (finish: CTRL+D)\n" );
     com_printLf();
     if( result ) {
