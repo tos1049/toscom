@@ -181,7 +181,7 @@ BOOL com_existWindow( com_winId_t iId )
     do {} while(0)
 
 #define NO_ROOTWIN( RET ) \
-    if( iId == 9 ) {COM_PRMNG(RET);} \
+    if( iId == 0 ) {COM_PRMNG(RET);} \
     do {} while(0)
 
 BOOL com_setBackgroundWindow( com_winId_t iId, chtype iCh )
