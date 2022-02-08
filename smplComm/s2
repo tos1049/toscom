@@ -1,12 +1,18 @@
 #!/bin/bash
 
-if [ ! -f com_window.h ]; then
-  echo "this is sample1"
+. ../toscom/xnameconf
+. ./.s.common
+
+if [ -f ${NEWMODULE}_window.h ]; then
+  echo "this is already sample2"
   exit
 fi
-  
-TARGET=spec2
 
-echo "### smpl_spec.? -> ${TARGET}"
-cp smpl_spec.? ${TARGET}
+swapFiles spec2
+
+linkFile ${NEWMODULE}_window.h
+linkFile ${NEWMODULE}_window.c
+
+sed -i -e "/^#.*FLAGS.*=.*\-lncursesw/s/#//g" BUILD/makefile
+echo "activate ncurses in makefile"
 

@@ -69,7 +69,7 @@ echo "--- $testcheck: 全てのテスト関数がコメントアウト済み ---
 ##### sample2の状態になっていたら中断する
 if [ -d $SDIR ]; then
   if [ -f $SDIR/com_window.c ] || [ -f $SDIR/com_window.h ]; then
-    echo "--- sample2の状態になっている。$SDIR/下で ./ss1の実行を ---"
+    echo "--- Ver2の状態になっている。$SDIR/下で ./s1の実行を ---"
     exit
   fi
 fi
@@ -126,30 +126,17 @@ if [  -e $SDIR ]; then
   echo "--- $STAZ を作成 ---"
   cd $SDIR/BUILD
   make allclean >& /dev/null
-  smplSpec="smpl_spec.h smpl_spec.c"
-  smplSpec1="smpl_spec1.tar.gz"
-  smplSpec2="smpl_spec2.tar.gz"
-  cd ../spec1
-  tar cvfz $smplSpec1 $smplSpec >& /dev/null
-  mv $smplSpec1 ..
-  cp xs1 ..
-  cd ../spec2
-  tar cvfz $smplSpec2 $smplSpec >& /dev/null
-  mv $smplSpec2 ..
-  cp xs2 ..
   cd ..
   ./mpu
   cd ..
   smplNrm="$SDIR/$MAKEF $SDIR/$LIBDIR"
   smplNrm+=" $SDIR/*.h $SDIR/*.c"
-  smplNrm+=" $SDIR/*.txt $SDIR/newenv"
-  smplExe="$SDIR/xs?"
-  smplTaz="$SDIR/smpl_spec*.tar.gz"
+  smplNrm+=" $SDIR/*.txt $SDIR/README.md $SDIR/newenv"
+  smplExe="$SDIR/s? $SDIR/.s.common"
+  smplDir="$SDIR/spec?"
   chmod 555 $smplExe $SDIR/$LIBDIR/$COLLIB
-  chmod 444 $smplTaz
-  tar cvfz $CDIR/$STAZ $smplNrm $smplExe $smplTaz
-  rm -fr $smplExe $smplTaz
-  chmod 755  $SDIR/$LIBDIR/$COLLIB
+  tar cvfz $CDIR/$STAZ $smplNrm $smplExe $smplDir
+  chmod 755 $smplExe $SDIR/$LIBDIR/$COLLIB
   # smplComm全体を別口で取っておく
   #./p smplComm all >& /dev/null
   #tartemp+=" smplcomm_all.tar.gz"

@@ -81,7 +81,7 @@ if [ -e toscom/$STAZ ]; then
   echo
   echo
   cd smplComm
-  ./xs2
+  ./s2
   checker "$STAZ (ver2.0)" "rel" "$smplfile" "smplcomm ver2"
   
 ########## smplcomm.tar.gz の make checkf (ver2.0)
@@ -128,7 +128,7 @@ if [ -e toscom/$STAZ ]; then
   ./newenv
   echo
   echo
-  ./xs2
+  ./s2
   checker "$STAZ (ver2.0/module rename)" "rel" \
           "$smplfile" "smplcomm ver2"
 fi

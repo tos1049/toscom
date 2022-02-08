@@ -36,26 +36,42 @@ function procFiles() {
 arctmp=".tmpArca3527"
 
 function procArchive() {
-  if [ ! -e "$1" ]; then return 0; fi
-  NEWTAZ=$2
-  echo ">> convert $1"
-  if [ -z "$NEWTAZ" ]; then NEWTAZ=$1; fi
+  local OLD=$1
+  local NEW=$2
+  local DIR=$3
+
+  if [ ! -e "$OLD" ]; then return 0; fi
+  echo ">> convert $OLD"
   mkdir $arctmp
   cd $arctmp
-  mv ../$1 .
-  tar xvfz $1 >& /dev/null
-  rm -fr $1
+  mv ../$OLD .
+  tar xvfz $OLD >& /dev/null
+  rm -fr $OLD
+  cd $DIR
   procFiles $OLDMODULE $NEWMODULE >& /dev/null
-  tar cvfz $NEWTAZ * >& /dev/null
-  mv $NEWTAZ ..
+  if [ $DIR != "." ]; then cd ..; fi
+  tar cvfz $NEW * >& /dev/null
+  mv $NEW ..
   cd ..
   rm -fr $arctmp
 }
 
-
 procFiles $OLDMODULE $NEWMODULE
-procArchive ${OLDMODULE}_testtos.tar.gz ${NEWMODULE}_testtos.tar.gz
+procArchive ${OLDMODULE}_testtos.tar.gz ${NEWMODULE}_testtos.tar.gz .
+procArchive newenv.tar.gz newenv.tar.gz NEWENV
 
-procArchive smpl_spec1.tar.gz
-procArchive smpl_spec2.tar.gz
+# smplCommで使われたときは個別ファイルも変換対象になる
+if [ ${PWD##*/} = "smplComm" ]; then
+  . ./.s.common
+  cd spec1
+  procFiles $OLDMODULE $NEWMODULE
+  cd ../spec2
+  procFiles $OLDMODULE $NEWMODULE
+  cd ..
+  if [ -e ${NEWMODULE}_window.c ]; then
+    swapFiles spec2
+  else
+    swapFiles spec1
+  fi
+fi
 

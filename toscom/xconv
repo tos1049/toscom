@@ -28,11 +28,11 @@ function fileconv() {
 }
 
 function fileconv0() {
-  for file in "$@"; do fileconv $file 0; done
+  for file; do fileconv $file 0; done
 }
 
 function fileconv1() {
-  for file in "$@"; do fileconv $file 1; done
+  for file; do fileconv $file 1; done
 }
 
 function convArcFile() {
@@ -81,12 +81,11 @@ function convArcSmpl() {
   cd $2
   fileconv0 $3
   spec="smpl_spec.h smpl_spec.c"
-  chmod 664 smpl_spec*.tar.gz
-  tar cvfz smpl_spec1.tar.gz $spec > /dev/null
-  echo " smpl_spec1.tar.gz (archived)"
-  convArcFile smpl_spec2.tar.gz "$spec"
-  chmod 444 smpl_spec*.tar.gz
-  cd ..
+  cd spec1
+  fileconv0 $spec
+  cd ../spec2
+  fileconv0 $spec
+  cd ../..
   tar cvfz $1 $2 > /dev/null
   rm -fr $2
   chmod 444 $1
@@ -103,5 +102,5 @@ convArcDir newenv.tar.gz NEWENV \
 convArcDir analyzer.tar.gz analyzer \
        "BUILD/makefile anlz_* ${NEWMODULE}_spec.* ${NEWMODULE}_test.c main.c newenv"
 convArcSmpl smplcomm.tar.gz smplComm \
-       "BUILD/makefile BUILD/.lib/gcc_sample ${NEWMODULE}_spec.* ${NEWMODULE}_test.c smpl_*.c smpl_*.h main.c newenv"
+       "BUILD/makefile BUILD/.lib/gcc_sample ${NEWMODULE}_spec.* ${NEWMODULE}_test.c smpl_if.h smpl_com.h smpl_main.c main.c newenv"
 
