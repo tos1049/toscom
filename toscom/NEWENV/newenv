@@ -219,7 +219,7 @@ fi
 ### 基本機能 (必須) ###
 COMBASE=(if.h proc.c procThread.c debug.h debug.c)
 # ライブラリの記述は修正不要
-setFiles x1 "${COMBASE[*]}"
+setFiles "x1" "${COMBASE[*]}"
 
 ### エキストラ機能 (USE_EXTRA) ###
 COMEXTRA=(extra.h extra.c)
@@ -238,7 +238,7 @@ LIBWINDOW="\-lncursesw"
 # makefileで -lncursesw の記述がある行を修正対象とする
 setFiles "x$USE_WINDOW" "${COMWINDOW[*]}" "window.h" "$LIBWINDOW"
 
-### シグナル機能 (未実装だが記述だけしておく) ###
+### シグナル機能 (USE_SIGNAL1/USE_SIGNAL2/USE_SIGNAL3) ###
 COMSIG1=(signal.h signal.c signalCom.h signalCom.c signalPrt1.h signalPrt1.c)
 COMSIG2=(signalPrt2.h signalPrt2.c)
 COMSIG3=(signalPrt3.h signalPrt3.c)
@@ -246,7 +246,7 @@ COMSIG3=(signalPrt3.h signalPrt3.c)
 judgeFlag "x$USE_SIGNAL1"
 if [ $? = 1 ]; then
   # ライブラリの記述は修正不要
-  setFiles "x$USE_SIGNAL1" "${COMSIG1[*]}" "signalPrt1.h"
+  setFiles "x$USE_SIGNAL1" "${COMSIG1[*]}" "signal.h"
   setFiles "x$USE_SIGNAL2" "${COMSIG2[*]}" "signalPrt2.h"
   setFiles "x$USE_SIGNAL3" "${COMSIG3[*]}" "signalPrt3.h"
 fi
