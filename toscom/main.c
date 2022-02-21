@@ -9,6 +9,9 @@
 #include "com_extra.h"              // toscomエキストラ機能
 #include "com_select.h"             // toscomセレクト機能
 #include "com_window.h"             // toscomウィンドウ機能
+#include "com_signal.h"             // toscomシグナル機能
+#include "com_signalSet2.h"         // toscomシグナル機能セット2
+#include "com_signalSet3.h"         // toscomシグナル機能セット3
 
 /* 独自処理があれば記述 ******************************************************/
 

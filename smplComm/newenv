@@ -14,6 +14,15 @@ USE_SELECT=1
 # ウィンドウ機能を使いたい場合は 非0 を設定
 USE_WINDOW=0
 
+# シグナル機能を使いたい場合は 非0 を設定
+USE_SIGNAL1=0
+
+# シグナル機能セット2(No.7系追加)を使いたい場合は USE_SIGNAL1 と共に 非0を設定
+USE_SIGNAL2=0
+
+# シグナル機能セット3(IP系追加)を使いたい場合は USE_SIGNAL1 と共に 非0を設定
+USE_SIGNAL3=0
+
 #
 # toscomから開発環境を作成するスクリプト
 # (1)toscom/ があるディレクトリで newenv.tar.gz を展開する。
@@ -239,17 +248,19 @@ LIBWINDOW="\-lncursesw"
 setFiles "x$USE_WINDOW" "${COMWINDOW[*]}" "window.h" "$LIBWINDOW"
 
 ### シグナル機能 (USE_SIGNAL1/USE_SIGNAL2/USE_SIGNAL3) ###
-COMSIG1=(signal.h signal.c signalCom.h signalCom.c signalPrt1.h signalPrt1.c)
-COMSIG2=(signalPrt2.h signalPrt2.c)
-COMSIG3=(signalPrt3.h signalPrt3.c)
-# シグナル機能はセット1がある場合のみ、セット2以降も許容する
+COMSIG1=(signal.h signal.c signalCom.h signalCom.c signalSet1.h signalSet1.c)
+COMSIG2=(signalSet2.h signalSet2.c)
+COMSIG3=(signalSet3.h signalSet3.c)
+# シグナル機能はセット1がない場合、セット2・セット3も削除する
 judgeFlag "x$USE_SIGNAL1"
-if [ $? = 1 ]; then
-  # ライブラリの記述は修正不要
-  setFiles "x$USE_SIGNAL1" "${COMSIG1[*]}" "signal.h"
-  setFiles "x$USE_SIGNAL2" "${COMSIG2[*]}" "signalPrt2.h"
-  setFiles "x$USE_SIGNAL3" "${COMSIG3[*]}" "signalPrt3.h"
+if [ $? = 0 ]; then
+  USE_SIGNAL2=0
+  USE_SIGNAL3=0 
 fi
+# ライブラリの記述は修正不要
+setFiles "x$USE_SIGNAL1" "${COMSIG1[*]}" "signal.h"
+setFiles "x$USE_SIGNAL2" "${COMSIG2[*]}" "signalSet2.h"
+setFiles "x$USE_SIGNAL3" "${COMSIG3[*]}" "signalSet3.h"
 
 ### 説明テキストファイル ###
 setText README.md

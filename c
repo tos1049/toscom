@@ -92,7 +92,9 @@ fi
 
 if [ -e toscom/$ATAZ ]; then
 ########## analyzer.tar.gz の make rel
-  tar xvfz toscom/$ATAZ >& /dev/null
+  echo
+  echo
+  tar xvfz toscom/$ATAZ
   cd analyzer
   checker "$ATAZ" "rel" "$anlzfile" "analyzer"
   
