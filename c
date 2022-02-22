@@ -139,6 +139,8 @@ if [ -e toscom/$ATAZ ]; then
 ########## analyzer.tar.gz を tosモジュールに変更して make rel
   echo
   echo
+  rm -fr analyzer
+  tar xvfz toscom/analyzer.tar.gz >& /dev/null
   cd analyzer
   ./newenv
   checker "$ATAZ (module rename)" "rel" "$anlzfile" "analyzer"
