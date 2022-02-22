@@ -1183,16 +1183,16 @@ typedef enum {
 
 // RRデータ形式
 typedef enum {
-    COM_CAP_DNSRR_END = 0,
-    COM_CAP_DNSRR_DNAME,        // <domain-name>
-    COM_CAP_DNSRR_CHSTR,        // <character-string>
-    COM_CAP_DNSRR_8BIT,         // 8 bit value
-    COM_CAP_DNSRR_16BIT,        // 16 bit value
-    COM_CAP_DNSRR_32BIT,        // 32 bit value
-    COM_CAP_DNSRR_V4ADDR,       // 32 bit address
-    COM_CAP_DNSRR_BITMAP,       // bit map
-    COM_CAP_DNSRR_ANY,          // any data
-    COM_CAP_DNSRR_TXT           // text data
+    COM_CAP_DNS_RR_END = 0,
+    COM_CAP_DNS_RR_DNAME,        // <domain-name>
+    COM_CAP_DNS_RR_CHSTR,        // <character-string>
+    COM_CAP_DNS_RR_8BIT,         // 8 bit value
+    COM_CAP_DNS_RR_16BIT,        // 16 bit value
+    COM_CAP_DNS_RR_32BIT,        // 32 bit value
+    COM_CAP_DNS_RR_V4ADDR,       // 32 bit address
+    COM_CAP_DNS_RR_BITMAP,       // bit map
+    COM_CAP_DNS_RR_ANY,          // any data
+    COM_CAP_DNS_RR_TXT           // text data
 } COM_CAP_DNS_RR_t;
 
 BOOL com_analyzeDns( COM_ANALYZER_PRM );
