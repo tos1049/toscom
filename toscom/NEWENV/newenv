@@ -254,8 +254,16 @@ COMSIG3=(signalSet3.h signalSet3.c)
 # シグナル機能はセット1がない場合、セット2・セット3も削除する
 judgeFlag "x$USE_SIGNAL1"
 if [ $? = 0 ]; then
-  USE_SIGNAL2=0
-  USE_SIGNAL3=0 
+  judgeFlag "x$USE_SIGNAL2"
+  if [ $? = 1 ]; then
+    echo "USE_SIGNAL2 needs USE_SIGNAL1"
+    USE_SIGNAL2=0
+  fi
+  judgeFlag "x$USE_SIGNAL3"
+  if [ $? = 1 ]; then
+    echo "USE_SIGNAL3 needs USE_SIGNAL1"
+    USE_SIGNAL3=0
+  fi
 fi
 # ライブラリの記述は修正不要
 setFiles "x$USE_SIGNAL1" "${COMSIG1[*]}" "signal.h"
