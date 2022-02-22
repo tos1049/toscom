@@ -19,7 +19,7 @@
 #include <net/ethernet.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/icmp6.h>
-#include <net/arp.h>
+#include <net/if_arp.h>
 #endif
 
 #include <netinet/ip.h>
@@ -63,7 +63,7 @@ enum {
 };
 
 /*
- * シグナル機能セット1初期化  com_initializeSigPrt1()
+ * シグナル機能セット1初期化  com_initializeSigSet1()
  * ---------------------------------------------------------------------------
  *   エラーは発生しない。
  * ===========================================================================
@@ -71,11 +71,11 @@ enum {
  * ===========================================================================
  * com_initializeSignal() から呼ばれるため、本I/Fを直接使用する必要はない。
  * 
- * 追加セットにも 同様の名前の com_initializeSigPrt～() という初期化I/Fがある。
+ * 追加セットにも 同様の名前の com_initializeSigSet～() という初期化I/Fがある。
  * こちらは必要な場合は呼ぶ必要があるので注意すること。
  * (詳細は各セットのヘッダファイルを参照)
  */
-void com_initializeSigPrt1( void );
+void com_initializeSigSet1( void );
 
 
 
@@ -141,7 +141,7 @@ void com_decodeSll( COM_DECODER_PRM );
 //   また ETH_P_8021Q(0x8100) 以外の値がベンダー依存で入る可能性もある。
 //   どんな値が付けられるかは予測不可能なため、データとして追加可能とする。
 //
-//   新たな値を登録したい場合、com_initializeSigPrt1()で記述しているように
+//   新たな値を登録したい場合、com_initializeSigSet1()で記述しているように
 //   com_setBoolTable()を使い、COM_VLANTAG に対して必要な値を追加する。
 //   そうすれば com_analyzeEth2()では その値を使った VLANタグに対応する。
 

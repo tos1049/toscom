@@ -1081,7 +1081,7 @@ void com_initializeSignal( void )
     com_initializeSortTable( &gAnalyzeList, COM_SORT_OVERWRITE );
     com_setPrtclType( COM_FILENEXT, gFileNext );
     com_initializeAnalyzer();
-    com_initializeSigPrt1();
+    com_initializeSigSet1();
     COM_DEBUG_AVOID_END( COM_PROC_ALL );
 }
 

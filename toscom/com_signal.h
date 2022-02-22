@@ -16,7 +16,7 @@
  *
  *   本ヘッダの末尾で下記のヘッダもインクルードしている。
  *     com_signalCom.h:  プロトコルの解析/デコードに使う共通処理、
- *     com_signalPrt1.h: プロトコルごとの解析/デコード処理
+ *     com_signalSet1.h: プロトコルごとの解析/デコード処理
  *   これらのヘッダに記述したI/Fも必要に応じて使用していくことになる。
  *
  *
@@ -36,7 +36,7 @@
  *   特に各プロトコルを示す正規化された値を COM_SIG_～で宣言しており、
  *   その宣言は本ヘッダ以外のヘッダファイルでも定義されている。
  *   その記述の際は必ず PROTOCOL_AVAILABLE というコメントが入っており、
- *   com_signalPrt?.h では対応するプロトコルがこの宣言に一覧される。
+ *   com_signalSet?.h では対応するプロトコルがこの宣言に一覧される。
  *
  *   本ヘッダや com_signalCom.h でも PROTOCOL_AVAILABLE を付けた宣言があるが
  *   これはプロトコル種別というよりは、解析処理で使用する数値を示したり、
@@ -74,7 +74,7 @@ enum {
  * ===========================================================================
  * com_initialize()の後に、これも実行すること。
  * 本I/Fにより com_signalCom.h の com_initializeAnalyzer() と
- * com_signalPrt1.h の com_initializeSigPrt1() も実行する。
+ * com_signalSet1.h の com_initializeSigSet1() も実行する。
  * 
  * COM_INITIALIZE()マクロを使用する場合、直接 本I/Fの記述は必要なく、マクロを
  * 記述しているソース冒頭で、本ヘッダファイルをインクルードするだけで良い。
@@ -113,7 +113,7 @@ void com_initializeSignal( void );
  *  (2)解析I/Fにかける
  *
  *    何のプロトコルから始まるのか分かっているのであれば、
- *    com_signalPrt?.h に記述された そのプロトコルの解析I/Fを直接使っても良い。
+ *    com_signalSet?.h に記述された そのプロトコルの解析I/Fを直接使っても良い。
  *
  *    入力となる com_sigInf_t型のデータのうち解析の入力となるのは以下。
  *      .sig :   信号のバイナリデータ
@@ -123,7 +123,7 @@ void com_initializeSignal( void );
  *
  *    (1)で示したI/Fを使ってデータを取得した場合 .sig.ptype 以外は設定される。
  *    .sig.ptype については解析I/Fを呼ぶ前に自分で設定する必要がある。
- *    com_signalPrt?.h の PROTOCOL_AVAILABLE で宣言された値を想定する。
+ *    com_signalSet?.h の PROTOCOL_AVAILABLE で宣言された値を想定する。
  *
  *    プロトコル解析I/Fを通し、正しく処理されると(＝trueを返した時)
  *    com_sigInf_t型データは解析結果を反映して変更される。
@@ -160,7 +160,7 @@ void com_initializeSignal( void );
  *    順を追って説明するが、一番最後の com_analyzeSignalToLast()を使うのが
  *    一番簡単な解析処理の進め方になる。
  * 
- *    プロトコル固有の解析I/F (com_signalPrt?.hに記述) を直接呼ぶことで
+ *    プロトコル固有の解析I/F (com_signalSet?.hに記述) を直接呼ぶことで
  *    そのプロトコルとしての解析が可能。これが一番原始的な方法。
  *    次プロトコルがあれば、そのプロトコルの解析I/Fを呼ぶ・・を繰り返す。
  *
@@ -198,7 +198,7 @@ void com_initializeSignal( void );
  *    com_decodeSignal()に .next.stack[] をかけていく・・という繰り返しになる。
  *    (一部をデコード不要と判断してスキップする選択肢もあるだろう)
  *
- *    もちろん com_signalPrt?.h に記述された各プロトコルごとのデコードI/Fを
+ *    もちろん com_signalSet?.h に記述された各プロトコルごとのデコードI/Fを
  *    直接呼んでも問題ない(もちろん正しいプロトコルのデータであれば、だが)。
  *    com_searchSigDecoder()で プロトコル種別(.sig.ptypeに格納)をキーにして
  *    デコードI/Fを検索可能。
@@ -229,31 +229,31 @@ enum {
 //   それ以外のものは、個別のプロトコルを示す、というよりは解析処理の中で
 //   共通的に使用する値となる。
 //
-//   解析が可能なプロトコルの値については com_signalPrt?.h に宣言する。
+//   解析が可能なプロトコルの値については com_signalSet?.h に宣言する。
 enum {
     /***** ファイルタイプ (1-99) *****/
     COM_SIG_PCAPNG     = 1,    // pcap new generation (wiresharkの主な形式)
     COM_SIG_LIBPCAP    = 2,    // 旧来の pcap (tcpdumpがこの形式)
     /***** Link層 (101-199) *****/
     COM_SIG_LINK_LAYER = 100,       // リンク層プロトコルを示す識別値
-    // com_signalPrt1.h: 101-102
-    // com_signalPrt3.h: 111
+    // com_signalSet1.h: 101-102
+    // com_signalSet3.h: 111
     /***** Network層 (201-299) *****/
     COM_SIG_NETWORK_LAYER = 200,    // ネットワーク層プロトコルを示す識別値
-    // com_signalPrt1.h: 201-205
-    // com_signalPrt3.h: 211
+    // com_signalSet1.h: 201-205
+    // com_signalSet3.h: 211
     /***** Transport層 (301-399) *****/
     COM_SIG_TRANSPORT_LAYER = 300,  // トランスポート層プロトコルを示す識別値
-    // com_signalPrt1.h: 301-303
+    // com_signalSet1.h: 301-303
     /***** No.7(SIGTRAN) (401-499) *****/
     COM_SIG_NO7_LAYER = 400,        // No.7系のプロトコルを示す識別値
-    // com_signalPrt2.h: 401-406
+    // com_signalSet2.h: 401-406
     /***** Application層 (501-   ) *****/
     COM_SIG_APP_LAYER = 500,        // アプリケーション層プロトコルを示す識別値
-    // com_signalPrt1.h: 501-508
-    // com_signalPrt2.h: 511-514
+    // com_signalSet1.h: 501-508
+    // com_signalSet2.h: 511-514
     /***** プロトコル認識のみ (601-    ) *****/
-    // com_signalPrt3.h: 611-614
+    // com_signalSet3.h: 611-614
     /***** 内部処理用定数 *****/
     COM_SIG_TYPEMAX    = 999,    // プロトコル種別の最大値
     COM_SIG_UNKNOWN    = 0,      // 処理ができないプロトコル
@@ -572,10 +572,10 @@ void com_freeSigInfExt( com_sigInf_t *oTarget );
  * 2回目以降の登録時の COM_PRTCLTYPE_END時の .target.code は Don'tCare。
  *
  *
- * 登録例は com_signalPrt1.cの gLinkNex1[]・gSctpNext1[]・gSipNext[] になる。
+ * 登録例は com_signalSet1.cの gLinkNex1[]・gSctpNext1[]・gSipNext[] になる。
  * 特に gSipNext[]は .target.label での初期化例となる。
- * com_signalPrt2.cでは gSctpNext2[]・gSipNext2[] の登録があり、
- * これは com_signalPrt1.cで登録したものへの追加となる。
+ * com_signalSet2.cでは gSctpNext2[]・gSipNext2[] の登録があり、
+ * これは com_signalSet1.cで登録したものへの追加となる。
  *
  * 新たなプロトコル解析に対応しても追加が用意になるように、本I/Fは作られた。
  * 今後もこうした判定が必要なデータが新たに増えるときは、COM_PRTCLTYPE_tに
@@ -587,7 +587,7 @@ typedef enum {
     COM_NOT_USE      = 0,
     /*** com_signal.h用 ***/
     COM_FILENEXT     = 1,     // ファイルヘッダ解析 次プロトコル値
-    /*** com_signalPrt1.h用 ***/
+    /*** com_signalSet1.h用 ***/
     COM_LINKNEXT     = 100,   // リンク層ヘッダ解析 次プロトコル値
     COM_VLANTAG,              // VLANタグ値
     COM_IPNEXT,               // IPヘッダ解析 次プロトコル値
@@ -598,7 +598,7 @@ typedef enum {
     COM_SCTPNEXT,             // SCTP DATAヘッダ解析 次プロトコル値
     COM_SIPNEXT,              // SIPヘッダ解析 次プロトコル値
     COM_DIAMAVPG,             // Diameter解析 Grouped属性AVP判定
-    /*** com_signalPrt2.h用 ***/
+    /*** com_signalSet2.h用 ***/
     COM_SCCPSSN      = 200,   // SCCP解析 サブシステム番号プロトコル対応
     COM_TCAPSSN,              // TCAP解析 サブシステム番号プロトコル対応
     /*** 共通のデータ終了識別子 ***/
@@ -679,7 +679,7 @@ void com_freePrtclType( void );
  */
 
 // プロトコルごとに少なくとも 解析I/F と デコードI/F は作成する。
-// (toscomで作ったものは com_signalPrt?.c に定義している)
+// (toscomで作ったものは com_signalSet?.c に定義している)
 // これらの I/Fは仮引数を統一する目的で、マクロ化しており、
 // com_analyzeSig_t や com_decodeSIg_t に示したようなプロトタイプとなる。
 // 
@@ -742,7 +742,7 @@ typedef void(*com_freeSig_t)( com_sigInf_t *oTarget );
  * .oprtで指定した一つの値だけなので、同一プロトコルに複数を登録したい場合、
  * 別途 com_setPrtclType()で登録する必要がある。
  *
- * 本I/Fの具体的な使用例は com_initializeSigPrt1() を参照。
+ * 本I/Fの具体的な使用例は com_initializeSigSet1() を参照。
  * gFuncSignal1[] の情報を登録しており、iNamSys は COM_IPPORT を指定することで
  * そのプロトコルを示すポート番号を併せて登録するようにしている。
  * ただし、全てのプロトコルでポート番号を持つわけではないので、
@@ -891,7 +891,7 @@ void com_freeCapInf( com_capInf_t *oTarget );
 //     COM_CAP_ETHER   ->  COM_SIG_ETHER2
 //     COM_CAP_SLL     ->  COM_SIG_SLL
 //   上記のプロトコル種別(COM_SIG_～)は、解析/デコードI/Fとともに
-//   com_signalPrt1.h にて宣言している。
+//   com_signalSet1.h にて宣言している。
 //   
 //   libpcapがインストールされている場合、<pcap/bpf.h>で宣言された値が使えるが、
 //   未インストールの環境を考慮して使用しない。

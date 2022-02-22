@@ -3,7 +3,7 @@
  *
  * 共通部シグナル機能 (プロトコルセット1)    by TOS
  *
- *   外部公開I/Fの使用方法については com_signalPrt1.h を参照。
+ *   外部公開I/Fの使用方法については com_signalSet1.h を参照。
  *
  *****************************************************************************
  */
@@ -2858,7 +2858,7 @@ static com_analyzeFuncList_t  gFuncSignal1[] = {
     { COM_SIG_END, 0, NULL, NULL, NULL, NULL }  // 最後は必ずこれで
 };
 
-void com_initializeSigPrt1( void )
+void com_initializeSigSet1( void )
 {
     // com_initializeSignal()から呼ばれる限り、COM_DEBUG_AVOID_～は不要
     atexit( finalizeSigPrt1 );

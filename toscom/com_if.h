@@ -356,9 +356,9 @@ void com_initialize( int iArgc, char **iArgv );
 #define COM_INIT_EXTRA            // com_extra.h
 #define COM_INIT_SELECT           // com_select.h
 #define COM_INIT_WINDOW           // com_window.h
-#define COM_INIT_SIGNAL1          // com_signalPrt1.h
-#define COM_INIT_SIGNAL2          // com_signalPrt2.h
-#define COM_INIT_SIGNAL3          // com_signalPrt3.h
+#define COM_INIT_SIGNAL1          // com_signalSet1.h
+#define COM_INIT_SIGNAL2          // com_signalSet2.h
+#define COM_INIT_SIGNAL3          // com_signalSet3.h
 
 /*
  * toscom初期化マクロ  COM_INITIALIZE()
