@@ -76,7 +76,7 @@ static BOOL analyzeTmpType(
     com_sigInf_t  org = *ioHead;
     if( !iAnalyzer( ioHead, false ) ) {ROLLBACK;}
     if( COM_NEXTCNT == 0 ) {ROLLBACK;}
-    if( ioHead->next.stack->sig.ptype == COM_SIG_CONTINUE ) {ROLLBACK;}
+    if( COM_NEXTSTK->sig.ptype == COM_SIG_CONTINUE ) {ROLLBACK;}
 
     if( iDecode ) {iDecoder( ioHead );}
     return true;
@@ -96,9 +96,9 @@ BOOL com_analyzeAsLinkLayer( COM_ANALYZER_PRM )
 
 BOOL com_analyzeAsLinkLayer( COM_ANALYZER_PRM )
 {
-    if( com_analyzeSll( ioHead, iDecode ) ) {return true;}
+    if( com_analyzeSll( COM_ANALYZER_VAR ) ) {return true;}
     DEBUGSIG( "# ... not SLL, maybe Ether2\n" );
-    if( com_analyzeEth2( ioHead, iDecode ) ) {return true;}
+    if( com_analyzeEth2( COM_ANALYZER_VAR ) ) {return true;}
     DEBUGSIG( "# ... not Ether2, maybe Network Layer\n" );
     return false;
 }
@@ -141,7 +141,7 @@ long com_getLayerType( long iType )
 
 static inline BOOL isLastHead( com_sigInf_t *iHead )
 {
-    if( iHead->next.cnt ) {return false;}
+    if( COM_INEXTCNT ) {return false;}
     return true;
 }
 
@@ -168,12 +168,12 @@ static BOOL detectProtocol(
             return registHead( ioCnt, oResult, iHead );
         }
     }
-    else if( iHead->sig.ptype == iProtocol ) {
+    else if( COM_ISGTYPE == iProtocol ) {
         return registHead( ioCnt, oResult, iHead );
     }
     if( isLastHead( iHead ) ) {return true;}
-    for( long i = 0;  i < iHead->next.cnt;  i++ ) {
-        if( !detectProtocol( ioCnt,oResult,&iHead->next.stack[i],iProtocol ) ) {
+    for( long i = 0;  i < COM_INEXTCNT;  i++ ) {
+        if( !detectProtocol( ioCnt,oResult,&COM_INEXTSTK[i],iProtocol ) ) {
             return false;
         }
     }
@@ -218,12 +218,12 @@ com_sigInf_t *com_getProtocol( com_sigInf_t *iHead, long iProtocol )
 void com_decodeSignal( COM_DECODER_PRM )
 {
     if( !iHead ) {COM_PRMNG();}
-    if( iHead->sig.ptype == COM_SIG_ALLZERO ) {
+    if( COM_ISGTYPE == COM_SIG_ALLZERO ) {
         com_decodeData( iHead, "DATA" );
         return;
     }
-    com_decodeSig_t  func = com_searchSigDecoder( iHead->sig.ptype );
-    if( func ) {func( iHead );}
+    com_decodeSig_t  func = com_searchSigDecoder( COM_ISGTYPE );
+    if( func ) {func( COM_DECODER_VAR );}
     else {com_printf( "# <unknown protocol>\n" );}
 }
 
@@ -238,7 +238,7 @@ BOOL com_checkAnalyzerPrm( COM_FILEPRM, com_sigInf_t *ioHead )
 {
     if( !ioHead ) {PRMNG;}
     if( !COM_SGTOP ) {PRMNG;}
-    if( COM_NEXTCNT == COM_SIG_STATIC && !ioHead->next.stack ) {PRMNG;}
+    if( COM_NEXTCNT == COM_SIG_STATIC && !COM_NEXTSTK ) {PRMNG;}
     return true;
 }
 
@@ -266,7 +266,7 @@ void com_inheritRasData( com_sigInf_t *ioHead )
     for( long i = 0;  i < COM_NEXTCNT;  i++ ) {
         // ログから読んだ結合データは次スタックに継承
         if( ioHead->ras.ptype ) {
-            com_sigInf_t*  nextStk = &(ioHead->next.stack[i]);
+            com_sigInf_t*  nextStk = &(COM_NEXTSTK[i]);
             if( nextStk->ras.top ) {
                 com_error( COM_ERR_ANALYZENG,
                            "already exist reassembled data(%ld:%ld)",
@@ -336,6 +336,17 @@ BOOL com_setHeadInf(
     return (iNextType != COM_SIG_UNKNOWN);
 }
 
+BOOL com_advancePtr( com_bin **oTarget, com_off *oLen, com_off iAdd )
+{
+    if( !oTarget ) {return false;}
+    if( oLen ) {  // oLenが NULLのときは、単純に *oTargetを進めるのみ
+        if( *oLen < iAdd ) {return false;}
+        *oLen -= iAdd;
+    }
+    if( *oTarget ) {*oTarget += iAdd;}
+    return true;
+}
+
 uint16_t com_getVal16( uint16_t iSource, BOOL iOrder )
 {
     if( iOrder ) {return ntohs( iSource );}
@@ -371,15 +382,29 @@ uint32_t com_calcValue( const void *iTop, com_off iSize )
     return result;
 }
 
-BOOL com_advancePtr( com_bin **oTarget, com_off *oLen, com_off iAdd )
+ulong com_getBitField( ulong iSource, ulong iMask, long iShift )
 {
-    if( !oTarget ) {return false;}
-    if( !(*oTarget) ) {COM_PRMNG(false);}
-    if( oLen ) {  // oLenが NULLのときは、単純に *oTargetを進めるのみ
-        if( *oLen < iAdd ) {return false;}
-        *oLen -= iAdd;
-    }
-    if( *oTarget ) {*oTarget += iAdd;}
+    ulong  value = (iSource & iMask);
+    if( iShift > 0 ) {value = (value >>   iShift);}
+    if( iShift < 0 ) {value = (value << (-iShift));}
+    return value;
+}
+
+static BOOL checkNull( const void *ptr1, const void *ptr2, BOOL *oResult )
+{
+    *oResult = false;
+    if( !ptr1 && !ptr2 ) {*oResult = true;   return true;}
+    if( !ptr1 || !ptr2 ) {*oResult = false;  return true;}
+    return false;
+}
+
+BOOL com_matchSigBin( const com_sigBin_t *iBin1, const com_sigBin_t *iBin2 )
+{
+    BOOL check = false;
+    if( checkNull( iBin1, iBin2, &check ) ) {return check;}
+    if( iBin1->len != iBin2->len ) {return false;}
+    if( checkNull( iBin1->top, iBin2->top, &check ) ) {return check;}
+    if( memcmp( iBin1->top, iBin2->top, iBin1->len ) ) {return false;}
     return true;
 }
 
@@ -396,7 +421,7 @@ static com_sigInf_t *stackSigInf(
     return newStack;
 }
 
-com_sigInf_t *com_stackSigInf( com_sigInf_t *ioHead, com_sigInf_t *iSource )
+com_sigInf_t *com_stackSigNext( com_sigInf_t *ioHead, com_sigInf_t *iSource )
 {
     if( !ioHead || !iSource ) {COM_PRMNG(NULL);}
     return stackSigInf( &(ioHead->next), ioHead, "add sig", iSource );
@@ -409,7 +434,7 @@ com_sigInf_t *com_getRecentStack( com_sigStk_t *iStk )
     return &(iStk->stack[iStk->cnt - 1]);
 }
 
-BOOL com_stackMultiSignals(
+BOOL com_stackSigMulti(
         com_sigInf_t *ioHead, const char *iLabel, com_sigBin_t *iData )
 {
     if( !ioHead || !iLabel || !iData ) {COM_PRMNG(false);}
@@ -479,15 +504,6 @@ com_sigTlv_t *com_searchPrm( com_sigPrm_t *iTarget, com_off iTag )
     return NULL;
 }
 
-BOOL com_matchSigBin( const com_sigBin_t *iBin1, const com_sigBin_t *iBin2 )
-{
-    if( !iBin1 && !iBin2 ) {return true;}
-    if( !iBin1 || !iBin2 ) {return false;}
-    if( iBin1->len != iBin2->len ) {return false;}
-    if( memcmp( iBin1->top, iBin2->top, iBin1->len ) ) {return false;}
-    return true;
-}
-
 BOOL com_matchPrm( const com_sigTlv_t *iTlv1, const com_sigTlv_t *iTlv2 )
 {
     if( !iTlv1 || !iTlv2 ) {return false;}
@@ -528,14 +544,6 @@ BOOL com_dupPrm( com_sigTlv_t *oTarget, const com_sigTlv_t *iSource )
     return false;
 }
 
-ulong com_getBitField( ulong iSource, ulong iMask, long iShift )
-{
-    ulong  value = (iSource & iMask);
-    if( iShift > 0 ) {value = (value >>   iShift);}
-    if( iShift < 0 ) {value = (value << (-iShift));}
-    return value;
-}
-
 ///// ノード情報管理 /////
 
 static void setPort(
@@ -548,21 +556,21 @@ static void setPort(
 
 static void setPortInf( com_nodeInf_t *oInf, com_sigInf_t *iHead )
 {
-    switch( iHead->sig.ptype ) {
+    switch( COM_ISGTYPE ) {
       case COM_SIG_TCP: {
-        COM_CAST_HEAD( struct tcphdr, tcp, iHead->sig.top );
+        COM_CAST_HEAD( struct tcphdr, tcp, COM_ISGTOP );
         setPort( oInf, (com_bin*)&tcp->th_sport, sizeof(tcp->th_sport),
                  (com_bin*)&tcp->th_dport, sizeof(tcp->th_dport) );
         break;
       }
       case COM_SIG_UDP: {
-        COM_CAST_HEAD( struct udphdr, udp, iHead->sig.top );
+        COM_CAST_HEAD( struct udphdr, udp, COM_ISGTOP );
         setPort( oInf, (com_bin*)&udp->uh_sport, sizeof(udp->uh_sport),
                  (com_bin*)&udp->uh_dport, sizeof(udp->uh_dport) );
         break;
       }
       case COM_SIG_SCTP: {
-        COM_CAST_HEAD( com_sigSctpCommonHdr_t, sctp, iHead->sig.top );
+        COM_CAST_HEAD( com_sigSctpCommonHdr_t, sctp, COM_ISGTOP );
         setPort( oInf, (com_bin*)&sctp->srcPort, sizeof(sctp->srcPort),
                  (com_bin*)&sctp->dstPort, sizeof(sctp->dstPort) );
         break;
@@ -576,22 +584,22 @@ static void setAddr(
         com_bin *iSrcAddr, com_off iSrcSize,
         com_bin *iDstAddr, com_off iDstSize )
 {
-    oInf->ptype = iHead->sig.ptype;
+    oInf->ptype = COM_ISGTYPE;
     memcpy( oInf->srcAddr, iSrcAddr, iSrcSize );
     memcpy( oInf->dstAddr, iDstAddr, iDstSize );
 }
 
 static void setAddrInf( com_nodeInf_t *oInf, com_sigInf_t *iHead )
 {
-    switch( iHead->sig.ptype ) {
+    switch( COM_ISGTYPE ) {
       case COM_SIG_IPV4: {
-        COM_CAST_HEAD( struct ip, ip, iHead->sig.top );
+        COM_CAST_HEAD( struct ip, ip, COM_ISGTOP );
         setAddr( oInf, iHead, (com_bin*)&ip->ip_src, sizeof(ip->ip_src),
                  (com_bin*)&ip->ip_dst, sizeof(ip->ip_dst) );
         break;
       }
       case COM_SIG_IPV6: {
-        COM_CAST_HEAD( struct ip6_hdr, ip, iHead->sig.top );
+        COM_CAST_HEAD( struct ip6_hdr, ip, COM_ISGTOP );
         setAddr( oInf, iHead, (com_bin*)&ip->ip6_src, sizeof(ip->ip6_src),
                  (com_bin*)&ip->ip6_dst, sizeof(ip->ip6_dst) );
         break;
@@ -604,14 +612,12 @@ BOOL com_getNodeInf( com_sigInf_t *iHead, com_nodeInf_t *oInf )
 {
     if( !iHead || !oInf ) {COM_PRMNG(false);}
     memset( oInf, 0, sizeof(*oInf) );
-    while( com_getLayerType( iHead->sig.ptype ) != COM_SIG_TRANSPORT_LAYER ) {
+    while( com_getLayerType( COM_ISGTYPE ) != COM_SIG_TRANSPORT_LAYER ) {
         iHead = iHead->prev;
         if( !iHead ) {return false;}
     }
     setPortInf( oInf, iHead );
-    while( iHead->sig.ptype != COM_SIG_IPV4 &&
-           iHead->sig.ptype != COM_SIG_IPV6 )
-    {
+    while( COM_ISGTYPE != COM_SIG_IPV4 && COM_ISGTYPE != COM_SIG_IPV6 ) {
         iHead = iHead->prev;
         if( !iHead ) {return false;}
     }
@@ -862,7 +868,7 @@ static com_sigInf_t *addNewBody(
     body.sig = (com_sigBin_t){
         (com_bin*)iPtr, iLen, com_getPrtclLabel( iNext, iType )
     };
-    return com_stackSigInf( ioHead, &body );
+    return com_stackSigNext( ioHead, &body );
 }
 
 static BOOL getBoundary( com_sigPrm_t *oHdr, char *iConType )
@@ -1143,6 +1149,7 @@ BOOL com_searchAsnTlv(
         com_sigPrm_t *iPrm, uint32_t *iTags, size_t iTagSize,
         com_sigBin_t *oValue )
 {
+    if( !iPrm || !iTags || !oValue ) {COM_PRMNG(false);}
     com_off  nestCnt = 0;
     com_strChain_t*  restStack = NULL;
     com_off  rest = 0;
@@ -1171,21 +1178,20 @@ BOOL com_searchAsnTlv(
 
 void com_decodeData( COM_DECODER_PRM, const char *iLabel )
 {
-    com_printf( "# %s  <length=%zu>\n", iLabel, iHead->sig.len );
+    com_dispDec( " %s  <length=%zu>", iLabel, COM_ISGLEN );
     if ( com_isAllZeroBinary( iHead, false ) ) {
-        com_printf( "#   << all 0x00 binaries >>\n" );
+        com_dispDec( "   << all 0x00 binaries >>" );
         return;
     }
-    COM_ASCII_DUMP( &iHead->sig );
+    COM_ASCII_DUMP( &COM_ISG );
 }
 
 void com_onlyDispSig( COM_DECODER_PRM )
 {
     char  label[COM_WORDBUF_SIZE] = {0};
-    com_sigBin_t*  sig = &(iHead->sig);
-    snprintf( label, sizeof(label), "%s ", com_searchSigProtocol(sig->ptype) );
-    com_printf( "# %s[%ld]  <length=%zu>\n", label, sig->ptype, sig->len );
-    COM_ASCII_DUMP( sig );
+    snprintf( label, sizeof(label), "%s ", com_searchSigProtocol(COM_ISGTYPE) );
+    com_printf( "# %s[%ld]  <length=%zu>\n", label, COM_ISGTYPE, COM_ISGLEN );
+    COM_ASCII_DUMP( &COM_ISG );
     //com_dispSig( label, sig->ptype, sig );
     com_printf( "#     *** %s not analyzed, display only ***\n", label );
 }
@@ -1372,7 +1378,7 @@ static void dispHdr( com_sigPrm_t *iPrm, const char *iHdrName )
 
 static void dispHdrList( com_sigInf_t *iHead, const char **iHdrList )
 {
-    for( long i = 0;  iHdrList[i];  i++ ) {dispHdr( &iHead->prm, iHdrList[i] );}
+    for( long i = 0;  iHdrList[i];  i++ ) {dispHdr( COM_IAPRM, iHdrList[i] );}
 }
 
 static void editHdrList( com_sigInf_t *iHead )
@@ -1380,8 +1386,8 @@ static void editHdrList( com_sigInf_t *iHead )
     com_buf_t  tmp;
     com_initBuffer( &tmp, 0, "editHdrList" );
     com_printf( "# --- header list -------\n" );
-    for( long i = 0;  i < iHead->prm.cnt;  i++ ) {
-        com_sigTlv_t*  tlv = &(iHead->prm.list[i]);
+    for( long i = 0;  i < COM_IPRMCNT;  i++ ) {
+        com_sigTlv_t*  tlv = &(COM_IPRMLST[i]);
         com_setBufferSize( &tmp, tlv->tagBin.len, (char*)tlv->tagBin.top );
         com_printf( "#    %s = ", tmp.data );
         com_setBufferSize( &tmp, tlv->len, (char*)tlv->value );
@@ -1402,10 +1408,10 @@ static void dispBodyAsText( com_sigBin_t *iText )
 static void dispTxtBody( com_sigInf_t *iHead, const char *iConType )
 {
     const char  BODYLABEL[] = "HTTP BODY";
-    for( long i = 0;  i < iHead->next.cnt;  i++ ) {
-        com_sigInf_t*  tmp = &(iHead->next.stack[i]);
+    for( long i = 0;  i < COM_INEXTCNT;  i++ ) {
+        com_sigInf_t*  tmp = &(COM_INEXTSTK[i]);
         if( tmp->sig.ptype != COM_SIG_END ) {continue;}
-        char*  conType = com_getTxtHeaderVal( &iHead->prm, iConType );
+        char*  conType = com_getTxtHeaderVal( COM_IAPRM, iConType );
         if( com_compareString( conType, COM_CAP_CTYPE_TXTETC,
                                strlen(COM_CAP_CTYPE_TXTETC), true ) )
         {
@@ -1427,7 +1433,7 @@ void com_decodeTxtBase(
 {
     if( !iHead || !iSigLabel || !iConType ) {COM_PRMNG();}
     com_printf( "# %s HEADER [%ld]  <length=%zu>\n",
-                com_searchSigProtocol( iType ), iType, iHead->sig.len );
+                com_searchSigProtocol( iType ), iType, COM_ISGLEN );
     if( iSigType < COM_SIG_METHOD_END ) {com_dispPrm( "Method", iSigLabel, 0 );}
     else {com_dispVal( "Status Code", iSigType );}
     if( iHdrList ) {dispHdrList( iHead, iHdrList );}

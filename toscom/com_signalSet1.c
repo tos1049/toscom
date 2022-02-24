@@ -31,7 +31,7 @@ static BOOL analyzeSig(
     if( !com_setHeadInf( ioHead, iHeadSize, iProto, COM_SIG_ONLYHEAD ) ) {
         return false;
     }
-    return com_stackMultiSignals( ioHead, iLabel,
+    return com_stackSigMulti( ioHead, iLabel,
                           &(com_sigBin_t){ iOrgHead->sig.top + iHeadSize,
                                            iOrgHead->sig.len - iHeadSize,
                                            iProto } );
@@ -41,10 +41,10 @@ static void decodeSig( com_sigInf_t *iHead, const char *iLabel, long iType )
 {
     char  tmpLabel[32] = {0};
     snprintf( tmpLabel, sizeof(tmpLabel), "%s HEADER", iLabel );
-    com_dispSig( tmpLabel, iType, &iHead->sig );
-    if( !iHead->multi.cnt ) {return;}
+    com_dispSig( tmpLabel, iType, &COM_ISG );
+    if( !COM_IMLTICNT ) {return;}
     snprintf( tmpLabel, sizeof(tmpLabel), "%s BODY", iLabel );
-    com_dispSig( tmpLabel, COM_NO_PTYPE, &iHead->multi.stack[0].sig );
+    com_dispSig( tmpLabel, COM_NO_PTYPE, &COM_IMLTISTK[0].sig );
 }
 
 
@@ -90,20 +90,20 @@ BOOL com_analyzeEth2( COM_ANALYZER_PRM )
 void com_decodeEth2( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    com_dispSig( "Ether2 HEADER ", COM_SIG_ETHER2, &iHead->sig );
+    com_dispSig( "Ether2 HEADER ", COM_SIG_ETHER2, &COM_ISG );
     com_off  vlan = 0;
-    if( iHead->prm.cnt ) {
-        for( long i = 0;  i < iHead->prm.cnt;  i++ ) {
-            com_sigTlv_t*  tmp = &(iHead->prm.list[i]);
+    if( COM_IPRMCNT ) {
+        for( long i = 0;  i < COM_IPRMCNT;  i++ ) {
+            com_sigTlv_t*  tmp = &(COM_IPRMLST[i]);
             com_dispPrm( com_getVlanTagName( tmp->tag ), tmp->value, tmp->len );
             vlan += VLANTAG_SIZE;
         }
     }
-    if( iHead->next.cnt ) {
-        COM_CAST_HEAD( struct ether_header, eth2, iHead->sig.top );
-        com_sigInf_t*  nextIp = iHead->next.stack;
+    if( COM_INEXTCNT ) {
+        COM_CAST_HEAD( struct ether_header, eth2, COM_ISGTOP );
+        com_sigInf_t*  nextIp = COM_INEXTSTK;
         com_bin*  etype = (com_bin*)( &(eth2->ether_type) ) + vlan;
-        com_dispNext( com_getVal16( *((uint16_t*)etype), iHead->order ),
+        com_dispNext( com_getVal16( *((uint16_t*)etype), COM_IORDER ),
                       sizeof( eth2->ether_type ), nextIp->sig.ptype );
     }
     COM_DECODER_END;
@@ -137,11 +137,11 @@ BOOL com_analyzeSll( COM_ANALYZER_PRM )
 void com_decodeSll( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    com_dispSig( "SLL HEADER ", COM_SIG_SLL, &iHead->sig );
-    if( iHead->next.cnt ) {
-        COM_CAST_HEAD( com_sigSllHead_t, sll, iHead->sig.top );
-        com_sigInf_t*  nextIp = iHead->next.stack;
-        com_dispNext( com_getVal16( sll->protocol, iHead->order ),
+    com_dispSig( "SLL HEADER ", COM_SIG_SLL, &COM_ISG );
+    if( COM_INEXTCNT ) {
+        COM_CAST_HEAD( com_sigSllHead_t, sll, COM_ISGTOP );
+        com_sigInf_t*  nextIp = COM_INEXTSTK;
+        com_dispNext( com_getVal16( sll->protocol, COM_IORDER ),
                       sizeof( sll->protocol ), nextIp->sig.ptype );
     }
     COM_DECODER_END;
@@ -197,7 +197,7 @@ static BOOL getIpv4FragInf(
         com_sigInf_t *iHead, struct ip *iIpv4,
         BOOL *oDF, BOOL *oMF, BOOL *oOff )
 {
-    uint16_t  frags = com_getVal16( iIpv4->ip_off, iHead->order );
+    uint16_t  frags = com_getVal16( iIpv4->ip_off, COM_IORDER );
     COM_SET_IF_EXIST( oDF, COM_CHECKBIT( frags, IP_DF ) );
     COM_SET_IF_EXIST( oMF, COM_CHECKBIT( frags, IP_MF ) );
     COM_SET_IF_EXIST( oOff, (frags & IP_OFFMASK) * OCT_UNIT );
@@ -329,7 +329,7 @@ static BOOL setRasToNext( com_sigInf_t *ioHead, com_sigBin_t *iRas, long iType )
     body.ras.ptype *= -1;
     body.sig = body.ras;
     body.sig.ptype = iType;
-    return (NULL != com_stackSigInf( ioHead, &body ));
+    return (NULL != com_stackSigNext( ioHead, &body ));
 }
 
 static BOOL setIpv4Inf(
@@ -341,8 +341,8 @@ static BOOL setIpv4Inf(
         return setRasToNext( ioHead, iFrgRas, iProto );
     }
     BOOL  result = com_setHeadInf( ioHead, iHdrLen, COM_SIG_IPV4, iProto );
-    if( iFrgRet == COM_FRG_SEG && ioHead->next.cnt ) {
-        ioHead->next.stack[0].isFragment = true;
+    if( iFrgRet == COM_FRG_SEG && COM_NEXTCNT ) {
+        COM_NEXTSTK[0].isFragment = true;
     }
     return result;
 }
@@ -370,12 +370,12 @@ static void dispIpv4FragInf( com_sigInf_t *iHead, struct ip *iIpv4 )
     long  fragOff;
     (void)getIpv4FragInf( iHead, iIpv4, &df, &mf, &fragOff );
     com_dispVal( "don't fragment", df );
-    com_sigInf_t*  trans = iHead->next.stack;
+    com_sigInf_t*  trans = COM_INEXTSTK;
     if( !df ) {
         com_dispVal( " more fragment", mf );
         com_dispVal( "fragment offset", fragOff );
         if( trans->ras.top ) {
-            com_printf( "#   <reassembled (size=%zu)>\n", trans->ras.len );
+            com_dispDec( "   <reassembled (size=%zu)>", trans->ras.len );
         }
     }
 }
@@ -412,14 +412,14 @@ static void dispIpNext(
 void com_decodeIpv4( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    com_dispSig( "IPv4 HEADER ", COM_SIG_IPV4, &iHead->sig );
-    COM_CAST_HEAD( struct ip, ipv4, iHead->sig.top );
+    com_dispSig( "IPv4 HEADER ", COM_SIG_IPV4, &COM_ISG );
+    COM_CAST_HEAD( struct ip, ipv4, COM_ISGTOP );
     com_dispBin( "src IP", &ipv4->ip_src, COM_32BIT_SIZE, ".", false );
     com_dispBin( "dst IP", &ipv4->ip_dst, COM_32BIT_SIZE, ".", false );
     com_dispPrm( "identification", &ipv4->ip_id, COM_16BIT_SIZE );
     dispIpv4FragInf( iHead, ipv4 );
-    if( iHead->prm.cnt ) {dispPrtOptions( &iHead->prm, com_getIpv4OptName );}
-    dispIpNext( ipv4->ip_p, sizeof(ipv4->ip_p), iHead->next.stack, false );
+    if( COM_IPRMCNT ) {dispPrtOptions( COM_IAPRM, com_getIpv4OptName );}
+    dispIpNext( ipv4->ip_p, sizeof(ipv4->ip_p), COM_INEXTSTK, false );
     COM_DECODER_END;
 }
 
@@ -468,8 +468,8 @@ static void getIpv6Fragment(
         com_off iHdrSize )
 {
     *oBody = (com_sigBin_t){
-        .top = iHead->sig.top + iHdrSize,
-        .len = com_getVal16( iIpv6->ip6_plen, iHead->order )
+        .top = COM_ISGTOP + iHdrSize,
+        .len = com_getVal16( iIpv6->ip6_plen, COM_IORDER )
                - ( iHdrSize - sizeof(*iIpv6) )
     };
 }
@@ -548,8 +548,8 @@ static BOOL setIpv6Inf(
         return setRasToNext( ioHead, iFrgRas, iProto );
     }
     BOOL result = com_setHeadInf( ioHead, iHdrLen, COM_SIG_IPV6, iProto );
-    if( iFrgRet == COM_FRG_SEG && ioHead->next.cnt ) {
-        ioHead->next.stack[0].isFragment = true;
+    if( iFrgRet == COM_FRG_SEG && COM_NEXTSTK ) {
+        COM_NEXTSTK[0].isFragment = true;
     }
     return result;
 }
@@ -608,22 +608,22 @@ static void dispIp6extRouting( com_sigTlv_t *iExt, com_sigInf_t *iHead )
 {
     COM_UNUSED( iHead );
     SETPTRLEN( iExt );
-    com_printf( "#      routing type = %02x\n", ptr[0] );
-    com_printf( "#     segments left = %02x\n", ptr[1] );
+    com_dispDec( "      routing type = %02x", ptr[0] );
+    com_dispDec( "     segments left = %02x", ptr[1] );
 }
 
 static void dispIp6extFragment( com_sigTlv_t *iExt, com_sigInf_t *iHead )
 {
     BOOL  mf = false;
     long  fragOff, fragId;
-    getIpv6FragInf( iExt->value, iHead->order, &mf, &fragOff, &fragId );
-    com_printf( "#     fragment offset = %ld\n", fragOff );
-    com_printf( "#      more fragment = %ld\n", mf );
-    com_printf( "#     identification = %08lx\n", fragId );
-    if( !iHead->next.cnt ) {return;}
-    com_sigInf_t*  trans = iHead->next.stack;
+    getIpv6FragInf( iExt->value, COM_IORDER, &mf, &fragOff, &fragId );
+    com_dispDec( "     fragment offset = %ld", fragOff );
+    com_dispDec( "      more fragment = %ld", mf );
+    com_dispDec( "     identification = %08lx", fragId );
+    if( !COM_INEXTCNT ) {return;}
+    com_sigInf_t*  trans = COM_INEXTSTK;
     if( !mf && trans->ras.top ) {
-        com_printf( "#     <reassembled (size=%zu)>\n", trans->ras.len );
+        com_dispDec( "     <reassembled (size=%zu)>", trans->ras.len );
     }
 }
 
@@ -638,8 +638,8 @@ static void dispIpv6ExtHdr( com_sigInf_t *iHead, com_sigTlv_t *iExt )
 static uint8_t checkIpv6ExtHdr( com_sigInf_t *iHead, struct ip6_hdr *iIpv6 )
 {
     uint8_t nxt = iIpv6->ip6_nxt;
-    for( long i = 0;  i < iHead->prm.cnt;  i++ ) {
-        com_sigTlv_t*  ext = &(iHead->prm.list[i]);
+    for( long i = 0;  i < COM_IPRMCNT;  i++ ) {
+        com_sigTlv_t*  ext = &(COM_IPRMLST[i]);
         com_dispSig( "IPv6 EXT HEADER", COM_NO_PTYPE,
                      &(com_sigBin_t){ ext->value, ext->len, 0 } );
         com_dispPrm( "type", com_getIpv6ExtHdrName( ext->tag ), 0 );
@@ -653,15 +653,15 @@ static uint8_t checkIpv6ExtHdr( com_sigInf_t *iHead, struct ip6_hdr *iIpv6 )
 void com_decodeIpv6( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    com_sigBin_t  ipv6hdr = iHead->sig;
+    com_sigBin_t  ipv6hdr = COM_ISG;
     ipv6hdr.len = sizeof(struct ip6_hdr);  // まずは基本ヘッダのみダンプ
     com_dispSig( "IPv6 HEADER ", COM_SIG_IPV6, &ipv6hdr );
-    COM_CAST_HEAD( struct ip6_hdr, ipv6, iHead->sig.top );
+    COM_CAST_HEAD( struct ip6_hdr, ipv6, COM_ISGTOP );
     com_dispPrm( "flow-ID", &ipv6->ip6_flow, COM_32BIT_SIZE );
-    dispV6Addr( true,  ipv6, iHead->order );
-    dispV6Addr( false, ipv6, iHead->order );
+    dispV6Addr( true,  ipv6, COM_IORDER );
+    dispV6Addr( false, ipv6, COM_IORDER );
     uint8_t  nxt = checkIpv6ExtHdr( iHead, ipv6 );
-    dispIpNext( nxt, sizeof(nxt), iHead->next.stack, true );
+    dispIpNext( nxt, sizeof(nxt), COM_INEXTSTK, true );
     COM_DECODER_END;
 }
 
@@ -684,7 +684,7 @@ static com_off getIpConSize( com_sigInf_t *iHead )
     com_sigInf_t*  prev = iHead->prev;
     if( !prev ) {
         // sctpから解析開始時は sctpヘッダ以降全てを解析対象とする
-        return (com_off)(iHead->sig.top - sizeof(com_sigSctpCommonHdr_t));
+        return (com_off)(COM_ISGTOP - sizeof(com_sigSctpCommonHdr_t));
     }
     if( prev->sig.ptype == COM_SIG_IPV4 ) {
         COM_CAST_HEAD( struct ip, ipv4, prev->sig.top );
@@ -719,14 +719,14 @@ BOOL com_analyzeIcmp( COM_ANALYZER_PRM )
 void com_decodeIcmp( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    COM_CAST_HEAD( struct icmphdr, icmp, iHead->sig.top );
+    COM_CAST_HEAD( struct icmphdr, icmp, COM_ISGTOP );
     decodeSig( iHead, "ICMP", COM_SIG_ICMP );
     if( icmp->type == ICMP_DEST_UNREACH ) {
-        com_printf( "# <<< ICMP BODY Decode Result Start >>>\n" );
-        com_sigInf_t*  body = iHead->multi.stack;
+        com_dispDec( " <<< ICMP BODY Decode Result Start >>>" );
+        com_sigInf_t*  body = COM_IMLTISTK;
         body->sig.ptype = COM_SIG_IPV4;
         com_analyzeSignalToLast( body, true );
-        com_printf( "# <<< ICMP BODY Decode Result End >>>\n" );
+        com_dispDec( " <<< ICMP BODY Decode Result End >>>" );
     }
     com_dispPrm( "type", com_getIcmpTypeName( icmp ), 0 );
     COM_DECODER_END;
@@ -773,7 +773,7 @@ BOOL com_analyzeIcmpv6( COM_ANALYZER_PRM )
 void com_decodeIcmpv6( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    COM_CAST_HEAD( struct icmp6_hdr, icmp6, iHead->sig.top );
+    COM_CAST_HEAD( struct icmp6_hdr, icmp6, COM_ISGTOP );
     decodeSig( iHead, "ICMPv6", COM_SIG_ICMPV6 );
     com_dispPrm( "type", com_getIcmpv6TypeName( icmp6 ), 0 );
     COM_DECODER_END;
@@ -817,9 +817,9 @@ BOOL com_analyzeArp( COM_ANALYZER_PRM )
 void com_decodeArp( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    COM_CAST_HEAD( struct arphdr, arp, iHead->sig.top );
+    COM_CAST_HEAD( struct arphdr, arp, COM_ISGTOP );
     decodeSig( iHead, "ARP", COM_SIG_ARP );
-    com_dispPrm( "opcode", com_getArpOpName( arp, iHead->order ), 0 );
+    com_dispPrm( "opcode", com_getArpOpName( arp, COM_IORDER ), 0 );
     COM_DECODER_END;
 }
 
@@ -1079,11 +1079,11 @@ static void judgePayload( com_sigInf_t *ioHead )
     if( inf->statSyn == COM_SIG_TS_ACK && inf->statFin != COM_SIG_TS_ACK ) {
         com_free( ioHead->ext );  // 念のため解放
         ioHead->ext = com_malloc( sizeof(long), "tcp port" );
-        searchPort( ioHead->next.stack, COM_IPPORT, ioHead->ext );
+        searchPort( COM_NEXTSTK, COM_IPPORT, ioHead->ext );
     }
     else {
-        if( ioHead->next.cnt == 0 ) {return;}
-        com_sigInf_t*  tmp = ioHead->next.stack;
+        if( COM_NEXTSTK == 0 ) {return;}
+        com_sigInf_t*  tmp = COM_NEXTSTK;
         tmp->sig = (com_sigBin_t){ NULL, 0, COM_SIG_END };
     }
 }
@@ -1105,20 +1105,20 @@ BOOL com_analyzeTcp( COM_ANALYZER_PRM )
 static void dispNextIfExist( com_sigInf_t *iHead )
 {
     long*  port = iHead->ext;
-    if( !iHead->next.cnt || !port ) {return;}
-    if( iHead->next.stack[0].sig.ptype != COM_SIG_CONTINUE ) {
-        com_dispNext( *port, sizeof(short), iHead->next.stack[0].sig.ptype );
+    if( !COM_INEXTCNT || !port ) {return;}
+    if( COM_INEXTSTK[0].sig.ptype != COM_SIG_CONTINUE ) {
+        com_dispNext( *port, sizeof(short), COM_INEXTSTK[0].sig.ptype );
     }
 }
 
 static void dispSeq( const char *iLabel, ulong iSeq, ulong iBase )
 {
-    com_printf( "#    %s = %lu (0x%lx)\n", iLabel, iSeq - iBase, iSeq );
+    com_dispDec( "    %s = %lu (0x%lx)", iLabel, iSeq - iBase, iSeq );
 }
 
 static void dispSeqAck( com_sigInf_t *iHead )
 {
-    COM_CAST_HEAD( struct tcphdr, tcp, iHead->sig.top );
+    COM_CAST_HEAD( struct tcphdr, tcp, COM_ISGTOP );
     if( !iHead->prm.spec ) {
         com_dispPrm( "seqno", &tcp->th_seq, COM_32BIT_SIZE );
         com_dispPrm( "ackno", &tcp->th_ack, COM_32BIT_SIZE );
@@ -1128,10 +1128,10 @@ static void dispSeqAck( com_sigInf_t *iHead )
     ulong  seq = inf->seqSyn;
     ulong  ack = inf->ackSyn;
     if( inf->isReverse ) {seq = inf->ackSyn;  ack = inf->seqSyn;}
-    dispSeq( "seqno", com_getVal32( tcp->th_seq, iHead->order ), seq );
-    dispSeq( "ackno", com_getVal32( tcp->th_ack, iHead->order ), ack );
+    dispSeq( "seqno", com_getVal32( tcp->th_seq, COM_IORDER ), seq );
+    dispSeq( "ackno", com_getVal32( tcp->th_ack, COM_IORDER ), ack );
     com_off  size = 0;
-    if( iHead->next.cnt ) {size = iHead->next.stack->sig.len;}
+    if( COM_INEXTCNT ) {size = COM_INEXTSTK->sig.len;}
     com_dispVal( "payload size", size );
 }
 
@@ -1158,14 +1158,14 @@ static void dispTcpFlgSet( struct tcphdr *iTcp )
 void com_decodeTcp( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    com_dispSig( "TCP HEADER ", COM_SIG_TCP, &iHead->sig );
-    COM_CAST_HEAD( struct tcphdr, tcp, iHead->sig.top );
+    com_dispSig( "TCP HEADER ", COM_SIG_TCP, &COM_ISG );
+    COM_CAST_HEAD( struct tcphdr, tcp, COM_ISGTOP );
     com_dispPrm( "src port", &tcp->th_sport, COM_16BIT_SIZE );
     com_dispPrm( "dst port", &tcp->th_dport, COM_16BIT_SIZE );
     dispSeqAck( iHead );
     com_printf( "#    control = " );
     dispTcpFlgSet( tcp );
-    if( iHead->prm.cnt ) {dispPrtOptions( &iHead->prm, com_getTcpOptName );}
+    if( COM_IPRMCNT ) {dispPrtOptions( COM_IAPRM, com_getTcpOptName );}
     dispNextIfExist( iHead );
     COM_DECODER_END;
 }
@@ -1222,7 +1222,7 @@ com_sigFrg_t *com_stockTcpSeg(
         frg->ext = seq1st;
     }
     ioTarget->isFragment = true;
-    com_printf( "#   TCP segmentation proccessed[%lu]\n", frg->cnt );
+    com_dispDec( "   TCP segmentation proccessed[%lu]", frg->cnt );
     return frg;
 }
 
@@ -1325,7 +1325,7 @@ BOOL com_analyzeUdp( COM_ANALYZER_PRM )
     if( result ) {
         com_free( ioHead->ext );  // 年のため解放
         ioHead->ext = com_malloc( sizeof(long), "udp port" );
-        searchPort( ioHead->next.stack, COM_IPPORT, ioHead->ext );
+        searchPort( COM_NEXTSTK, COM_IPPORT, ioHead->ext );
     }
     COM_ANALYZER_END;
 }
@@ -1333,8 +1333,8 @@ BOOL com_analyzeUdp( COM_ANALYZER_PRM )
 void com_decodeUdp( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    com_dispSig( "UDP HEADER ", COM_SIG_UDP, &iHead->sig );
-    COM_CAST_HEAD( struct udphdr, udp, iHead->sig.top );
+    com_dispSig( "UDP HEADER ", COM_SIG_UDP, &COM_ISG );
+    COM_CAST_HEAD( struct udphdr, udp, COM_ISGTOP );
     com_dispPrm( "src port", &udp->uh_sport, COM_16BIT_SIZE );
     com_dispPrm( "dst port", &udp->uh_dport, COM_16BIT_SIZE );
     dispNextIfExist( iHead );
@@ -1356,7 +1356,7 @@ static BOOL getChunkHead(
 {
     COM_CAST_HEAD( com_sigSctpChunkHdr_t, chunk, iTop );
     *oChunkLen = com_getVal16( chunk->length, oHead->order );
-    return com_stackMultiSignals( oHead, "sctp chunk",
+    return com_stackSigMulti( oHead, "sctp chunk",
                            &(com_sigBin_t){ iTop, *oChunkLen, COM_SIG_SCTP } );
 }
 
@@ -1374,7 +1374,7 @@ static BOOL getDataPayload( com_bin *iTop, com_sigInf_t *oHead )
         };
     }
     else {body.sig.ptype = COM_SIG_END;}
-    com_sigInf_t*  newStack = com_stackSigInf( oHead, &body );
+    com_sigInf_t*  newStack = com_stackSigNext( oHead, &body );
     if( newStack && body.sig.ptype == COM_SIG_CONTINUE ) {
         newStack->ext = com_malloc( sizeof(long), "sctp port" );
         searchPort( newStack, COM_IPPORT, newStack->ext );
@@ -1462,7 +1462,7 @@ static void dispChunk(
             com_free( iPayload->ext );
         }
         else {
-            com_dispNext( com_getVal32( iSctp->protocol, iHead->order ),
+            com_dispNext( com_getVal32( iSctp->protocol, COM_IORDER ),
                           sizeof( iSctp->protocol ), iPayload->sig.ptype );
         }
     }
@@ -1471,14 +1471,14 @@ static void dispChunk(
 void com_decodeSctp( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    com_dispSig( "SCTP HEADER ", COM_SIG_SCTP, &iHead->sig );
-    COM_CAST_HEAD( com_sigSctpCommonHdr_t, cmnHdr, iHead->sig.top );
+    com_dispSig( "SCTP HEADER ", COM_SIG_SCTP, &COM_ISG );
+    COM_CAST_HEAD( com_sigSctpCommonHdr_t, cmnHdr, COM_ISGTOP );
     com_dispPrm( "src port", &cmnHdr->srcPort, COM_16BIT_SIZE );
     com_dispPrm( "src port", &cmnHdr->dstPort, COM_16BIT_SIZE );
     DISPBIN( "verification Tag", cmnHdr->verifTag, COM_32BIT_SIZE );
-    com_sigInf_t*  payload = iHead->next.stack;
-    for( long i = 0;  i < iHead->next.cnt;  i++ ) {
-        com_sigInf_t*  chunk = iHead->multi.stack;
+    com_sigInf_t*  payload = COM_INEXTSTK;
+    for( long i = 0;  i < COM_INEXTCNT;  i++ ) {
+        com_sigInf_t*  chunk = COM_IMLTISTK;
         com_dispSig( " chunk", i, &chunk[i].sig );
         COM_CAST_HEAD( com_sigSctpDataHdr_t, sctp, chunk[i].sig.top );
         dispChunk( sctp, iHead, &payload[i], &chunk[i] );
@@ -1537,7 +1537,7 @@ void com_decodeSip( COM_DECODER_PRM )
     COM_DECODER_START;
     const char*  label = NULL;
     long  type = COM_SIG_SIP_UNKNOWN;
-    if( !com_getSipName( iHead->sig.top, &label, &type ) ) {return;}
+    if( !com_getSipName( COM_ISGTOP, &label, &type ) ) {return;}
     com_decodeTxtBase( iHead, COM_SIG_SIP, NULL, label, type,
                        COM_CAP_SIPHDR_CTYPE );
     COM_DECODER_END;
@@ -1664,8 +1664,8 @@ static void setSdpAddrPort(
 static void setSdpPrmInf(
         com_sdpSessionInf_t *oSdp, com_sigInf_t *iHead, BOOL iOrg )
 {
-    char*  cVal = com_strdup(com_getTxtHeaderVal( &iHead->prm, "c" ), "sdp c");
-    char*  mVal = com_strdup(com_getTxtHeaderVal( &iHead->prm, "m" ), "sdp m");
+    char*  cVal = com_strdup(com_getTxtHeaderVal( COM_IAPRM, "c" ), "sdp c");
+    char*  mVal = com_strdup(com_getTxtHeaderVal( COM_IAPRM, "m" ), "sdp m");
     if( cVal && mVal ) {
         com_nodeInf_t*  up = &oSdp->upInf;
         com_bin*  addr = iOrg ? up->srcAddr : up->dstAddr;
@@ -1692,13 +1692,13 @@ static void createSdpSession( com_sigInf_t *iHead )
     if( sipType < COM_SIG_SIP_RESPONSE ) {
         if( !(sdpInf = getSdpSesInf( &cpInf,callId,&id,true )) ) {return;}
         setSdpPrmInf( sdpInf, iHead, true );
-        DEBUGSIG( "#    << set %s#%ld >>\n", SDPINF, id );
+        DEBUGSIG( "#    << set src %s#%ld >>\n", SDPINF, id );
     }
     else {
         com_reverseNodeInf( &cpInf );
-        if( !(sdpInf = getSdpSesInf( &cpInf,callId,&id,false )) ) {return;}
+        if( !(sdpInf = getSdpSesInf( &cpInf,callId,&id,true )) ) {return;}
         setSdpPrmInf( sdpInf, iHead, false );
-        DEBUGSIG( "#    << complete %s#%ld >>\n", SDPINF, id );
+        DEBUGSIG( "#    << set dst %s#%ld >>\n", SDPINF, id );
     }
 }
 
@@ -1745,8 +1745,8 @@ static void dispTxtPrm( com_sigTlv_t *iTlv )
 void com_decodeSdp( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    com_printf( "# SDP DESCRIPTIONS [%d]\n", COM_SIG_SDP );
-    com_sigPrm_t*  disc = &iHead->prm;
+    com_dispDec( " SDP DESCRIPTIONS [%d]", COM_SIG_SDP );
+    com_sigPrm_t*  disc = COM_IAPRM;
     for( long i = 0;  i < disc->cnt;  i++ ) {dispTxtPrm( &(disc->list[i]) );}
     COM_DECODER_END;
 }
@@ -1822,11 +1822,11 @@ BOOL com_analyzeRtp( COM_ANALYZER_PRM )
 void com_decodeRtp( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    COM_CAST_HEAD( com_sigRtpHdr_t, rtp, iHead->sig.top );
+    COM_CAST_HEAD( com_sigRtpHdr_t, rtp, COM_ISGTOP );
     decodeSig( iHead, "RTP", COM_SIG_RTP );
     long  pt = rtp->pt & COM_CAP_RTP_PTBIT;
     com_dispVal( "PT(payload type)", pt );
-    com_dispVal( "sequence number", com_getVal16( rtp->seq, iHead->order ) );
+    com_dispVal( "sequence number", com_getVal16( rtp->seq, COM_IORDER ) );
     uint8_t bits = rtp->rtpBits;
     if( bits & COM_CAP_RTP_PBIT ) {com_dispPrm( "P(padding)", "on", 0 );}
     if( bits & COM_CAP_RTP_XBIT ) {com_dispPrm( "X(extension)", "on", 0 );}
@@ -1847,7 +1847,7 @@ BOOL com_analyzeRtcp( COM_ANALYZER_PRM )
         COM_CAST_HEAD( com_sigRtcpHdrCommon_t, rtcp, sigTop );
         packetLen = com_getVal16( rtcp->length, COM_ORDER ) + 1;
         packetLen *= COM_32BIT_SIZE;
-        result = com_stackMultiSignals( ioHead, "rtcp packet",
+        result = com_stackSigMulti( ioHead, "rtcp packet",
                            &(com_sigBin_t){sigTop, packetLen, COM_SIG_RTCP} );
         if( !result ) {break;}
         if( !com_getRtcpPtName( sigTop ) ) {result = false;  break;}
@@ -1859,9 +1859,9 @@ BOOL com_analyzeRtcp( COM_ANALYZER_PRM )
 void com_decodeRtcp( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    com_printf( "# RTCP [%d]\n", COM_SIG_RTCP );
-    for( long i = 0;  i < iHead->multi.cnt;  i++ ) {
-        com_sigInf_t*  rtcp = &(iHead->multi.stack[i]);
+    com_dispDec( " RTCP [%d]", COM_SIG_RTCP );
+    for( long i = 0;  i < COM_IMLTICNT;  i++ ) {
+        com_sigInf_t*  rtcp = &(COM_IMLTISTK[i]);
         com_dispSig( " packet", i, &rtcp->sig );
         com_dispPrm( "packet type", com_getRtcpPtName( rtcp->sig.top ), 0 );
     }
@@ -2082,7 +2082,7 @@ static void dispAvpCascade( com_sigPrm_t *iPrm, long *iPos, long iLevel )
 
 static void dispAvpList( com_sigPrm_t *iPrm )
 {
-    com_printf( "# DIAMETER AVPs\n" );
+    com_dispDec( " DIAMETER AVPs" );
     long  pos = 0;
     dispAvpCascade( iPrm, &pos, 0 );
 }
@@ -2090,8 +2090,8 @@ static void dispAvpList( com_sigPrm_t *iPrm )
 void com_decodeDiameter( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    COM_CAST_HEAD( com_sigDiamHdr_t, diam, iHead->sig.top );
-    com_dispSig( "DIAMETER COMMON HEAD ", COM_SIG_DIAMETER, &iHead->sig );
+    COM_CAST_HEAD( com_sigDiamHdr_t, diam, COM_ISGTOP );
+    com_dispSig( "DIAMETER COMMON HEAD ", COM_SIG_DIAMETER, &COM_ISG );
     com_dispPrm( "Command", com_getDiameterCmdName( diam ), 0 );
     if( COM_CHECKBIT( diam->cmdFlags, COM_CAP_DIAMHDR_PBIT ) ) {
         com_dispPrm( "proxiable bit", "on", 0 );
@@ -2105,7 +2105,7 @@ void com_decodeDiameter( COM_DECODER_PRM )
     com_dispPrm( "Application ID", &diam->AppliID, COM_32BIT_SIZE );
     com_dispPrm( " Hop-by-Hop ID", &diam->HopByHopID, COM_32BIT_SIZE );
     com_dispPrm( " End-to-End ID", &diam->EndToEndID, COM_32BIT_SIZE );
-    dispAvpList( &iHead->prm );
+    dispAvpList( COM_IAPRM );
     COM_DECODER_END;
 }
 
@@ -2189,11 +2189,11 @@ BOOL com_analyzeDhcp( COM_ANALYZER_PRM )
 void com_decodeDhcp( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    com_dispSig( "DHCP HEADER ", COM_SIG_DHCP, &iHead->sig );
+    com_dispSig( "DHCP HEADER ", COM_SIG_DHCP, &COM_ISG );
     com_dispPrm( "type", com_getDhcpSigName( iHead ), 0 );
-    if( iHead->prm.cnt ) {
-        com_printf( "# DHCP options\n" );
-        com_dispPrmList( &iHead->prm, 2, 2, NULL );
+    if( COM_IPRMCNT ) {
+        com_dispDec( " DHCP options" );
+        com_dispPrmList( COM_IAPRM, 2, 2, NULL );
     }
     COM_DECODER_END;
 }
@@ -2277,11 +2277,11 @@ BOOL com_analyzeDhcpv6( COM_ANALYZER_PRM )
 void com_decodeDhcpv6( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    com_dispSig( "DHCPv6 HEADER", COM_SIG_DHCPV6, &iHead->sig );
-    com_dispPrm( "type", com_getDhcpv6MsgType( iHead->sig.top ), 0 );
-    if( iHead->prm.cnt ) {
-        com_printf( "# DHCPv6 options\n" );
-        com_dispPrmList( &iHead->prm, 4, 4, NULL );
+    com_dispSig( "DHCPv6 HEADER", COM_SIG_DHCPV6, &COM_ISG );
+    com_dispPrm( "type", com_getDhcpv6MsgType( COM_ISGTOP ), 0 );
+    if( COM_IPRMCNT ) {
+        com_dispDec( " DHCPv6 options" );
+        com_dispPrmList( COM_IAPRM, 4, 4, NULL );
     }
     COM_DECODER_END;
 }
@@ -2332,8 +2332,8 @@ static com_sigDnsBitMap_t  gDnsBitMap[] = {
 
 ulong com_getDnsFlagsField( com_sigInf_t *iHead, COM_CAP_DNSBIT_t iId )
 {
-    COM_CAST_HEAD( com_sigDnsHdr_t, dns, iHead->sig.top );
-    uint16_t  flags = com_getVal16( dns->flags, iHead->order );
+    COM_CAST_HEAD( com_sigDnsHdr_t, dns, COM_ISGTOP );
+    uint16_t  flags = com_getVal16( dns->flags, COM_IORDER );
     com_sigDnsBitMap_t*  tmp = &(gDnsBitMap[iId]);
     return com_getBitField( flags, tmp->bitmask, tmp->shift );
 }
@@ -2579,7 +2579,7 @@ com_off com_getDomain(
     for( com_bin* ptr = iTop;  *ptr;  /* 増分処理なし */ ) {
         if( COM_CHECKBIT( *ptr, COM_CAP_DNS_COMPRESS_BIT ) ) {
             uint16_t  offset = (com_calcValue( ptr, COM_16BIT_SIZE ) & 0x3f);
-            ptr = iHead->sig.top + offset;
+            ptr = COM_ISGTOP + offset;
             size += COM_16BIT_SIZE;
             calcSize = false;
             continue;
@@ -2613,7 +2613,7 @@ static BOOL dispRd_DNAME( COM_DISP_RDATA_PRM )
     com_off  size = com_getDomain( iHead, *ioPtr, tmpName, sizeof(tmpName) );
     if( !size ) {return false;}
     if( !com_advancePtr( ioPtr, ioRest, size ) ) {return false;}
-    com_printf( "#       (%s = %s)\n", iUnit->label, tmpName );
+    com_dispDec( "       (%s = %s)", iUnit->label, tmpName );
     return true;
 }
 
@@ -2632,7 +2632,7 @@ static BOOL dispRd_CHSTR( COM_DISP_RDATA_PRM )
     COM_UNUSED( iHead );
     char  tmpTxt[COM_LINEBUF_SIZE] = {0};
     if( !getChrStr( tmpTxt, ioPtr, ioRest ) ) {return false;}
-    com_printf( "#       (%s = %s)\n", iUnit->label, tmpTxt );
+    com_dispDec( "       (%s = %s)", iUnit->label, tmpTxt );
     return true;
 }
 
@@ -2641,8 +2641,8 @@ static BOOL dispRdValue( COM_DISP_RDATA_PRM, long iSize )
     COM_UNUSED( iHead );
     ulong  value = (ulong)com_calcValue( *ioPtr, iSize );
     if( !com_advancePtr( ioPtr, ioRest, iSize ) ) {return false;}
-    com_printf( "#       (%s = %lu/0x%0*lx)\n",
-                iUnit->label, value, (int)iSize * 2, value );
+    com_dispDec( "       (%s = %lu/0x%0*lx)",
+                 iUnit->label, value, (int)iSize * 2, value );
     return true;
 }
 
@@ -2668,14 +2668,14 @@ static BOOL dispRd_V4ADDR( COM_DISP_RDATA_PRM )
     snprintf( tmpAddr, sizeof(tmpAddr), "%d.%d.%d.%d",
               *ioPtr[0], *ioPtr[1], *ioPtr[2], *ioPtr[3] );
     if( !com_advancePtr( ioPtr, ioRest, COM_32BIT_SIZE ) ) {return false;}
-    com_printf( "#       (%s = %s)\n", iUnit->label, tmpAddr );
+    com_dispDec( "       (%s = %s)", iUnit->label, tmpAddr );
     return true;
 }
 
 static BOOL dispRd_BITMAP( COM_DISP_RDATA_PRM )
 {
     COM_UNUSED( iHead );
-    com_printf( "#       <%s>\n", iUnit->label );
+    com_dispDec( "       <%s>", iUnit->label );
     com_printBinary( *ioPtr, *ioRest,
                      &(com_printBin_t){ .prefix = "# ",  .colSeq = 1} );
     (void)com_advancePtr( ioPtr, ioRest, *ioRest );
@@ -2686,10 +2686,10 @@ static BOOL dispRd_TXT( COM_DISP_RDATA_PRM )
 {
     COM_UNUSED( iHead );
     char  tmpTxt[COM_LINEBUF_SIZE] = {0};
-    com_printf( "#       <%s>\n", iUnit->label );
+    com_dispDec( "       <%s>", iUnit->label );
     while( *ioRest ) {
         if( !getChrStr( tmpTxt, ioPtr, ioRest ) ) {return false;}
-        com_printf( "#        %s\n", tmpTxt );
+        com_dispDec( "        %s", tmpTxt );
     }
     return true;
 }
@@ -2711,7 +2711,7 @@ static com_dispDnsRdata_t  gDispRdata[] = {
 static void dispRdata(
         com_sigInf_t *iHead, com_sigDnsRecord_t *iRd, com_sigDnsType_t *iInf )
 {
-    com_printf( "#    TTL = %ld\n", iRd->rttl );
+    com_dispDec( "    TTL = %ld", iRd->rttl );
     if( !iInf ) {return;}
     com_sigDnsTypeUnit_t*  list = iInf->dataType;
     com_bin*  ptr = iRd->rdata.top;
@@ -2719,7 +2719,7 @@ static void dispRdata(
     for( long i = 0;  list[i].type && (i < RR_DATACNT_MAX);  i++ ) {
         com_dispDnsRdata_t  func = gDispRdata[list[i].type];
         if( func ) {
-            com_printf( "#    RDLEN = %zu\n", iRd->rdata.len );
+            com_dispDec( "    RDLEN = %zu", iRd->rdata.len );
             com_dispBin( "RDATA", iRd->rdata.top, iRd->rdata.len, "", true );
             if( !(func)( &ptr, &rest, &(list[i]), iHead ) ) {return;}
         }
@@ -2728,23 +2728,23 @@ static void dispRdata(
 
 static void dispRrs( com_sigInf_t *iHead, com_sigDnsRecord_t *iRd )
 {
-    com_printf( "#   %s section\n", gDnsRecType[iRd->recSec] );
+    com_dispDec( "   %s section", gDnsRecType[iRd->recSec] );
     char*  qd = (iRd->recSec == COM_CAP_DNS_QD) ? "Q" : "";
     char  tmpName[COM_LINEBUF_SIZE + 1];
     (void)com_getDomain( iHead, iRd->rname.top, tmpName, sizeof(tmpName) );
-    com_printf( "#    %sNAME = %s\n", qd, tmpName );
+    com_dispDec( "    %sNAME = %s", qd, tmpName );
     com_printf( "#    %sTYPE = ", qd );
     com_sigDnsType_t*  inf = getDnsTypeInf( iRd->rtype );
     if( inf ) {com_printf( "%s\n", inf->label );}
     else {com_printf( "%lu (unknwon type)\n", iRd->rtype );}
-    com_printf( "#    %sCLASS = %s\n", qd, com_getDnsOpName( iRd->rclass ) );
+    com_dispDec( "    %sCLASS = %s", qd, com_getDnsOpName( iRd->rclass ) );
     if( iRd->recSec != COM_CAP_DNS_QD ) {dispRdata( iHead, iRd, inf );}
 }
 
 void com_decodeDns( COM_DECODER_PRM )
 {
     COM_DECODER_START;
-    com_dispSig( "DNS HEADER", COM_SIG_DNS, &iHead->sig );
+    com_dispSig( "DNS HEADER", COM_SIG_DNS, &COM_ISG );
     com_sigDnsData_t*  inf = iHead->ext;
     if( !inf ) {return;}
     char  opName[32] = {0};

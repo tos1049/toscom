@@ -219,7 +219,7 @@ enum {
     COM_32BIT_SIZE = 4,    // 32bitのオクテットサイズ
 };
 
-// 変数を特定の型でキャストして、新たな変数として定義iするマクロ
+// 変数を特定の型でキャストして、新たな変数として定義するマクロ
 #define COM_CAST_HEAD( TYPE, HEAD, TARGET ) \
     TYPE*  HEAD = (TYPE*)(TARGET)
 
@@ -711,6 +711,10 @@ typedef BOOL(*com_analyzeSig_t)( COM_ANALYZER_PRM );
 // プロトコルデコードI/F 仮引数マクロ
 #define COM_DECODER_PRM \
     com_sigInf_t *iHead
+
+// プロトコルデコードI/F 実引数マクロ
+#define COM_DECODER_VAR \
+    iHead
 
 // プロトコルデコードI/Fプロトタイプ
 typedef void(*com_decodeSig_t)( COM_DECODER_PRM );
