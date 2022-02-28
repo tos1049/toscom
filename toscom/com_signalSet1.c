@@ -1538,8 +1538,7 @@ void com_decodeSip( COM_DECODER_PRM )
     const char*  label = NULL;
     long  type = COM_SIG_SIP_UNKNOWN;
     if( !com_getSipName( COM_ISGTOP, &label, &type ) ) {return;}
-    com_decodeTxtBase( iHead, COM_SIG_SIP, NULL, label, type,
-                       COM_CAP_SIPHDR_CTYPE );
+    com_decodeTxtBase( iHead, NULL, label, type, COM_CAP_SIPHDR_CTYPE );
     COM_DECODER_END;
 }
 

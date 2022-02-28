@@ -1348,24 +1348,25 @@ long com_getSigType( com_sigInf_t *iInf )
 
 enum { NAMEBUF_MAX = 5 };
 
-char *com_searchDecodeName( com_decodeName_t *iList, long iType, BOOL iAddNum )
+char *com_searchDecodeName( com_decodeName_t *iList, long iCode, BOOL iAddNum )
 {
+    if( !iList ) {COM_PRMNG(NULL);}
     static char  nameBuf[NAMEBUF_MAX][COM_LINEBUF_SIZE];
     static long  idx = NAMEBUF_MAX - 1;  // 次行で最初は 0 になる仕掛け
     idx = (idx + 1 ) % NAMEBUF_MAX;
     memset( nameBuf[idx], 0, sizeof(*(nameBuf[idx])) );
 
     for( long i = 0;  iList[i].code >= 0;  i++ ) {
-        if( iList[i].code == iType ) {
+        if( iList[i].code == iCode ) {
             char*  hit = iList[i].name;
             if( !iAddNum ) {return hit;}
             snprintf( nameBuf[idx], sizeof(nameBuf[idx]),
-                      "%s (0x%02x/%ld)", hit, (int)iType, iType );
+                      "%s (0x%02x/%ld)", hit, (int)iCode, iCode );
             return nameBuf[idx];
         }
     }
     com_error( COM_ERR_NOTPROTO,
-               "not found [type = %ld(0x%lx)]", iType, iType );
+               "not found [type = %ld(0x%lx)]", iCode, iCode );
     return NULL;
 }
 
@@ -1428,12 +1429,12 @@ static void dispTxtBody( com_sigInf_t *iHead, const char *iConType )
 }
 
 void com_decodeTxtBase(
-        com_sigInf_t *iHead, long iType, const char **iHdrList,
+        com_sigInf_t *iHead, const char **iHdrList,
         const char *iSigLabel, long iSigType, const char *iConType )
 {
     if( !iHead || !iSigLabel || !iConType ) {COM_PRMNG();}
     com_printf( "# %s HEADER [%ld]  <length=%zu>\n",
-                com_searchSigProtocol( iType ), iType, COM_ISGLEN );
+                com_searchSigProtocol( COM_ISGTYPE ), COM_ISGTYPE, COM_ISGLEN );
     if( iSigType < COM_SIG_METHOD_END ) {com_dispPrm( "Method", iSigLabel, 0 );}
     else {com_dispVal( "Status Code", iSigType );}
     if( iHdrList ) {dispHdrList( iHead, iHdrList );}
@@ -1460,7 +1461,7 @@ static void dispTagLen(
 
 void com_dispAsnPrm( const com_sigPrm_t *iPrm, const char *iLabel, long iStart )
 {
-    if( !iPrm || iLabel ) {COM_PRMNG();}
+    if( !iPrm || !iLabel ) {COM_PRMNG();}
     com_off  nestCnt = 0;
     com_strChain_t*  restStack = NULL;
     com_off  rest = 0;
@@ -1486,6 +1487,7 @@ static com_sigFrgManage_t*  gFrgInf = NULL;
 
 void com_freeSigFrgCond( com_sigFrgCond_t *oTarget )
 {
+    if( !oTarget ) {COM_PRMNG();}
     com_free( oTarget->src.top );
     com_free( oTarget->dst.top );
 }
@@ -1524,6 +1526,7 @@ static BOOL matchFrgCond(
 
 com_sigFrgManage_t *com_searchFragment( const com_sigFrgCond_t *iCond )
 {
+    if( !iCond ) {COM_PRMNG(NULL);}
     for( long i = 0;  i < gFrgInfCnt;  i++ ) {
         if( !gFrgInf[i].isUse ) {continue;}
         if( matchFrgCond( &gFrgInf[i].cond, iCond ) ) {return &(gFrgInf[i]);}
