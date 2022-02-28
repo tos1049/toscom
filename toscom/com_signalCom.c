@@ -1190,10 +1190,10 @@ void com_onlyDispSig( COM_DECODER_PRM )
 {
     char  label[COM_WORDBUF_SIZE] = {0};
     snprintf( label, sizeof(label), "%s ", com_searchSigProtocol(COM_ISGTYPE) );
-    com_printf( "# %s[%ld]  <length=%zu>\n", label, COM_ISGTYPE, COM_ISGLEN );
+    com_dispDec( " %s[%ld]  <length=%zu>", label, COM_ISGTYPE, COM_ISGLEN );
     COM_ASCII_DUMP( &COM_ISG );
     //com_dispSig( label, sig->ptype, sig );
-    com_printf( "#     *** %s not analyzed, display only ***\n", label );
+    com_dispDec( "     *** %s not analyzed, display only ***", label );
 }
 
 void com_dispIfExist( com_sigPrm_t *iPrm, long iType, const char *iName )
