@@ -1348,7 +1348,7 @@ void com_decodeUdp( COM_DECODER_PRM )
 // 初期化用：次プロトコル値
 static com_sigPrtclType_t  gSctpNext1[] = {
     { {COM_CAP_SCTP_PROTO_DIAMETER},  COM_SIG_DIAMETER },
-    { {COM_PRTCLTYPE_END}, COM_SIG_UNKNOWN }
+    { {COM_PRTCLTYPE_END}, COM_SIG_CONTINUE }
 };
 
 static BOOL getChunkHead(
@@ -1474,7 +1474,7 @@ void com_decodeSctp( COM_DECODER_PRM )
     com_dispSig( "SCTP HEADER ", COM_SIG_SCTP, &COM_ISG );
     COM_CAST_HEAD( com_sigSctpCommonHdr_t, cmnHdr, COM_ISGTOP );
     com_dispPrm( "src port", &cmnHdr->srcPort, COM_16BIT_SIZE );
-    com_dispPrm( "src port", &cmnHdr->dstPort, COM_16BIT_SIZE );
+    com_dispPrm( "dst port", &cmnHdr->dstPort, COM_16BIT_SIZE );
     DISPBIN( "verification Tag", cmnHdr->verifTag, COM_32BIT_SIZE );
     com_sigInf_t*  payload = COM_INEXTSTK;
     for( long i = 0;  i < COM_INEXTCNT;  i++ ) {
