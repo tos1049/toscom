@@ -83,7 +83,7 @@ BOOL com_analyzeEth2( COM_ANALYZER_PRM )
     }
     checkUnknown( &type, iDecode,
                   "Ether2 not supported (ether type=%04x)", ethType );
-    result = com_setHeadInf(ioHead, sizeof(*eth2) + vlan, COM_SIG_ETHER2, type);
+    result = com_setHeadInf( ioHead, HDRSIZE + vlan, COM_SIG_ETHER2, type );
     COM_ANALYZER_END;
 }
 

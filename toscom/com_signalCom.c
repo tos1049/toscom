@@ -58,7 +58,6 @@ BOOL com_analyzeSignalToLast( COM_ANALYZER_PRM )
     return analyzeStacks( &(com_sigStk_t){ 1, ioHead }, iDecode );
 }
 
-#if 0
 static BOOL failRollback(
         com_sigInf_t *ioHead, com_sigInf_t *iOrg, const char *iNotCase )
 {
@@ -91,16 +90,6 @@ BOOL com_analyzeAsLinkLayer( COM_ANALYZER_PRM )
     }
     return analyzeTmpType( ioHead, com_analyzeEth2, iDecode, com_decodeEth2,
                            "# ... not Ether2, maybe Network Layer\n" );
-}
-#endif
-
-BOOL com_analyzeAsLinkLayer( COM_ANALYZER_PRM )
-{
-    if( com_analyzeSll( COM_ANALYZER_VAR ) ) {return true;}
-    DEBUGSIG( "# ... not SLL, maybe Ether2\n" );
-    if( com_analyzeEth2( COM_ANALYZER_VAR ) ) {return true;}
-    DEBUGSIG( "# ... not Ether2, maybe Network Layer\n" );
-    return false;
 }
 
 static BOOL getIpVersion( com_sigInf_t *ioHead )
@@ -220,6 +209,10 @@ void com_decodeSignal( COM_DECODER_PRM )
     if( !iHead ) {COM_PRMNG();}
     if( COM_ISGTYPE == COM_SIG_ALLZERO ) {
         com_decodeData( iHead, "DATA" );
+        return;
+    }
+    if( COM_ISGTYPE == COM_SIG_CONTINUE ) {
+        com_decodeData( iHead, "Unknown protocol" );
         return;
     }
     com_decodeSig_t  func = com_searchSigDecoder( COM_ISGTYPE );
