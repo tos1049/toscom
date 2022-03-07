@@ -158,6 +158,12 @@ static BOOL addPort( com_getOptInf_t *iOptInf )
 static char  gHelpBasic[] =
     "コマンドライン:  Analyzer [options] [files]\n"
     "\n"
+    "  現在、解析可能なプロトコルは以下。\n"
+    "  (プロトコル名指定が必要なオプションで指定可能な文字列ともなる。\n"
+    "   この際 英文字の大文字小文字は問わない)\n"
+    "\n";
+
+static char  gHelpOption[] =
     "  [options]\n"
     "    --help\n"
     "    -h\n"
@@ -165,32 +171,30 @@ static char  gHelpBasic[] =
     "\n"
     "    --proto (プロトコル名)\n"
     "    -p (プロトコル名)\n"
-    "      指定プロトコルでの解析を実施する。大文字小文字は問わない。\n"
-    "      指定可能な文字列は以下：\n"
-    "\n";
-
-static char  gHelpCustom[] =
+    "      指定プロトコルでの解析を実施する。\n"
+    "      プロトコル名に指定する文字列は前述した。\n"
+    "\n"
     "    --filter (プロトコル名)\n"
     "    -f (プロトコル名)\n"
     "      指定プロトコルのスタックがあるときのみ停止する。\n"
-    "      (使用可能なプロトコル名文字列は -p と同じものになる)\n"
+    "      プロトコル名に指定する文字列は前述した。\n"
     "\n"
     "    -ipport (ポート番号) (プロトコル名)\n"
     "      UDP/TCP/SCTPのポート番号とプロトコルの対応を指定する。\n"
     "      SCTPのポート番号は、SCTPの次プロトコル値が 0 のときのみ見る。\n"
-    "      (使用可能なプロトコル名文字列は -p と同じものになる)\n"
+    "      プロトコル名に指定する文字列は前述した。\n"
     "\n"
     "    --sctpnext (プロトコル値) (プロトコル名)\n"
     "      SCTPの次プロトコル値とプロトコルの対応を指定する。\n"
-    "      (使用可能なプロトコル名文字列は -p と同じものになる)\n"
+    "      プロトコル名に指定する文字列は前述した。\n"
     "\n"
     "    --sccpssn (SSN値) (プロトコル名)\n"
     "      SSNと SCCPの次プロトコル対応を指定する。\n"
-    "      (使用可能なプロトコル名文字列は -p と同じものになる)\n"
+    "      プロトコル名に指定する文字列は前述した。\n"
     "\n"
     "    --tcapssn (SSN値) (プロトコル名)\n"
     "      SSNと TCAPの次プロトコル対応を指定する。\n"
-    "      (使用可能なプロトコル名文字列は -p と同じものになる)\n";
+    "      プロトコル名に指定する文字列は前述した。\n";
 
 static char  gHelpFiles[] =
     "  [files]\n"
@@ -202,13 +206,37 @@ static char  gHelpFiles[] =
     "    (データ末尾に改行がない場合は CTRL+D を2回入力すること)\n"
     "    何もデータを入れずに CTRL+D のみでツールを終了する。\n";
 
+static void dispProtocolList( long iIndent, long iWidth )
+{
+    long*  list = NULL;
+    long   cnt = com_showAvailProtocols( &list );
+    long  dispCnt = 0;
+    for( long i = 0;  i < cnt;  i++ ) {
+        if( !dispCnt ) {com_repeat( " ", iIndent, false );}
+        char*  label = com_searchSigProtocol( list[i] );
+        com_printf( "%s ", label );
+        dispCnt += strlen( label ) + 1;
+        if( dispCnt > iWidth - iIndent ) {
+            com_printLf();
+            dispCnt = 0;
+        }
+    }
+    if( dispCnt ) {com_printLf();}
+    com_free( list );
+}
+
+enum {
+    PROTOLIST_LEFT  = 4,
+    PROTOLIST_RIGHT = 70
+};
+
 static BOOL showHelp( com_getOptInf_t *iOptInf )
 {
     COM_UNUSED( iOptInf );
     com_printf( gHelpBasic );
-    (void)com_showAvailProtocols( NULL );
+    dispProtocolList( PROTOLIST_LEFT, PROTOLIST_RIGHT );
     com_printLf();
-    com_printf( gHelpCustom );
+    com_printf( gHelpOption );
     com_printLf();
     com_printf( gHelpFiles );
     com_printLf();
