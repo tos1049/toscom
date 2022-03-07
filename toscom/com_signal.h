@@ -821,6 +821,31 @@ long com_searchPrtclByLabel( const char *iLabel );
  */
 long com_showAvailProtocols( long **oList );
 
+/*
+ * 独自関数登録
+ *   処理成否を true/false で返す。
+ * ---------------------------------------------------------------------------
+ *   COM_ERR_DEBUGNG: [com_prmNG] iTypeで指定したプロトコルデータなし
+ *                                または指定関数=NULL
+ * ===========================================================================
+ *   マルチスレッドで影響を受ける処理はない。
+ * ===========================================================================
+ * iTypeで指定したプロトコルに対応する 解析I/F・デコードI/F・解放I/Fを
+ * 独自作成した関数に切り替える。これらのI/Fの作成ガイドラインについては、
+ * com_signalCom.h の説明記述を必ず参照すること。
+ * 
+ *   com_setCustomAnalyzer(): 解析I/Fを設定する。
+ *   com_setCustomDecoder():  デコードI/Fを設定する。
+ *   com_setCustomFreer():    解放I/Fを設定する。
+ *
+ * toscomのデコードI/Fはかなり簡易的な結果出力しかしないため、
+ * 詳しい出力をしたい時に、デコードI/Fを独自のものに切り替える、
+ * といった使い方を想定する。
+ */
+BOOL com_setCustomAnalyzer( long iType, com_analyzeSig_t iAnalyzer );
+BOOL com_setCustomDecoder( long iType, com_decodeSig_t iDecoder );
+BOOL com_setCustomFreer( long iType, com_freeSig_t iFreer );
+
 
 
 /*

@@ -304,6 +304,33 @@ long com_showAvailProtocols( long **oList )
     return cnt;
 }
 
+BOOL com_setCustomAnalyzer( long iType, com_analyzeSig_t iAnalyzer )
+{
+    if( !iAnalyzer ) {COM_PRMNG(false);}
+    com_analyzeFuncList_t*  anlz = searchAnalyzeList( iType );
+    if( !anlz ) {COM_PRMNG(false);}
+    anlz->func = iAnalyzer;
+    return true;
+}
+
+BOOL com_setCustomDecoder( long iType, com_decodeSig_t iDecoder )
+{
+    if( !iDecoder ) {COM_PRMNG(false);}
+    com_analyzeFuncList_t*  anlz = searchAnalyzeList( iType );
+    if( !anlz ) {COM_PRMNG(false);}
+    anlz->decoFunc = iDecoder;
+    return true;
+}
+
+BOOL com_setCustomFreer( long iType, com_freeSig_t iFreer )
+{
+    if( !iFreer ) {COM_PRMNG(false);}
+    com_analyzeFuncList_t*  anlz = searchAnalyzeList( iType );
+    if( !anlz ) {COM_PRMNG(false);}
+    anlz->freeFunc = iFreer;
+    return true;
+}
+
 
 
 // プロトコル判定処理 ////////////////////////////////////////////////////////
