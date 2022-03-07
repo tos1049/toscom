@@ -41,13 +41,13 @@ enum {
     COM_SIG_ETHER2   = 102,    // DLT_LINUX_SLL  (0x71)
     /*** Network層 (201-299) ***/
     COM_SIG_IPV4     = 201,    // ETHERTYPE_IP   (0x0800) RFC791
-    COM_SIG_IPV6     = 292,    // ETHERTYPE_IPV6 (0x86dd) RFC2460 -> 8200
+    COM_SIG_IPV6     = 202,    // ETHERTYPE_IPV6 (0x86dd) RFC2460 -> 8200
     COM_SIG_ICMP     = 203,    // IPPROTO_ICMP   (0x01)   RFC792
     COM_SIG_ICMPV6   = 204,    // IPPROTO_ICMPV6 (0x3a)   RFC4443
     COM_SIG_ARP      = 205,    // ETHERTYPE_ARP  (0x0806) RFC826
     /*** Transport層 (301-399) ***/
     COM_SIG_TCP      = 301,    // IPPROTO_TCP    (0x06)   RFC793
-    COM_SIG_UDP      = 392,    // IPPROTO_UDP    (0x11)   RFC768
+    COM_SIG_UDP      = 302,    // IPPROTO_UDP    (0x11)   RFC768
     COM_SIG_SCTP     = 303,    // IPPROTO_SCTP   (0x84)   RFC2960 -> 4960
     /*** No.7系 (401-499) ***/
     /*** Application層 (501-599) ***/
