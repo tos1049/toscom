@@ -143,12 +143,12 @@ void com_dispTitle( const char *iAdd )
 // 共通ログ出力処理 ----------------------------------------------------------
 
 static pthread_mutex_t  gMutexOut = PTHREAD_MUTEX_INITIALIZER;
-static char  gLogBuff[COM_TEXTBUF_SIZE];    // ログ出力用共通バッファ
+static char  gLogBuff[COM_DATABUF_SIZE];    // ログ出力用共通バッファ
 
 #define COM_MAKELOG( ... ) \
     snprintf( gLogBuff, sizeof(gLogBuff), __VA_ARGS__ )
 
-static char  gWriteBuf[COM_TEXTBUF_SIZE];  // 書き込み用一時バッファ
+static char  gWriteBuf[COM_DATABUF_SIZE];  // 書き込み用一時バッファ
 
 // 画面クリア
 static char  gClearLine[] = "***************************************"
