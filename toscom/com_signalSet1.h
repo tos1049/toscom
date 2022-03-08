@@ -138,7 +138,27 @@ typedef struct {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeSll()で ioHead->sigの信号データを SLLヘッダとして解析する。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .len       SLLヘッダサイズ (sizeof(com_sigSllHead_t))
+ *     .ptype     COM_SIG_SLL
+ *   .next
+ *     .cnt       1固定
+ *     .stack[0]
+ *       .sig     SLLヘッダ以降のデータ
+ *                .ptypeは SLLヘッダの .protocol から取得する
+ *       .order   ioHead->orderの値
+ *       .prev    ioHead自身
+ * ioHead->sig.top を com_sigSllHead_t* でキャストしてヘッダ取得可能。
  *
+ * 次プロトコル値(ioHead->next.stack[0].sig.ptype)は COM_LINKNEXT を指定した
+ * com_getPrtclType()によって特定される。
+ *
+ *
+ * com_decodeSll()で解析した iHeadの内容をデコード出力する。
+ * ・SLLヘッダの内容ダンプ
+ * ・次プロトコル
  */
 BOOL com_analyzeSll( COM_ANALYZER_PRM );
 void com_decodeSll( COM_DECODER_PRM );
@@ -188,7 +208,34 @@ struct ether_header {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeEth2()で ioHead->sigの信号データを Ether2ヘッダとして解析する。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .len       Ether2ヘッダサイズ (sizeof(struct ether_header))
+ *     .ptype     COM_SIG_ETHER2
+ *   .prm         VLANタグがあった場合、タグとその内容を格納
+ *   .next
+ *     .cnt       1固定
+ *     .stack[0]
+ *       .sig     Ether2ヘッダ以降のデータ
+ *                .ptypeは Ether2ヘッダの ether_typeから取得する
+ *       .order   ioHead->orderの値
+ *       .prev    ioHead自身
+ * ioHead->sig.top を struct ether_header* でキャストしてヘッダ取得可能。
+ * VLANタグがあった場合 .prm にその内容を格納する。その場合 次プロトコルを
+ * 示す値の位置が struct ether_headerからは取得できなくなるので注意すること。
+ * (解析処理の中で正しく値は取得し .next.stack[0].sig.ptype に設定する)
  *
+ * 前述した通り、VLANタグとしてサポートしているのは ETH_P_8021Qのみで、
+ * それ以外に対応したい場合は、そのタグ値を登録する必要がある。
+ *
+ * 次プロトコル値(ioHead->next.stack[0].sig.ptype)は COM_LINKNEXT を指定した
+ * com_getPrtclType()によって特定される。
+ *
+ *
+ * com_decodeEth2()で解析した iHeadの内容をデコード出力する。
+ * ・Ether2ヘッダの内容ダンプ
+ * ・次プロトコル
  */
 BOOL com_analyzeEth2( COM_ANALYZER_PRM );
 void com_decodeEth2( COM_DECODER_PRM );
@@ -196,13 +243,18 @@ void com_decodeEth2( COM_DECODER_PRM );
 /*
  * VLANタグ名取得  com_getVlanTagName()
  *   タグ名文字列を返す。
- *   対応する文字列が見つからない場合は NULLを返す。
+ *   対応する文字列が見つからない場合は "VLAN tag"を返す。
  * ---------------------------------------------------------------------------
  *   com_searchDecodeName()によるエラー
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
+ * iTagで指定したVLANタグ値(バイトオーダー変換済みを想定)に対応する
+ * タグ名の文字列を返す。
+ * gVlanTagName[]から文字列を検索する。
  *
+ * データ登録されていないタグ値だった場合は "VLAN tag" を固定で返す。
+ * 独自に VLANタグを追加していた場合は、これになる。
  */
 char *com_getVlanTagName( uint16_t iTag );
 
@@ -283,7 +335,44 @@ struct ip {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeIpv4()で ioHead->sigの信号データを IPv4ヘッダとして解析する。
+ * 参照勧告は RFC791(section 3.1)・RFC2113。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .top       IPフラグメント結合した場合、その結合結果に差し替わる
+ *     .len       IPv4ヘッダサイズ (ipv4->ip_hl * 4)
+ *     .ptype     COM_SIG_IPV4 (IPフラグメント断片だった場合 COM_SIG_FRAGMENT)
+ *   .isFragment  IPフラグメント断片だった場合 true設定
+ *   .ras         IPフラグメント結合したら、その結果を格納
+ *   .prm         IPv4オプションがあった場合、その内容を格納
+ *   .next
+ *     .cnt       1固定
+ *     .stack[0]
+ *       .sig     IPv4ヘッダ以降のデータ
+ *                .ptypeは IPv4ヘッダの ip_pから取得する。
+ *       .order   ioHead->orderの値
+ *       .prev    ioHead自身
+ * ioHead->sig.top を struct ip* でキャストしてヘッダ取得可能。
+ * IPv4オプションが含まれる場合 .prm に内容を格納する。
  *
+ * 次プロトコル値(ioHead->next.stack[0].sig.ptype)は COM_IPNEXT を指定した
+ * com_getPrtclType()によって特定される。
+ *
+ * IPフラグメントありの場合、ペイロードデータを一時蓄積し、ioHead->sig.ptypeを
+ * COM_SIG_FRAGMENT にする。全フラグメントが揃ったら、結合して .ras に格納する。
+ * テキストログ解析時は「Reassembled IPv4～」という文字列を検出した場合、
+ * それ以降にフラグメント結合データがあるとみなし、その内容を .ras に格納し、
+ * 各フラグメントの結合より、こちらを優先して使用する。
+ *
+ *
+ * com_decodeIpv4()で解析した iHeadの内容をデコード出力する。
+ * ・IPv4ヘッダの内容ダンプ
+ * ・送信元IPアドレス
+ * ・送信先IPアドレス
+ * ・識別子
+ * ・フラグメント情報
+ * ・IPv4オプション一覧
+ * ・次プロトコル
  */
 BOOL com_analyzeIpv4( COM_ANALYZER_PRM );
 void com_decodeIpv4( COM_DECODER_PRM );
@@ -297,7 +386,8 @@ void com_decodeIpv4( COM_DECODER_PRM );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
- *
+ * iTypeで指定したオプション種別値に対応するオプション名文字列を返す。
+ * gIPv4OptName[]から文字列を検索する。
  */
 char *com_getIpv4OptName( long iType );
 
@@ -368,7 +458,45 @@ struct ip6_frag {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeIpv6()で ioHead->sigの信号データを IPv6ヘッダとして解析する。
+ * 参照勧告は RFC8200(section 3)。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .top       IPフラグメント結合した場合、その結合結果に差し替わる
+ *     .len       IPv6ヘッダサイズ (拡張ヘッダも含めたサイズ)
+ *     .ptype     COM_SIG_IPV6 (IPフラグメント断片だった場合 COM_SIG_FRAGMENT)
+ *   .isFragment  IPフラグメント断片だった場合 true設定
+ *   .ras         IPフラグメント結合したら、その結果を格納
+ *   .prm         IPv6拡張ヘッダがあった場合、その内容を格納
+ *                (.tagにヘッダ種別、.lenにヘッダ長、.valueにデータ先頭)
+ *   .next
+ *     .cnt       1固定
+ *     .stack[0]
+ *       .sig     IPv6ヘッダ以降のデータ
+ *                .ptypeは IPv6ヘッダの ip6_nxtから取得する。
+ *                (拡張ヘッダがある場合は、その拡張ヘッダの ip6e_nxtから)
+ *       .order   ioHead->orderの値
+ *       .prev    ioHead自身
+ * ioHead->sig.top を struct ip6_hdr* でキャストしてヘッダ取得可能。
+ * IPv6拡張ヘッダがある場合 .prm にその内容を格納する。
  *
+ * 次プロトコル値(ioHead->next.stack[0].sig.ptype)は COM_IPNEXT を指定した
+ * com_getPrtclType()によって特定される。
+ *
+ * IPフラグメントありの場合、ペイロードデータを一時蓄積し、ioHead->sig.ptypeを
+ * COM_SIG_FRAGMENT にする。全フラグメントが揃ったら、結合して .ras に格納する。
+ * テキストログ解析時は「Reassembled IPv6～」という文字列を検出した場合、
+ * それ以降にフラグメント結合データがあるとみなし、その内容を .ras に格納し、
+ * 各フラグメントの結合より、こちらを優先して使用する。
+ *
+ *
+ * com_decodeIpv6()で解析した iHeadの内容をデコード出力する。
+ * ・IPv6ヘッダの内容ダンプ
+ * ・flow-ID
+ * ・送信元IPアドレス
+ * ・送信先IPアドレス
+ * ・IPv6拡張ヘッダ一覧
+ * ・次プロトコル
  */
 BOOL com_analyzeIpv6( COM_ANALYZER_PRM );
 void com_decodeIpv6( COM_DECODER_PRM );
@@ -382,25 +510,10 @@ void com_decodeIpv6( COM_DECODER_PRM );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
- *
+ * iCodeで指定したプロトコル識別値に対応する拡張ヘッダ名文字列を返す。
+ * gIpv6ExtHdrName[]から文字列を検索する。
  */
 char* com_getIpv6ExtHdrName( long iCode );
-
-
-/*
- * IPアドレスとポート番号チェック  com_checkIpAddrPort()
- *   チェック結果を true/false で返す・
- * ---------------------------------------------------------------------------
- *   COM_ERR_DEBUGNG: [com_prmNG] !iData || !iList
- * ===========================================================================
- *   マルチスレッドで影響を受ける処理はない。
- * ===========================================================================
- *
- */
-BOOL com_checkIpAddrPort(
-        void *iData, ssize_t iDataSize,
-        struct sockaddr_storage *iList, long iListCnt );
-
 
 
 /*
@@ -456,13 +569,34 @@ struct icmphdr {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeIcmp()で ioHead->sigの信号データを ICMP信号として解析する。
+ * 参照勧告は RFC792。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .len       ICMPヘッダサイズ (sizeof(struct icmphdr)
+ *     .ptype     COM_SIG_ICMP
+ *   .prm         ICMPオプションがあった場合、その内容を格納
+ *   .multi
+ *     .cnt       1固定
+ *     .stack[0]
+ *       .sig     ICMP基本ヘッダ以降のデータ (.ptypeは COM_SIG_ICMP)
+ *       .order   ioHead->orderの値
+ *       .prev    ioHead自身
+ * ioHead->sig.top を struct icmphdr* でキャストしてヘッダ取得可能。
+ * ICMPオプションがある場合 .prm にその内容を格納する。
+ * ヘッダ以降の内容は .multi に格納する。
  *
+ *
+ * com_decodeIcmp()で解析した iHeadの内容をデコード出力する。
+ * ・ICMPヘッダとボディのダンプ
+ * ・ICMPメッセージ種別
+ * ・Destination Unreachableの場合、送信できなかった信号内容もデコード
  */
 BOOL com_analyzeIcmp( COM_ANALYZER_PRM );
 void com_decodeIcmp( COM_DECODER_PRM );
 
 /*
- * ICMP信号種別名取得  com_getIcmpTypeName()
+ * ICMPメッセージ種別名取得  com_getIcmpTypeName()
  *   信号種別名文字列を返す。
  *   対応する文字列が見つからない場合は NULLを返す。
  * ---------------------------------------------------------------------------
@@ -470,7 +604,8 @@ void com_decodeIcmp( COM_DECODER_PRM );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
- *
+ * iSigTopでICMP信号データの先頭を指定することで、メッセージ種別の文字列を返す。
+ * gIcmpTypeName[]から文字列を検索する。
  */
 char *com_getIcmpTypeName( void *iSigTop );
 
@@ -526,13 +661,30 @@ struct icmp6_hdr {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeIcmpv6()で ioHead->sigの信号データを ICMPv6信号として解析する。
+ * 参照勧告は RFC4443/2461。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .len       ICMPv6ヘッダサイズ (sizeof(struct icmp6_hdr)
+ *     .ptype     COM_SIG_ICMPV6
+ *   .multi       ICMPv6基本ヘッダ(struct icmp6_hdr)以降のデータ
+ *     .cnt       1固定
+ *     .stack[0]
+ *       .sig     ICMPv6基本ヘッダ以降のデータ (.ptypeは COM_SIG_ICMPV6)
+ *       .order   ioHead->orderの値
+ * ioHead->sig.top を struct icmp6_hdr* でキャストしてヘッダ取得可能。
+ * ヘッダ以降の内容は .multi に格納する。
  *
+ *
+ * com_decodeIcmpv6()で解析した iHeadの内容をデコード出力する。
+ * ・ICMPv6ヘッダとボディのダンプ
+ * ・ICMPv6メッセージ種別
  */
 BOOL com_analyzeIcmpv6( COM_ANALYZER_PRM );
 void com_decodeIcmpv6( COM_DECODER_PRM );
 
 /*
- * ICMPv6信号種別名取得  com_getIcmpv6TypeName()
+ * ICMPv6メッセージ種別名取得  com_getIcmpv6TypeName()
  *   信号種別名文字列を返す。
  *   対応する文字列が見つからない場合は NULLを返す。
  * ---------------------------------------------------------------------------
@@ -540,7 +692,9 @@ void com_decodeIcmpv6( COM_DECODER_PRM );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
- *
+ * iSigTopでICMPv6信号データの先頭を指定することで、メッセージ種別の文字列を
+ * 返す。
+ * gIcmpv6TypeName[]から文字列を検索する。
  */
 char *com_getIcmpv6TypeName( void *iSigTop );
 
@@ -591,7 +745,24 @@ struct arphdr {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeArp()で ioHead->sigの信号データを ARP信号として解析する。
+ * 参照勧告は RFC826。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .len       ARPヘッダサイズ (sizeof(struct arphdr)
+ *     .ptype     COM_SIG_ARP
+ *   .multi       ARPヘッダ(struct arphdr)以降のデータ
+ *     .cnt       1固定
+ *     .stack[0]
+ *       .sig     ARPヘッダ以降のデータ (.ptypeは COM_SIG_ARP)
+ *       .order   ioHead->orderの値
+ * ioHead->sig.top を struct arphdr* でキャストしてヘッダ取得可能。
+ * ヘッダ以降の内容は .multi に格納する。
  *
+ *
+ * com_decodeArp()で解析した iHeadの内容をデコード出力する。
+ * ・ARPヘッダとボディのダンプ
+ * ・オペレーション種別
  */
 BOOL com_analyzeArp( COM_ANALYZER_PRM );
 void com_decodeArp( COM_DECODER_PRM );
@@ -605,7 +776,9 @@ void com_decodeArp( COM_DECODER_PRM );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
- *
+ * iSigTopでARP信号データの先頭を指定することで、信号種別の文字列を返す。
+ * iOrderにはバイトオーダー(例えば com_sigInf_t型の .order)を設定する。
+ * gArpOpName[]から文字列を検索する。
  */
 char *com_getArpOpName( void *iSigTop, long iOrder );
 
@@ -700,7 +873,51 @@ struct tcphdr {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeTcp()で ioHead->sigの信号データを TCP信号として解析する。
+ * 参照勧告は RFC793(section 3.1)。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .len       TCPヘッダサイズ (sizeof(struct tcphdr)
+ *     .ptype     COM_SIG_TCP
+ *   .prm         TCPオプションがあれば格納
+ *   .ext         次プロトコルを判定するために使用したポート番号(long*型)
+ *   .next        ペイロードデータ
+ *     .cnt       1固定
+ *     .stack[0]
+ *       .sig     TCPヘッダ以降のデータ
+ *                .ptypeは TCPヘッダのポート番号から取得する。
+ *       .order   ioHead->orderの値
+ *       .prev    ioHead自身
+ * ioHead->sig.top を struct tcphdr* でキャストしてヘッダ取得可能。
  *
+ * 次プロトコルを特定するためのポート番号は 送信元->送信先 の順で調べる。
+ * 最終的に使用したポート番号を .ext に long*型で格納する。
+ * 次プロトコル値(ioHead->next.stack[0].sig.ptype)は COM_IPPORT を指定した
+ * com_getPrtclType()によって特定される。
+ * プロトコルが特定できなかったら 次プロトコル種別は COM_SIG_CONTINUE になる。
+ *
+ * TCPヘッダのシーケンス番号と ACK番号については .prm.spec に保持している。
+ * そのデータ型は com_sigTcpInf_t*型となっている。
+ * SYNで情報を生成し、FINでメモリ解放する。
+ * しかし常に SYNがあるとは限らない為無い場合は ACKを元に相対シーケンス番号を
+ * 出すような作りとしている。(これは Wireshark と同様の手法となる)
+ *
+ * TCPセグメンテーションの認識と結合にも対応しているが、これについては
+ * com_stockTcpSeg()・com_continueTcpSeg()・com_reassembleTcpSeg()の説明を参照。
+ * TCPセグメンテーションがあるかどうかは、さらにその上位プロトコルスタックで
+ * データサイズの総量を認識する必要があるため、TCPだけでは判定できない。
+ * そのため上記の TCPセグメンテーションの処理I/Fは、上位プロトコルの解析時に、
+ * 必要に応じて呼ぶ形となっている。
+ *
+ *
+ * com_decodeTcp()で解析した iHeadの内容をデコード出力する。
+ * ・TCPヘッダ内容のダンプ
+ * ・送信元ポート番号
+ * ・送信先ポート番号
+ * ・シーケンス番号
+ * ・制御フラグ
+ * ・TCPオプション一覧
+ * ・次プロトコル
  */
 BOOL com_analyzeTcp( COM_ANALYZER_PRM );
 void com_decodeTcp( COM_DECODER_PRM );
@@ -714,41 +931,103 @@ void com_decodeTcp( COM_DECODER_PRM );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
- *
+ * iTypeで指定したオプション値に対応するオプション名文字列を返す。
+ * gTcpOptName[]から文字列を検索する。
  */
 char *com_getTcpOptName( long iType );
 
 /*
- *
+ * TCPセグメンテーション データ保持  com_stockTcpSeg()
+ *   実際にデータを保持したフラグメント情報のアドレスを返す。
+ *   処理NG時は NULLを返す。
  * ---------------------------------------------------------------------------
- *   エラーは発生しない。
+ *   COM_ERR_DEBUGNG: [com_prmNH] !ioTarget || !iTcp
+ *   com_stockFragments()によるエラー
  * ===========================================================================
- *   マルチスレッドで動作することは想定していない。
+ *   マルチスレッドの影響は考慮済み。
  * ===========================================================================
+ * ioTargetに実際のセグメントデータを有するプロトコルデータ
+ * (TCPの直上スタックのプロトコルデータになると想定している)
+ * iTcpにそのデータと同じパケット内でスタックされている TCP部のデータ、
+ * iTotalSizeにセグメンテーションされたデータの全長を指定することで、
+ * セグメントデータを toscomのフラグメント情報(com_sigFrg_t型)に格納し、
+ * そのデータのアドレスを返す。
  *
+ * 基本的には一番最初に iTotalSizeを指定して本I/Fを使用し、
+ * (TCPより上位のプロトコルで算出する手立てがあるはずと期待する)
+ * その後のセグメンテーションデータ保持は com_continueTcpSeg()の使用し、
+ * 受信したデータ総量が iTotalSizeに達したらデータを結合する流れを想定している。
+ *
+ * iTotalSizeは不明の場合 0 でも構わない(データ保持を優先)。
+ * しかし上位プロトコルでそのサイズが分かったら、その値を指定して本I/Fを
+ * 使って通知すること。
+ * そうしなければ com_continueTcpSeg()でセグメンテーション終了の判定ができない。
+ *
+ * 本I/FによるTCPセグメンテーション処理は暫定対処の扱い。
+ * ただ上位プロトコルでなければセグメンテーションデータの全長が分からない
+ * という現状では、これ以外に方法はないと考えられる。
+ * com_analyzeTctBase() で本I/Fを使う処理が記述されている。
  */
 com_sigFrg_t *com_stockTcpSeg(
         com_sigInf_t *ioTarget, com_sigInf_t *iTcp, com_off iTotalSize );
 
 /*
- *
+ * TCPセグメンテーション データ継続  com_continueTcpSeg()
+ *   セグメントデータを全て取得したら trueを返す。
+ *   まだ全て取得できていないときや、処理NG時は falseを返す。
  * ---------------------------------------------------------------------------
- *   エラーは発生しない。
+ *   COM_ERR_DEBUGNG: [com_prmNH] !ioTarget || !iTcp
+ *   com_stockFragments()によるエラー
  * ===========================================================================
- *   マルチスレッドで動作することは想定していない。
+ *   マルチスレッドの影響は考慮済み。
  * ===========================================================================
+ * ioTargetと iTcpの指定方法は com_stockTcpSeg()と同様となる。
+ * 最初に com_stockTcpSeg()を実行後、以後は本I/Fを使用することを想定する。
+ * 本I/Fはセグメントデータを収集し、全てのデータが揃ったかどうか、内部で
+ * com_reassembleTcpSeg()を使用してチェックし、揃っていたらデータを結合する。
+ * 結合した結果は ioTarget->ras に設定し、ioTarget->sigの内容を差し替えて、
+ * trueを返す。その内容をプロトコル解析I/Fにかければ良いことになる。
  *
+ * 処理NGが発生した場合、フラグメント情報はメモリ解放して falseを返すが、
+ * 呼び元で 処理NGなのか セグメントデータ不足なのかは特定できない。
+ * もし特定したい場合は本I/Fではなく com_stockTcpSeg()でデータを保持する。
+ * この際 iTotalSizeには 0 を指定する。そして、この方法で保持をした後、
+ * 返されたデータアドレスを com_reassembleTcpSeg()に掛け、全データが揃ったか
+ * どうかのチェックと、揃ったときの結合を実施する(チェックや結合・データ格納は
+ * 全て com_reassembleTcpSeg()で実施可能)
+ *
+ * データ保持でNGが発生時は com_stockTcpSeg()は NULLを返し、
+ * データ結合でNGが発生時は com_reassembleTcpSeg()は COM_FRG_ERRORを返すので、
+ * どこで処理NGが起きたかをある程度特定可能。
  */
 BOOL com_continueTcpSeg( com_sigInf_t *ioTarget, com_sigInf_t *iTcp );
 
 /*
- *
+ * TCPセグメンテーション データ結合  com_reassembleTcpSeg()
+ *   処理結果を COM_SIG_FRG_t型の値で返す。COM_FRG_OK が帰ることはない。
  * ---------------------------------------------------------------------------
- *   エラーは発生しない。
+ *   COM_ERR_DEBUGNG: [com_prmNH] !iFrg || !ioTarget || !iTcp
  * ===========================================================================
- *   マルチスレッドで動作することは想定していない。
+ *   マルチスレッドの影響は考慮済み。
  * ===========================================================================
+ * iFrgはセグメンテーションデータを保持した情報のアドレス、
+ * (com_stockTcpSeg()で返されたアドレスを想定)
+ * ioTarget・iTcpは com_stockTcpSeg()と同様の内容を指定することで、
+ * セグメンテーションデータが全て揃っているかどうかをチェックし、
+ * 揃っていたらデータを結合して ioTarget->ras に格納し COM_FRG_REASMを返す。
+ * (併せて ioTarget->sig のポイント先を ioTarget->ras に切り替える)
  *
+ * 揃っていない場合は 何もせずに COM_SIG_FRGを返す。(後続データ待ち)
+ *
+ * セグメンテーションデータが揃っているかチェックするためには、
+ * com_stockTcpSeg()で iTotalSizeを 1以上指定して予め呼んでいる必要がある。
+ * この指定がない場合 セグメンテーションデータが揃っているかのチェックは
+ * 行わず、無条件で COM_SIG_FRG を返す。
+ *
+ * なお既に iTotalSize指定済みの場合、com_continueTcpSeg()を使って
+ * セグメンテーションデータを保持すると、併せて内部で本I/Fを呼んで、
+ * セグメンテーションデータの終了チェックや結合も行うため、
+ * 本I/Fを改めて呼ぶ必要はない。
  */
 COM_SIG_FRG_t com_reassembleTcpSeg(
         com_sigFrg_t *iFrg, com_sigInf_t *ioTarget, com_sigInf_t *iTcp );
@@ -786,7 +1065,34 @@ struct udphdr {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeUdp()で ioHead->sigの信号データを UDP信号として解析する。
+ * 参照勧告は RFC768。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .len       UDPヘッダサイズ (sizeof(struct udphdr)
+ *     .ptype     COM_SIG_UDP
+ *   .ext         次プロトコルを判定するために使用したポート番号(long*型)
+ *   .next        ペイロードデータ
+ *     .cnt       1固定
+ *     .stack[0]
+ *       .sig     UDPヘッダ以降のデータ
+ *                .ptypeは UDPヘッダのポート番号から取得する。
+ *       .order   ioHead->orderの値
+ *       .prev    ioHead自身
+ * ioHead->sig.top を struct udphdr* でキャストしてヘッダ取得可能。
  *
+ * 次プロトコルを特定するためのポート番号は 送信元->送信先 の順で調べる。
+ * 最終的に使用したポート番号を .ext に long*型で格納する。
+ * 次プロトコル値(ioHead->next.stack[0].sig.ptype)は COM_IPPORT を指定した
+ * com_getPrtclType()によって特定される。
+ * プロトコルが特定できなかったら 次プロトコル種別は COM_SIG_CONTINUE になる。
+ *
+ *
+ * com_decodeUdp()で解析した iHeadの内容をデコード出力する。
+ * ・UDPヘッダ内容のダンプ
+ * ・送信元ポート番号
+ * ・送信先ポート番号
+ * ・次プロトコル
  */
 BOOL com_analyzeUdp( COM_ANALYZER_PRM );
 void com_decodeUdp( COM_DECODER_PRM );
@@ -873,7 +1179,49 @@ typedef struct {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeSctp()で ioHead->sigの信号データを SCTP信号として解析する。
+ * 参照勧告は RFC4960(section 3)。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .len       SCTP共通ヘッダサイズ (sizeof(com_sigSctpCommonHdr_t)
+ *     .ptype     COM_SIG_SCTP
+ *   .multi
+ *     .cnt       メッセージ内の chunk数
+ *     .statck[]
+ *       .sig     各chunkの内容 (.ptypeは COM_SIG_SCTP)
+ *       .order   ioHead->orderの値
+ *   .ext         次プロトコルを判定するために使用したポート番号(long*型)
+ *   .next        ペイロードデータ
+ *     .cnt       実際のデータ数(DATA chunkの数)
+ *     .stack[]
+ *       .sig     DATA chunkの場合、ペイロードデータ
+ *                .ptypeの取得方法は後述。
+ *                DATA以外の chunkの場合 .topは NULL、.lenは 0が設定され、
+ *                .ptypeは COM_SIG_ENDになる。
+ *       .order   ioHead->orderの値
+ *       .prev    ioHead自身
+ * ioHead->sig.top を com_sigSctpCommonHdr_t* でキャストしてヘッダ取得可能。
+ * ioHead->stack[].sig.topは com_sigSctpChunkHdr_t*でキャストして chunkヘッダ
+ * 取得可能。DATA/INIT/SACK については個別にヘッダ内容の構造体あり。
  *
+ * DATA chunkのヘッダ(com_sigSctpDataHdr_t)には .protocol があり、
+ * これが次プロトコルを示していて COM_SCTPNEXT を指定した com_getPrtclType()に
+ * よって次プロトコル値を取得できるが、これは 0 になっている可能性がある。
+ * その場合はポート番号を 送信元->送信先の順で調べる。
+ * 最終的に使用したポート番号を .ext に long*型で格納する。
+ * この場合 次プロトコル値は COM_SCTPPORT を指定した com_getPrtclType()により
+ * 特定される。
+ * プロトコルが特定できなかったら 次プロトコル種別は COM_SIG_CONTINUE になる。
+ * いずれにせよ ioHead->next.stack[].sig.ptype に設定される。
+ *
+ *
+ * com_decodeSctp()で解析した iHeadの内容をデコード出力する。
+ * ・SCTP共通ヘッダ内容をダンプ
+ * ・送信元ポート番号
+ * ・送信先ポート番号
+ * ・verification Tag
+ * ・chunk内容をダンプ(複数あれば chunk内容も複数になる)
+ * ・次プロトコル
  */
 BOOL com_analyzeSctp( COM_ANALYZER_PRM );
 void com_decodeSctp( COM_DECODER_PRM );
@@ -887,7 +1235,8 @@ void com_decodeSctp( COM_DECODER_PRM );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
- *
+ * iSigTopでSCTP信号の chunkデータ先頭を指定することで、chunk名文字列を返す。
+ * gSctpChunkName[]から文字列を検索する。
  */
 char *com_getSctpChunkName( void *iSigTop );
 
@@ -956,7 +1305,44 @@ typedef enum {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeSip()で ioHead->sigの信号データを SIP信号として解析する。
+ * 参照勧告は RFC3261。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .len       先頭から、SIPヘッダとボディの間の改行までのサイズ
+ *     .ptype     COM_SIG_SIP
+ *   .prm         SIPヘッダ一覧
+ *                マルチボディの場合 .prm.spec に boundary文字列(char*型)
+ *                .list[]の個々の内容は以下のようになる：
+ *                   .tagBin: ヘッダ名(行頭から : までの文字列)
+ *                   .tag:    0固定
+ *                   .lenBin: 0固定
+ *                   .len:    ヘッダ名と : 後の最初の非空白文字～改行の長さ
+ *                   .value:  ヘッダ名と : 後の最初の非空白文字の位置
+ *   .next        ボディ部の内容
+ *     .cnt       ボディ部の数(Content-Typeが multipart/mixedだと複数ある)
+ *     .stack[]
+ *       .sig     ボディ部の内容
+ *                .ptypeは Content-Typeの内容から取得する。
+ *       .order   ioHead->orderの値
+ *       .prev    ioHead自身
+ * SIPはテキストベースのプロトコルのため、ここまでに登場したプロトコルとは、
+ * 処理内容が大きく異なる。
  *
+ * ヘッダ一覧は .prm、ボディ内容は .nextに格納する。
+ * ヘッダ名を見たい時は .list[].tagBin を見る必要があり、
+ * ヘッダ値を見たい時は .valueを先頭に ,lenのサイズwお取得する。
+ * com_getTxtHeaderVal()を使えば特定ヘッダの値を簡単に取得できる。
+ *
+ * ボディ部はテキスト/バイナリどちらの可能性もあるが、.next.stack[].sigの
+ * 保持の仕方はどちらも変わらず、呼び元で扱い方を判断する必要がある。
+ * 次プロトコル(ボディ部のプロトコル)は Content-Type から取得する。
+ * COM_SIPNEXT を指定した com_getPrtclType() によって取得可能。
+ *
+ *
+ * com_decodeSip()で解析した iHeadの内容をデコード出力する。
+ * ・ヘッダ内容一覧
+ * ・次プロトコル
  */
 BOOL com_analyzeSip( COM_ANALYZER_PRM );
 void com_decodeSip( COM_DECODER_PRM );
@@ -969,7 +1355,10 @@ void com_decodeSip( COM_DECODER_PRM );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
- *
+ * 信号の先頭を iSigTopで指定することにより、
+ * *oLabelにはメソッド名文字列(リクエストのときのみ)、
+ * *oTypeみにはステータスコードの数値(レスポンスのときのみ)を格納する。
+ * 格納が不要な場合 oLabelと oTypeは NULLを設定する。
  */
 BOOL com_getSipName( void *iSigTop, const char **oLabel, long *oType );
 
@@ -996,7 +1385,35 @@ BOOL com_getSipName( void *iSigTop, const char **oLabel, long *oType );
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeSdp()で ioHead->sigの信号データを SDP記述として解析する。
+ * 参照勧告は RFC4566。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .ptype     COM_SIG_SDP
+ *   .prm         SDPディレクティブ一覧
+ *                   .tagBin: ディレクティブ名(行頭から = までの文字列)
+ *                   .tag:    0固定
+ *                   .lenBin: 0固定
+ *                   .len:    ディレクティブ名と = 後の最初の非空白文字～
+ *                            改行の長さ
+ *                   .value:  ディレクティブ名と = 後の最初の非空白文字の位置
+ * SDP記述は1行ずつ解析して、ディレクティブとして取得し .prmに一覧を格納する。
+ * データの格納方法は SIPヘッダと同様で、com_getTxtHeaderVal()で特定の
+ * ディレクティブを指定して値を取得することも可能。
+ * 
+ * SDPは SIPのボディになることを想定している。
+ * C-Planeと U-PlaneのIPアドレスとポート番号を、セッション情報として保持する。
+ * (C-Planeは 下位のIPヘッダからアドレス、TCP/UDPヘッダからポート番号を取得、
+ *  U-Planeは SDP記述の c に乗ったアドレスと、m に乗ったポート番号を取得)
+ * SIPリクエストのボディだったら発側、レスポンスのボディだったら着側とみなす。
+ * 複数回、SDP記述があった場合、その内容を上書きしていく。
  *
+ * こうして生成したセッション情報は、その後解析するパケットが RTP/RTCP信号か
+ * どうか判定するために使用する。
+ *
+ *
+ * com_decodeSdp()で解析した iHeadの内容をデコード出力する。
+ * ・SDPディレクティブ一覧
  */
 BOOL com_analyzeSdp( COM_ANALYZER_PRM );
 void com_decodeSdp( COM_DECODER_PRM );
@@ -1054,7 +1471,32 @@ typedef struct {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeRtp()で ioHead->sigの信号データを RTP信号として解析する。
+ * 参照勧告は RFC3550。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     ,len       RTPヘッダサイズ
+ *                (sizeof(com_sigRtpHdr_t) + CCRCサイズ + 拡張ヘッダサイズ)
+ *     .ptype     COM_SIG_RTP
+ *   .multi
+ *     .cnt       1固定
+ *     .stack[0]  RTPペイロードデータ (.ptypeは COM_SIG_RTP)
+ *     .order     ioHead->orderの値
+ * ioHead->sig.top を com_sigRtpHdr_t* でキャストしてヘッダ取得可能。
+ * ヘッダはサイズ算出のためだけに参照して詳細解析はしないので、
+ * 必要なら呼び元で処理を検討すること。
  *
+ * トランスポート層(主にUDP)のポート番号から RTPと判定することに対応し、
+ * 5004 をそのポート番号として COM_IPPORT で com_getPrtclType()で取得可能。
+ * またそれより前のパケット解析で、SIP/SDP の解析をしていた場合、
+ * C-Plane/U-Planeのノード情報をまとめているので、U-Plane側の発信元/発信先
+ * 情報と一致する場合は RTP信号と認識する。
+ *
+ *
+ * com_decodeRtp()で解析した iHeadの内容をデコード出力する。
+ * ・Payload Type名
+ * ・シーケンス番号
+ * ・RTPビット
  */
 BOOL com_analyzeRtp( COM_ANALYZER_PRM );
 void com_decodeRtp( COM_DECODER_PRM );
@@ -1164,13 +1606,37 @@ typedef struct {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeRtcp()で ioHead->sigの信号データを RTCP信号として解析する。
+ * 参照勧告は RFC3550。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .ptype     COM_SIG_RTCP
+ *   .multi
+ *     .cnt       RTCPパケット個数
+ *     .stack[]   各RTCPパケット内容
+ *     .order     ioHead->orderの値
+ * ioHead->sig.top を com_sigRtcpHdr_t* でキャストしてヘッダ取得可能。
+ * ヘッダはサイズ算出のためだけに参照して詳細解析はしないので、
+ * 必要なら呼び元で処理を検討すること。
+ * 
+ * 同様に、個々のRTCPパケットについても、データとして分割はするが、
+ * それ以上の解析は実施しない。
  *
+ * またそれより前のパケット解析で、SIP/SDP の解析をしていた場合、
+ * C-Plane/U-Planeのノード情報をまとめているので、U-Plane側の発信元/発信先
+ * 情報と一致する場合は RTCP信号と認識する。
+ * この判定時は ポート番号は保持しているノード情報の番号+1 で判定する。
+ *
+ *
+ * com_decodeRtcp()で解析した iHeadの内容をデコード出力する。
+ * ・RTCPパケット一覧
+ * ・パケット種別名
  */
 BOOL com_analyzeRtcp( COM_ANALYZER_PRM );
 void com_decodeRtcp( COM_DECODER_PRM );
 
 /*
- * RTCPペイロード種別名取得  com_getRtcpPtName()
+ * RTCPパケット種別名取得  com_getRtcpPtName()
  *   ペイロード種別名文字列を返す。
  *   対応する文字列が見つからない場合は NULLを返す。
  * ---------------------------------------------------------------------------
@@ -1178,7 +1644,8 @@ void com_decodeRtcp( COM_DECODER_PRM );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
- *
+ * iSigTopでRTCPパケットの先頭を指定することで、パケット種別名文字列を返す。
+ * gRtcpPtName[]から文字列を検索する。
  */
 char *com_getRtcpPtName( void *iSigTop );
 
@@ -1203,7 +1670,7 @@ enum {
 // Diameterコマンドコード
 //   Base: RFC3588
 //   Cx/Dx: TS29.229   Sh/Dh: TS29.329
-//   Tx: X.S0013-013   Ty: X.S1003-014
+//   Tx: X.S0013-013   Ty: X.S0013-014
 typedef enum {
     COM_CAP_DIAM_CE = 257,    // (Base)  Capabilities-Exchange
     COM_CAP_DIAM_DW = 280,    // (Base)  Device-Watchdog
@@ -1266,7 +1733,52 @@ typedef struct {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeDiameter()で ioHead->sigの信号データをDiameter信号として解析する。
+ * 参照勧告は RFC3588(Base)・TS29.229(Cx/Dx)・TS29.329(Sh/DH)
+ * ・X.S0013-003(Tx)・X.S0013-014(Ty)。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .len       Diameter共通ヘッダサイズ (sizeof(com_sigDiamHdr_t)) 
+ *     .ptype     COM_SIG_DIAMETER
+ *   .prm         AVP一覧
+ *     .cnt       AVP個数
+ *     .stack[]   各AVP内容
+ *                 .tagBin: 信号バイナリのAVP先頭位置
+ *                 .tag:    AVPコード
+ *                 .lenBin: 信号バイナリのレングス位置
+ *                 .len:    AVP値のサイズ (値無しのAVPなら 0)
+ *                 .value:  AVP値の先頭位置 (値なしの場合は NULL)
+ * ioHead->sig.top を com_sigDiamHdr_t* でキャストしてヘッダ取得可能。
  *
+ * AVP一覧では .stack[].value は NULLになり得ることに注意すること。
+ * 特に Gropued AVP(＝従属するAVPが存在する)の時は、NULLになり、
+ * Diameterの場合、これによってそれが Gropued AVPか判定可能。
+ *
+ * なお、Grouped AVP となる AVPコードは予め登録が必要になる。
+ * COM_DIAMAVPG を指定した com_getPrtclType() で trueであれば、
+ * その AVPコードが Grouped AVPである。と判定できる。
+ * toscomで解析可能なインターフェースについては登録済みとなっている。
+ *
+ * AVPヘッダの内容を .prmで解析保持はしないが .stack[].tagBin で各AVPの先頭は
+ * 分かるので、そこから AVPヘッダを別途解析することは可能。
+ * 
+ * 同様に、個々のRTCPパケットについても、データとして分割はするが、
+ * それ以上の解析は実施しない。
+ *
+ * またそれより前のパケット解析で、SIP/SDP の解析をしていた場合、
+ * C-Plane/U-Planeのノード情報をまとめているので、U-Plane側の発信元/発信先
+ * 情報と一致する場合は RTCP信号と認識する。
+ * この判定時は ポート番号は保持しているノード情報の番号+1 で判定する。
+ *
+ *
+ * com_decodeDiameter()で解析した iHeadの内容をデコード出力する。
+ * ・Diameter共通ヘッダ内容のダンプ
+ * ・コマンド名
+ * ・コマンドフラグ
+ * ・Application ID
+ * ・Hop-by-Hop ID
+ * ・End-to-End ID
+ * ・AVP一覧
  */
 BOOL com_analyzeDiameter( COM_ANALYZER_PRM );
 void com_decodeDiameter( COM_DECODER_PRM );
@@ -1280,7 +1792,13 @@ void com_decodeDiameter( COM_DECODER_PRM );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
+ * iSigTopで Diameter信号の先頭を指定することで、コマンド名文字列を返す。
+ * gDiameterCmdName[]から文字列を検索する。
  *
+ * コマンドフラグを参照して3文字目は変動する。
+ *   Requestビットあり: R
+ *   Errorビットあり：  E
+ *   上記どちらも無し； A
  */
 char *com_getDiameterCmdName( void *iSigTop );
 
@@ -1357,7 +1875,22 @@ typedef enum {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeDhcp()で ioHead->sigの信号データを DHCP信号として解析する。
+ * 参照勧告は RFC2131。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .len       DHCPヘッダサイズ (sizeof(com_sigDhcpHdr_t))
+ *     .ptype     COM_SIG_DHCP
+ *   .prm         オプション一覧
+ * ioHead->sig.top を com_sigDhcpHdr_t* でキャストしてヘッダ取得可能。
+ * ヘッダはサイズ算出のためだけに参照して詳細解析はしないので、
+ * 必要なら呼び元で処理を検討すること。
  *
+ *
+ * com_decodeDhcp()で解析した iHeadの内容をデコード出力する。
+ * ・DHCPヘッダ内容のダンプ
+ * ・DHCP信号名
+ * ・DHCPオプション一覧
  */
 BOOL com_analyzeDhcp( COM_ANALYZER_PRM );
 void com_decodeDhcp( COM_DECODER_PRM );
@@ -1371,7 +1904,12 @@ void com_decodeDhcp( COM_DECODER_PRM );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
+ * iDhcpで DHCPで始まる信号情報を指定することで、その信号名文字列を返す。
+ * gDhcpOpName[]から文字列を検索する。
  *
+ * 基本的に DHCPヘッダに乗ったオペレータ(.op)を使用するが、
+ * .prm(DHCPオプション)の中に DHCP Message Typeがあった場合は、それを優先する。
+ * そのためには iDhcpに com_analyzeDhcp()で解析した結果を渡す必要がある。
  */
 char *com_getDhcpSigName( com_sigInf_t *iDhcp );
 
@@ -1431,7 +1969,22 @@ typedef enum {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeDhcpv6()で ioHead->sigの信号データを DHCPv6信号として解析する。
+ * 参照勧告は RFC8415。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .len       DHCPv6ヘッダサイズ (sizeof(com_sigDhcpv6Hdr_t))
+ *     .ptype     COM_SIG_DHCPV6
+ *   .prm         オプション一覧
+ * ioHead->sig.top を com_sigDhcpv6Hdr_t* でキャストしてヘッダ取得可能。
+ * ヘッダはサイズ算出のためだけに参照して詳細解析はしないので、
+ * 必要なら呼び元で処理を検討すること。
  *
+ *
+ * com_decodeDhcpv6()で解析した iHeadの内容をデコード出力する。
+ * ・DHCPv6ヘッダ内容のダンプ
+ * ・DHCPv6信号名
+ * ・DHCPv6オプション一覧
  */
 BOOL com_analyzeDhcpv6( COM_ANALYZER_PRM );
 void com_decodeDhcpv6( COM_DECODER_PRM );
@@ -1445,7 +1998,8 @@ void com_decodeDhcpv6( COM_DECODER_PRM );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
- *
+ * iSigTopで DHCPv6で始まる信号情報を指定することで、その信号名文字列を返す。
+ * gDhcpv6MsgName[]から文字列を検索する。
  */
 char *com_getDhcpv6MsgType( void *iSigTop );
 
@@ -1615,7 +2169,36 @@ typedef enum {
  * ===========================================================================
  *   マルチスレッドで動くことは想定していない。
  * ===========================================================================
+ * com_analyzeDns()で ioHead->sigの信号データを DNS信号として解析する。
+ * 参照勧告は RFC1036。
+ * 解析の結果、ioHeadで変動するのは以下となる：
+ *   ,sig
+ *     .len       DNSヘッダサイズ (sizeof(com_sigDnsHdr_t))
+ *     .ptype     COM_SIG_DNS
+ *   .ext         リソースレコード一覧 (com_sigDnsData_t*型)
+ *                (独自のデータ構造が必要なため .prm は使用しない)
+ * ioHead->sig.top を com_sigDnsHdr_t* でキャストしてヘッダ取得可能。
+ * ヘッダはサイズ算出のためだけに参照して詳細解析はしないので、
+ * 必要なら呼び元で処理を検討すること。
  *
+ * 信号内のリソースレコードは全て .ext に格納する。
+ * このデータのメモリ解放には、専用の解放I/F(後述)を必要とする。
+ *
+ * .ext に格納したデータでは，ドメイン名に圧縮が使われている場合、
+ * 圧縮オフセット位置だけの格納となる。そのため実際のドメイン名を取得するには
+ * com_getDomain() を使う必要がある。このI/Fは無圧縮でも問題なく機能するので、
+ * ドメイン名取得時には全て使う方針で問題ない。
+ *
+ *
+ * com_decodeDhcpv6()で解析した iHeadの内容をデコード出力する。
+ * ・DNSヘッダ内容のダンプ
+ * ・オペレーション名
+ * ・RCODE
+ * ・各セクションのリソースレコード一覧
+ *
+ *
+ * com_freeDns()は .ext に格納したリソースレコード一覧をメモリ解放する。
+ * 単純な com_free()では不十分なため、このI/Fを用意している。
  */
 BOOL com_analyzeDns( COM_ANALYZER_PRM );
 void com_decodeDns( COM_DECODER_PRM );
@@ -1629,7 +2212,9 @@ void com_freeDns( com_sigInf_t *oHead );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
- *
+ * iHeadは DNS信号データを含む信号情報、iIdで取得したいデータを指定すると、
+ * DNS信号ヘッダ内に含まれる QR・OPCODE・AA・TC・RD・RA・Z・RCODE といった
+ * ビットフィールド上で定義されているパラメータの値を取得する。
  */
 ulong com_getDnsFlagsField( com_sigInf_t *iHead, COM_CAP_DNSBIT_t iId );
 
@@ -1641,7 +2226,16 @@ ulong com_getDnsFlagsField( com_sigInf_t *iHead, COM_CAP_DNSBIT_t iId );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
+ * iHeadは DNS信号データを含む信号情報、iTopはドメインを示すデータの先頭位置、
+ * oBufと iBufSizeは取得したドメイン名を格納するバッファを指定する。
+ * これにより、iTopで始まるデータからドメイン名を取得し、*oBufに格納する。
+ * またそのドメイン名のサイズを返す。
  *
+ * ドメイン名の最大長は 255 と決まっているため、
+ * 用意すべきバッファのサイズとしては COM_LINEBUF_SIZE が適正となる。
+ *
+ * ドメイン名については 圧縮 の概念があり、それを解決してドメイン名を得るには
+ * 信号データ全体が必要となる。そのため iHead->sig を用いる。
  */
 com_off com_getDomain(
         com_sigInf_t *iHead, void *iTop, char *oBuf, size_t iBufSize );
@@ -1655,12 +2249,14 @@ com_off com_getDomain(
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
- *
+ * iOpcodeで DNSオペレーションコードを指定すると、それに対応するオペレーション
+ * 名文字列を返す。
+ * gDnsOpName[]から文字列を検索する。
  */
 char *com_getDnsOpName( ulong iOpcode );
 
 /*
- * DNS Rcode名取得  com_getDnsRcodeName()
+ * DNS RCODE説明取得  com_getDnsRcodeName()
  *   Rcode名文字列を返す。
  *   対応する文字列が見つからない場合は NULLを返す。
  * ---------------------------------------------------------------------------
@@ -1668,7 +2264,8 @@ char *com_getDnsOpName( ulong iOpcode );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
- *
+ * iRcodeで DNSの RCODEを指定すると、それに対応する RCODE説明文字列を返す。
+ * gDnsRcode[]から文字列を検索する。
  */
 char *com_getDnsRcodeName( ulong iRcode );
 
@@ -1681,7 +2278,8 @@ char *com_getDnsRcodeName( ulong iRcode );
  * ===========================================================================
  *   マルチスレッドで影響を受ける処理はない。
  * ===========================================================================
- *
+ * iClassで DNSの CLASSを指定すると、それに対応する CLASS名文字列を返す。
+ * gDnsClass[]から文字列を検索する。
  */
 char *com_getDnsClassName( ulong iClass );
 
