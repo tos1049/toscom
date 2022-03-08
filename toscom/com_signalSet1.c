@@ -2620,7 +2620,7 @@ static com_off getChrStr( char *oBuf, com_bin **ioPtr, com_off *ioRest )
 {
     com_off  size = **ioPtr;
     memset( oBuf, 0, COM_LINEBUF_SIZE );  // サイズは固定
-    memcpy( oBuf, *ioPtr, size );
+    memcpy( oBuf, *ioPtr + 1, size );
     size++;  // 先頭オクテットの文字列長分、最終サイズは +1
     if( !com_advancePtr( ioPtr, ioRest, size ) ) {return false;}
     return true;
