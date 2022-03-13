@@ -120,6 +120,13 @@ sed -i -e 's/NEWMODULE="com"/NEWMODULE="tos"/' xnameconf
 tar xvfz tos_testtos.tar.gz >& /dev/null
 checker "$tarfile (lib with module rename)" "lib" "libtoscom.a" "libtoscom"
 
+########## NEWENVを tosモジュールに変更して make rel
+echo
+echo
+cd NEWENV
+./newenv
+checker "NEWENV (module rename)" "rel" "$testfile" "newenv"
+
 if [ -e toscom/$STAZ ]; then
 ########## smplcomm.tar.gz を tosモジュールに変更して Ver2 を make rel
   echo
