@@ -26,7 +26,7 @@ enum {
     COM_SIG_ISUP     = 412,    // Q763
     COM_SIG_TCAP     = 413,    // Q773
     COM_SIG_INAP     = 414,    // Q1200-1699のどこか (未確認)
-    COM_SIG_GSMMAP   = 414,
+    COM_SIG_GSMMAP   = 415,
     /*** Application層 (501-599) ***/
     /*** プロトコル認識のみ (601-699) ***/
 };
