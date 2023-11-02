@@ -18,32 +18,6 @@
 
 /* 基本情報保持 *************************************************************/
 
-/* makefile のコンパイルオプション APLNAMEで指定された文字列 */
-static char  gAPLNAME[] =
-#ifdef APLNAME
-    APLNAME;
-#else
-    "";    // 定義がないときは空文字とする
-#endif
-
-const char *com_getAplName( void )
-{
-    return gAPLNAME;
-}
-
-/* makefile のコンパイルオプション VERSIONで指定された文字列 */
-static char  gVERSION[] =
-#ifdef VERSION
-    VERSION;
-#else
-    "0";   // 定義がないときは "0" とする
-#endif
-
-const char *com_getVersion( void )
-{
-    return gVERSION;
-}
-
 static int     gCmdArgc = 0;
 static char**  gCmdArgv = NULL;
 

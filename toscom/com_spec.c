@@ -15,7 +15,6 @@
  */
 
 #include "com_if.h"
-#include "com_debug.h"
 
 /* サンプル個別処理 *********************************************************/
 
@@ -88,5 +87,37 @@ void com_initializeSpec( void )
 
 void com_finalizeSpec( void )
 {
+}
+
+
+
+/***************************************************************************
+ ******************* これ以降のソースは変更しないこと **********************
+ ***************************************************************************/
+
+/* makefile のコンパイルオプション APLNAMEで指定された文字列 */
+static char  gAPLNAME[] =
+#ifdef APLNAME
+    APLNAME;
+#else
+    "";    // 定義がないときは空文字とする
+#endif
+
+const char *com_getAplName( void )
+{
+    return gAPLNAME;
+}
+
+/* makefile のコンパイルオプション VERSIONで指定された文字列 */
+static char  gVERSION[] =
+#ifdef VERSION
+    VERSION;
+#else
+    "0";   // 定義がないときは "0" とする
+#endif
+
+const char *com_getVersion( void )
+{
+    return gVERSION;
 }
 

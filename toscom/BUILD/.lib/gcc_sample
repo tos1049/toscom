@@ -1,22 +1,46 @@
 # ライブラリを使用したビルドのコマンドラインサンプル
-#  ソースファイルがある場所に、ライブラリのアーカイブファイルを展開し、
-#  そのディレクトリを toscom にリネームまたはシンボリックリンク生成、
-#  という単純なファイル構成でのコマンドラインとなる。
 #
-#  コンパイル対象は *.c とし sample というファイル生成する設定だが、
-#  これは実際に作ろうとしているものに応じて修正すること。
-#
-#  -L と -I の指定内容は実際のファイル構成に従ったパスにすること。
-#
-#  エキストラ機能を使う場合は「-lm」を追記する。
-#  ウィンドウ機能を使う場合は「-lpanel -lncursesw」を追記する。
-#
+#  -L と -I の指定内容は ready使用時に適切な内容に置換する。
 #  -D_DEFAULT_SOURCE だけだと古いバージョンの gccではエラーになるかもしれない。
 #  その場合は「-D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L」を追記する。
+#
+#  APLNAME と VERSION は適切な内容に変更する。
+#  プログラム開始/終了時のヘッダ出力が不要と感じる場合は、
+#  com_spec.c: com_initializeSpec() で com_setTitleForm( "" ); と記述する。
+#
+#  対象ソースは *.c としているが、取捨選択したい場合は、
+#  コンパイル対象としたいソースをその都度指定すると良い。
+#
+#  以後 ライブラリ使用の記述については
+#   基本(必須)：      -ltoscom -lpthread \
+#   エキストラ機能：  -ltoscom_extra -lm \
+#   セレクト機能：    -ltoscom_select \
+#   ウィンドウ機能：  -ltoscom_window -lpanel -lncursesw \
+#   シグナル機能：    -ltoscom_signal \
+#  となっている。
+#  不要な機能については上記の該当行をそのまま削除し、
+#  ソースファイル内で以下のヘッダファイルのインクルード記述を削除する。
+#   エキストラ機能：  #include "com_extra.h"
+#   セレクト機能：    #include "com_select.h"
+#   ウィンドウ機能：  #include "com_window.h"
+#   シグナル機能：    #include "com_signal.h"
+#                     #include "com_signalSet2.h"
+#                     #include "com_signalSet3.h"
+#  上記のヘッダファイルは逆に使用したいソース上ではインクルード必須となる。
+#  基本機能の com_if.h は、全てのソースでインクルード必須となる。
+#
+#  出力ファイル名は sample としているが、必要に応じて変更すること。
+#  cygwinでは .exe が付与される。
+#
 
 gcc -std=c99 -g3 -pedantic -Wall -Wextra \
+-L./_LIBDIR_/lib -I. -I./_LIBDIR_/include -D_DEFAULT_SOURCE \
+-DAPLNAME=\"sample\" -DVERSION=\"1.00\" \
 *.c \
--o sample \
--L./toscom/lib -ltoscom -lpthread \
--I./toscom/include -D_DEFAULT_SOURCE
+-ltoscom -lpthread \
+-ltoscom_extra -lm \
+-ltoscom_select \
+-ltoscom_window -lpanel -lncursesw \
+-ltoscom_signal \
+-o sample
 

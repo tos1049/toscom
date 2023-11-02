@@ -1,0 +1,30 @@
+#!/bin/bash
+
+WORKDIR=".."
+LIBDIR="toscom_lib"
+
+_dir=${WORKDIR}/${LIBDIR}
+_copyFiles=$1
+
+if [ "${_dir}" != "../toscom_lib" ]; then
+  if [ -e ${_dir} ]; then
+    echo "..update ${_dir}"
+    rm -fr ${_dir}
+  else
+    echo "..create ${_dir}"
+  fi
+  mkdir ${WORKDIR}/${LIBDIR}
+  cp -r lib ${WORKDIR}/${LIBDIR}
+  cp -r include ${WORKDIR}/${LIBDIR}
+else
+  echo "..use this directory"
+fi
+
+if [ -n "${_copyFiles}" ] || [ ! -e ${WORKDIR}/com_spec.h ]; then
+  echo "..set files/* to work directory(${WORKDIR})"
+  cp files/com_* ${WORKDIR}
+  cp files/main.c ${WORKDIR}
+  cp files/gcc_sample ${WORKDIR}
+  sed -i -e"s/_LIBDIR_/${LIBDIR}/g" ${WORKDIR}/gcc_sample
+fi
+
