@@ -17,6 +17,7 @@
 #include "com_if.h"
 
 /* サンプル個別処理 *********************************************************/
+// プロトタイプ宣言はいずれも com_spec.h
 
 static BOOL checkEndian( void )
 {
@@ -95,9 +96,11 @@ void com_finalizeSpec( void )
  ******************* これ以降のソースは変更しないこと **********************
  ***************************************************************************/
 
+// 以下の関数群のプロトタイプ宣言は com_if.h
+
 /* makefile のコンパイルオプション APLNAMEで指定された文字列 */
 static char  gAPLNAME[] =
-#ifdef APLNAME
+#ifdef APLNAME    // "アプリ名" の形式で宣言すること
     APLNAME;
 #else
     "";    // 定義がないときは空文字とする
@@ -110,7 +113,7 @@ const char *com_getAplName( void )
 
 /* makefile のコンパイルオプション VERSIONで指定された文字列 */
 static char  gVERSION[] =
-#ifdef VERSION
+#ifdef VERSION    // "バージョン" の形式で宣言すること
     VERSION;
 #else
     "0";   // 定義がないときは "0" とする
