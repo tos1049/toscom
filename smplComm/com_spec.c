@@ -15,15 +15,14 @@
  */
 
 #include "com_if.h"
-#include "com_debug.h"
 
 /* サンプル個別処理 *********************************************************/
 
 static BOOL checkEndian( void )
 {
     // この判定方法は C言語FAQ 20.9 に記載されている
-    int x = 1;
-    if( *(char*)&x == 1 ) { return false; }  // リトルエンディアン
+    int  x = 1;
+    if( *(char*)&x == 1 ) {return false;}  // リトルエンディアン
     return true;  // ビッグエンディアン
 }
 
@@ -47,12 +46,22 @@ BOOL com_is64bitOS( void )
     return (sizeof(long) != sizeof(int));
 }
 
+COM_OS_TYPE_t com_getEnvName( void )
+{
+#if defined __linux__
+    return COM_OS_LINUX;
+#elif defined  __CYGWIN__
+    return COM_OS_CYGWIN;
+#else
+    return COM_OS_NOT_SUPPORTED;
+#endif
+}
 
 
 /* 個別エラー定義 ***********************************************************/
 
 // com_spec.hのエラー定義を変更したら、こちらも連動で変更する
-static com_dbgErrName_t gErrorNameSpec[] = {
+static com_dbgErrName_t  gErrorNameSpec[] = {
     { COM_ERR_LOGGINGNG,    "COM_ERR_LOGGINGNG" },
     { COM_ERR_COMMNG,       "COM_ERR_COMMNG" },
 
@@ -79,5 +88,37 @@ void com_initializeSpec( void )
 
 void com_finalizeSpec( void )
 {
+}
+
+
+
+/***************************************************************************
+ ******************* これ以降のソースは変更しないこと **********************
+ ***************************************************************************/
+
+/* makefile のコンパイルオプション APLNAMEで指定された文字列 */
+static char  gAPLNAME[] =
+#ifdef APLNAME
+    APLNAME;
+#else
+    "";    // 定義がないときは空文字とする
+#endif
+
+const char *com_getAplName( void )
+{
+    return gAPLNAME;
+}
+
+/* makefile のコンパイルオプション VERSIONで指定された文字列 */
+static char  gVERSION[] =
+#ifdef VERSION
+    VERSION;
+#else
+    "0";   // 定義がないときは "0" とする
+#endif
+
+const char *com_getVersion( void )
+{
+    return gVERSION;
 }
 

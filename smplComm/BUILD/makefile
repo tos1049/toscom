@@ -296,20 +296,28 @@ rel: init
 # -I でヘッダファイルのあるパスを指定すると、インクルード時に指定するのが
 # ヘッダファイル名のみで良くなる。
 #
-LIBDIR := LIB_$(COMMAND)_$(VERSION)
-LIBFILE := libtoscom.a
+LIBDIR := toscom_lib
+LIBFILE := libtoscom
 LIB := .lib
 
 lib: rel
-	ar rcs $(LIBFILE) com.o
+	ar rcs $(LIBFILE).a         com_proc*.o com_debug.o
+	ar rcs ${LIBFILE}_extra.a   com_extra.o
+	ar rcs ${LIBFILE}_select.a  com_select.o
+	ar rcs ${LIBFILE}_window.a  com_window.o
+	ar rcs ${LIBFILE}_signal.a  com_signal*.o
 	mkdir $(LIBDIR)
 	mkdir $(LIBDIR)/lib
-	cp $(LIBFILE) $(LIBDIR)/lib
+	cp $(LIBFILE)*.a $(LIBDIR)/lib
 	mkdir $(LIBDIR)/include
 	$(LIB)/collectLibFiles .. $(LIBDIR)/include
-	cp $(LIB)/gcc_sample $(LIBDIR)
-	tar cvfz $(COMMAND)_$(VERSION)_lib.tar.gz $(LIBDIR)
-
+	mkdir ${LIBDIR}/files
+	cp $(LIB)/gcc_sample $(LIBDIR)/files
+	cp ../com_spec.* ${LIBDIR}/files
+	cp ../com_test.c ${LIBDIR}/files
+	cp ../main.c     ${LIBDIR}/files
+	cp ${LIB}/ready  ${LIBDIR}
+	tar cvfz ${LIBDIR}.tar.gz $(LIBDIR)
 
 
 
@@ -321,7 +329,10 @@ init: clean $(COMMAND)
 clean:
 	$(RM) -fr $(COMMAND) $(COMMAND).exe $(CHECKF_PRE)$(COMMAND)
 	$(RM) -fr *.o ../tags $(RELEASE)* $(COMMAND)*.tar.gz $(NAMELIST)
-	$(RM) -fr *.a LIB_$(COMMAND)_*
+	$(RM) -fr *.a ${LIBDIR}*
+	$(RM) -fr chatlog.*
+	$(RM) -fr dst1/.$(COMMAND)* dst1/chatlog.* dst1/core.* dst1/*.stackdump
+	$(RM) -fr dst2/.$(COMMAND)* dst2/chatlog.* dst2/core.* dst2/*.stackdump
 
 ########## ログファイルやコアファイルを削除 (make logclean) ##################
 logclean: specclean
@@ -330,9 +341,6 @@ logclean: specclean
 ########## プログラム固有のファイルを削除 (make specclean) ###################
 # 何か削除する必要のあるものがあれば、削除文をここに追記する。
 specclean:
-	$(RM) -fr chatlog.*
-	$(RM) -fr dst1/.$(COMMAND)* dst1/chatlog.* dst1/core.* dst1/*.stackdump
-	$(RM) -fr dst2/.$(COMMAND)* dst2/chatlog.* dst2/core.* dst2/*.stackdump
 
 ########## 生成物やログを全て削除 (make allclean) ############################
 allclean: clean logclean

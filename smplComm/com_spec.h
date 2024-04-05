@@ -120,4 +120,21 @@ BOOL com_isLittleEndian( void );
 BOOL com_is32bitOS( void );
 BOOL com_is64bitOS( void );
 
+/*
+ * (サンプル) 動作環境取得  com_getEnvName()
+ *   OS種別を返す。
+ *   未サポートOSの場合 COM_OS_NOT_SUPPORTED を返す。
+ * ---------------------------------------------------------------------------
+ *   現時点ではエラーは発生しない。(処理を修正した場合は、この内容も修正)
+ * ===========================================================================
+ * コンパイル時の実行環境を示すマクロから、現在のOSが何かを返す。
+ * 現状対応しているのは、Linux と Cygwin のみ。
+ */
+typedef enum {
+    COM_OS_NOT_SUPPORTED = 0,
+    COM_OS_LINUX  = 1,
+    COM_OS_CYGWIN = 2
+} COM_OS_TYPE_t;
+
+COM_OS_TYPE_t com_getEnvName( void );
 
