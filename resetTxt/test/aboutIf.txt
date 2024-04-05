@@ -17,23 +17,31 @@ toscom grimoire Ver3.00
 ===== 基本機能 (com_if.h) ====================================================
 
    ********** COMDEF:共通データ宣言 **********
-   COM_UNUSED()                未使用引数の明示マクロ
-   COM_CLEAR_BUF()             バッファクリアマクロ
-   COM_SET_IF_EXIST()          ポインタ設定ありで値設定するマクロ
-   COM_ELMCNT()                配列の要素数計算マクロ
-   COM_CHECKBIT()              ビットパターン判定マクロ
-   COM_RELAY()                 3つのデータ受け渡しマクロ
-   LIKELY()                    条件式がほぼ真になることを明示するマクロ
-   UNLIKELY()                  条件式がほぼ偽になることを明示するマクロ
+  +COM_UNUSED()                未使用引数の明示マクロ
+    ooo
+     test
+      test
+  +COM_CLEAR_BUF()             バッファクリアマクロ
+  +COM_SET_IF_EXIST()          ポインタ設定ありで値設定するマクロ
+  +COM_ELMCNT()                配列の要素数計算マクロ
+  +COM_CHECKBIT()              ビットパターン判定マクロ
+  +COM_RELAY()                 3つのデータ受け渡しマクロ
+  +LIKELY()                    条件式がほぼ真になることを明示するマクロ
+  +UNLIKELY()                  条件式がほぼ偽になることを明示するマクロ
 
    ********** COMBASE:基本 **********
-   com_initialize()            共通処理モジュール初期化
-   COM_INITIALIZE()            toscom初期化マクロ (使用を強く推奨)
-   com_getAplName()            アプリ名取得
-   com_getVersion()            バージョン取得
-   com_getCommandLine()        起動コマンドライン取得
-   com_getOption()             起動オプション取得 <getopt拡張>
-   com_exit()                  プログラムの強制終了 <exit代替>
+  !com_initialize()            共通処理モジュール初期化
+  !COM_INITIALIZE()            toscom初期化マクロ (使用を強く推奨)
+  !com_getAplName()            アプリ名取得
+     test
+       test
+  @com_getVersion()            バージョン取得
+  @com_getCommandLine()        起動コマンドライン取得
+     test
+       test
+        test
+  @com_getOption()             起動オプション取得 <getopt拡張>
+  @com_exit()                  プログラムの強制終了 <exit代替>
    com_system()                システムコマンド実行 <system拡張>
 
    ********** COMMEM:メモリ関連 **********
@@ -47,16 +55,18 @@ toscom grimoire Ver3.00
    com_free()                  メモリ解放 <free拡張>
 
    ********** COMBUF:文字列バッファ関連 **********
-   com_createBuffer()          文字列バッファ生成
+  -com_createBuffer()          文字列バッファ生成
    com_initBuffer()            文字列バッファ初期化
-   com_setBuffer()             文字列バッファ格納
-   com_setBufferSize()         文字列バッファ格納(サイズ指定あり)
-   com_addBuffer()             文字列バッファ追加
+  -com_setBuffer()             文字列バッファ格納
+  -com_setBufferSize()         文字列バッファ格納(サイズ指定あり)
+     test
+  -com_addBuffer()             文字列バッファ追加
    com_addBufferSize()         文字列バッファ追加(サイズ指定あり)
-   com_copyBuffer()            文字列バッファコピー
-   com_clearBuffer()           文字列バッファクリア
-   com_resetBuffer()           文字列バッファリセット
-   com_freeBuffer()            文字列バッファ解放
+  -com_copyBuffer()            文字列バッファコピー
+     test
+  -com_clearBuffer()           文字列バッファクリア
+  -com_resetBuffer()           文字列バッファリセット
+  -com_freeBuffer()            文字列バッファ解放
 
    ********** COMCHAIN:文字列チェーンデータ関連 **********
    com_addChainData()          文字列チェーンデータ登録
