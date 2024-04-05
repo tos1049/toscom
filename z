@@ -1,4 +1,5 @@
 #!/bin/bash
+RELDIR=$1
 
 # toscomのアーカイブを作ったりするシェル
 #  toscom.*.tar.gz    リリースアーカイブ
@@ -7,15 +8,15 @@
 # 問題なければリリース
 
 ##### バージョン指定
-aplver="3.0"
-isBeta=1
+APLVER="3.1"
+ISBETA=1
 
-# $aplver はファイル名に続く文字列そのものになる
-# toscom/aboutIf.txt の冒頭のバージョン数は手動で上記 $aplver に合わせること。
-# $isBeta は修正中は 1 にし、正式版を作る時は 0 にする。
+# $APLVER はファイル名に続く文字列そのものになる
+# toscom/aboutIf.txt の冒頭のバージョン数は手動で上記 $APLVER に合わせること。
+# $ISBETA は修正中は 1 にし、正式版を作る時は 0 にする。
 # 2 にすると、単純に正式版アーカイブファイルを作ってコピーするだけになる。
 
-# 新たなバージョンのベータ版を作る時は $aplverを上げて、$isBetaを 1にする
+# 新たなバージョンのベータ版を作る時は $APLVERを上げて、$ISBETAを 1にする
 # だけでなく、toscom/下で ./resetTxt を実施し、aboutIf.txtの内容をクリアする。
 # 元の aboutIf.txtは HISTORY/下にコピーされているので、それをsvn登録する。
 
@@ -32,87 +33,87 @@ FDIR="proto"
 
 ##### 編集中のファイルがあった場合は中断する
 function checkSwp() {
-  if [ "xzx$1" = "xzx." ]; then
-    swptmp=($(find $1 -name ".?.swp"))
+  if [ "xzx${RELDIR}" = "xzx." ]; then
+    local _swptmp=($(find ${RELDIR} -name ".?.swp"))
   else
-    if [ ! -d $1 ]; then return; fi   # 存在しないディレクトリは何もしない
-    swptmp=($(find $1 -name ".*.swp"))
+    if [ ! -d ${RELDIR} ]; then return; fi   # 存在しないディレクトリは何もしない
+    local _swptmp=($(find ${RELDIR} -name ".*.swp"))
   fi
-  if (( ${#swptmp[0]} == 0 )); then return; fi
+  if (( ${#_swptmp[0]} == 0 )); then return; fi
   echo "--- スワップファイルを発見(編集中では？) ---"
-  for swp in ${swptmp[0]}; do echo $swp; done
+  for swp in ${_swptmp[0]}; do echo ${swp}; done
   echo
   exit
 }
 checkSwp "."
-checkSwp $CDIR
-checkSwp $SDIR
-checkSwp $ADIR
-checkSwp $FDIR
+checkSwp ${CDIR}
+checkSwp ${SDIR}
+checkSwp ${ADIR}
+checkSwp ${FDIR}
 echo "--- スワップファイルなし(編集中ファイルは多分なし) ---"
 
 ##### コメントアウトしてないテスト関数があったら中断する
-. $CDIR/TEST/_test
-if [ -f $CDIR/$TESTTOS ]; then
-  testcheck="$TESTTOS"
+. ${CDIR}/TEST/_test
+if [ -f ${CDIR}/${TESTTOS} ]; then
+  testcheck="${TESTTOS}"
 else
-  testcheck="$ORG_TESTTOS"
+  testcheck="${ORG_TESTTOS}"
 fi
-testFunc=$(grep "^\s*test_" $CDIR/$testcheck)
-if [ -n "$testFunc" ]; then
-  echo "--- $testcheck: コメントアウトされていないテスト関数があるのでは？"
-  echo "$testFunc"
+testFunc=$(grep "^\s*test_" ${CDIR}/${testcheck})
+if [ -n "${testFunc}" ]; then
+  echo "--- ${testcheck}: コメントアウトされていないテスト関数があるのでは？"
+  echo "${testFunc}"
   exit
 fi
-echo "--- $testcheck: 全てのテスト関数がコメントアウト済み ---"
+echo "--- ${testcheck}: 全てのテスト関数がコメントアウト済み ---"
 
 ##### sample2の状態になっていたら中断する
-if [ -d $SDIR ]; then
-  if [ -f $SDIR/com_window.c ] || [ -f $SDIR/com_window.h ]; then
-    echo "--- Ver2の状態になっている。$SDIR/下で ./s1の実行を ---"
+if [ -d ${SDIR} ]; then
+  if [ -f ${SDIR}/com_window.c ] || [ -f ${SDIR}/com_window.h ]; then
+    echo "--- Ver2の状態になっている。${SDIR}/下で ./s1の実行を ---"
     exit
   fi
 fi
 
 ##### xnameconfが初期状態になっていなかったら中断する
 . toscom/xnameconf
-if [ "x$NEWMODULE" != "xcom" ]; then
-  echo "NEWMODULE が com ではない($NEWMODULE)。"
+if [ "x${NEWMODULE}" != "xcom" ]; then
+  echo "NEWMODULE が com ではない(${NEWMODULE})。"
   exit
 fi
-if [ "x$OLDMODULE" != "xcom" ]; then
-  echo "OLDMODULE が com ではない($OLDMODULE)。"
+if [ "x${OLDMODULE}" != "xcom" ]; then
+  echo "OLDMODULE が com ではない(${OLDMODULE})。"
   exit
 fi
 
 ##### ファイル名生成
-if (( $isBeta == 1 )); then
+if (( ${ISBETA} == 1 )); then
   echo "--- ベータ版をこれから作成 ---"
   # ベータ版の場合は バージョン名に beta を付与
-  aplver="${aplver}beta"
+  APLVER="${APLVER}beta"
 fi
-relfile="toscom.${aplver}.tar.gz"
+relfile="toscom.${APLVER}.tar.gz"
 
-rm -fr $relfile
+rm -fr ${relfile}
 
-if (( $isBeta == 0 )); then
+if (( ${ISBETA} == 0 )); then
   # oldPackages にリリースアーカイブを退避
-  if [ ! -e $OPACK ]; then mkdir $OPACK; fi
-  mv toscom.*.tar.gz $OPACK
+  if [ ! -e ${OPACK} ]; then mkdir ${OPACK}; fi
+  mv toscom.*.tar.gz ${OPACK}
   # ベータ版は削除
-  rm -fr $OPACK/toscom.*beta.tar.gz
+  rm -fr ${OPACK}/toscom.*beta.tar.gz
 fi
-if (( $isBeta != 1 )); then
+if (( ${ISBETA} != 1 )); then
   # aboutIf.txtを HISTORYにバックアップ
-  about=$CDIR/aboutIf.txt
-  if [ -e $about ]; then
-    if [ ! -e $CDIR/HISTORY ]; then mkdir $CDIR/HISTORY; fi
-    cp $about $CDIR/HISTORY/aboutIf.$aplver.txt
+  about=${CDIR}/aboutIf.txt
+  if [ -e ${about} ]; then
+    if [ ! -e ${CDIR}/HISTORY ]; then mkdir ${CDIR}/HISTORY; fi
+    cp ${about} ${CDIR}/HISTORY/aboutIf.${APLVER}.txt
     echo "--- リリース版アーカイブを作成 ---"
   fi
 fi
 
-echo "--- アーカイブファイル名 = $relfile ---"
+echo "--- アーカイブファイル名 = ${relfile} ---"
 tartemp=""
 
 ##### プロトタイプのアーカイブ (現状処理省略)
@@ -122,42 +123,42 @@ COLLIB="collectLibFiles"
 
 ##### smplCommのアーカイブ
 STAZ="smplcomm.tar.gz"
-if [  -e $SDIR ]; then
-  echo "--- $STAZ を作成 ---"
-  cd $SDIR/BUILD
+if [  -e ${SDIR} ]; then
+  echo "--- ${STAZ} を作成 ---"
+  cd ${SDIR}/BUILD
   make allclean >& /dev/null
   cd ..
   ./mpu
   cd ..
-  smplNrm="$SDIR/$MAKEF $SDIR/$LIBDIR"
-  smplNrm+=" $SDIR/*.h $SDIR/*.c"
-  smplNrm+=" $SDIR/*.txt $SDIR/README.md $SDIR/newenv"
-  smplExe="$SDIR/s? $SDIR/.s.common"
-  smplDir="$SDIR/spec?"
-  chmod 555 $smplExe $SDIR/$LIBDIR/$COLLIB
-  tar cvfz $CDIR/$STAZ $smplNrm $smplExe $smplDir
-  chmod 755 $smplExe $SDIR/$LIBDIR/$COLLIB
+  smplNrm="${SDIR}/${MAKEF} ${SDIR}/${LIBDIR}"
+  smplNrm+=" ${SDIR}/*.h ${SDIR}/*.c"
+  smplNrm+=" ${SDIR}/*.txt ${SDIR}/README.md ${SDIR}/newenv"
+  smplExe="${SDIR}/s? ${SDIR}/.s.common"
+  smplDir="${SDIR}/spec?"
+  chmod 555 ${smplExe} ${SDIR}/${LIBDIR}/${COLLIB}
+  tar cvfz ${CDIR}/${STAZ} ${smplNrm} ${smplExe} ${smplDir}
+  chmod 755 ${smplExe} ${SDIR}/${LIBDIR}/${COLLIB}
 fi
 
 ##### Analyzerのアーカイブ
 ATAZ="analyzer.tar.gz"
-if [ -e $ADIR ]; then
-  echo "--- $ATAZ を作成 ---"
-  cd $ADIR/BUILD
+if [ -e ${ADIR} ]; then
+  echo "--- ${ATAZ} を作成 ---"
+  cd ${ADIR}/BUILD
   make allclean >& /dev/null
   cd ..
   ./mpu
   cd ..
-  anlzNrm="$ADIR/$MAKEF $ADIR/$LIBDIR"
-  anlzNrm+=" $ADIR/*.h $ADIR/*.c"
-  anlzNrm+=" $ADIR/*.txt $ADIR/README.md $ADIR/newenv"
-  chmod 555 $ADIR/$LIBDIR/$COLLIB
-  tar cvfz $CDIR/$ATAZ $anlzNrm
-  chmod 755 $ADIR/$LIBDIR/$COLLIB
+  anlzNrm="${ADIR}/${MAKEF} ${ADIR}/${LIBDIR}"
+  anlzNrm+=" ${ADIR}/*.h ${ADIR}/*.c"
+  anlzNrm+=" ${ADIR}/*.txt ${ADIR}/README.md ${ADIR}/newenv"
+  chmod 555 ${ADIR}/${LIBDIR}/${COLLIB}
+  tar cvfz ${CDIR}/${ATAZ} ${anlzNrm}
+  chmod 755 ${ADIR}/${LIBDIR}/${COLLIB}
 fi
 
 ##### toscomのアーカイブ
-cd $CDIR
+cd ${CDIR}
 
 echo "--- com_testtos.tar.gz を作成 ---"
 # まずは com_testtos.c をアーカイブ
@@ -165,18 +166,18 @@ TTAZ="com_testtos.tar.gz"
 
 ## com_testtos.cのリンクがある場合は一旦削除
 existTesttos=0
-if [ -f $TESTTOS ]; then
-  rm -fr $TESTTOS
+if [ -f ${TESTTOS} ]; then
+  rm -fr ${TESTTOS}
   existTesttos=1
 fi
 # com_testtos.c の実体をアーカイブ後削除
-cp $ORG_TESTTOS $TESTTOS 
-tar cvfz $TTAZ $TESTTOS
-rm -fr $TESTTOS
+cp ${ORG_TESTTOS} ${TESTTOS} 
+tar cvfz ${TTAZ} ${TESTTOS}
+rm -fr ${TESTTOS}
 
 # リンクではなく実体ファイルを toscom/ に配置
-rm -fr $TESTC
-cp $ORG_TESTC $TESTC
+rm -fr ${TESTC}
+cp ${ORG_TESTC} ${TESTC}
 # スクリプトの最後で実体を削除しリンクを貼り直す
 
 cd BUILD
@@ -186,61 +187,61 @@ cd ../..
 
 # 新規環境作成キットのアーカイブ
 NTAZ="newenv.tar.gz"
-echo "--- $NTAZ を作成 ---"
+echo "--- ${NTAZ} を作成 ---"
 NDIR="NEWENV"
-cd $CDIR/$NDIR
+cd ${CDIR}/${NDIR}
 ./mpu
 cd ..
-NEWFILES="$NDIR/com_* $NDIR/main.c"
-NEWFILES+=" $NDIR/$MAKEF $NDIR/$LIBDIR"
-tar cvfz $NTAZ $NEWFILES $NDIR/newenv
-rm -fr $NEWFILES
+NEWFILES="${NDIR}/com_* ${NDIR}/main.c"
+NEWFILES+=" ${NDIR}/${MAKEF} ${NDIR}/${LIBDIR}"
+tar cvfz ${NTAZ} ${NEWFILES} ${NDIR}/newenv
+rm -fr ${NEWFILES}
 cd ..
 
 # リリースファイルのアーカイブ
-echo "--- $relfile を作成 ---"
-cp README.md $CDIR/README.md
+echo "--- ${relfile} を作成 ---"
+cp README.md ${CDIR}/README.md
 
-docfiles="$CDIR/README.md $CDIR/about*.txt"
-#docfiles+=" $CDIR/HISTORY/about*.txt"
-docfiles+=" $CDIR/IF_NOT_UTF8"
+docfiles="${CDIR}/README.md ${CDIR}/about*.txt"
+#docfiles+=" ${CDIR}/HISTORY/about*.txt"
+docfiles+=" ${CDIR}/IF_NOT_UTF8"
 
-comfiles="$CDIR/com_if.h $CDIR/com_proc.c $CDIR/com_procThread.c"
-comfiles+=" $CDIR/com_debug.h $CDIR/com_debug.c"
-comfiles+=" $CDIR/com_extra.h $CDIR/com_extra.c"
-comfiles+=" $CDIR/com_select.h $CDIR/com_select.c"
-comfiles+=" $CDIR/com_window.h $CDIR/com_window.c"
-comfiles+=" $CDIR/com_signal.h $CDIR/com_signal.c"
-comfiles+=" $CDIR/com_signalCom.h $CDIR/com_signalCom.c"
-comfiles+=" $CDIR/com_signalSet1.h $CDIR/com_signalSet1.c"
-comfiles+=" $CDIR/com_signalSet2.h $CDIR/com_signalSet2.c"
-comfiles+=" $CDIR/com_signalSet3.h $CDIR/com_signalSet3.c"
+comfiles="${CDIR}/com_if.h ${CDIR}/com_proc.c ${CDIR}/com_procThread.c"
+comfiles+=" ${CDIR}/com_debug.h ${CDIR}/com_debug.c"
+comfiles+=" ${CDIR}/com_extra.h ${CDIR}/com_extra.c"
+comfiles+=" ${CDIR}/com_select.h ${CDIR}/com_select.c"
+comfiles+=" ${CDIR}/com_window.h ${CDIR}/com_window.c"
+comfiles+=" ${CDIR}/com_signal.h ${CDIR}/com_signal.c"
+comfiles+=" ${CDIR}/com_signalCom.h ${CDIR}/com_signalCom.c"
+comfiles+=" ${CDIR}/com_signalSet1.h ${CDIR}/com_signalSet1.c"
+comfiles+=" ${CDIR}/com_signalSet2.h ${CDIR}/com_signalSet2.c"
+comfiles+=" ${CDIR}/com_signalSet3.h ${CDIR}/com_signalSet3.c"
 
-specfiles="$CDIR/com_custom.h $CDIR/com_spec.h $CDIR/com_spec.c"
-specfiles+=" $CDIR/com_test.c $CDIR/main.c"
-specfiles+=" $CDIR/xconv"
-specfiles+=" $CDIR/xname $CDIR/xnameconf"
+specfiles="${CDIR}/com_custom.h ${CDIR}/com_spec.h ${CDIR}/com_spec.c"
+specfiles+=" ${CDIR}/com_test.c ${CDIR}/main.c"
+specfiles+=" ${CDIR}/xconv"
+specfiles+=" ${CDIR}/xname ${CDIR}/xnameconf"
 
-buildfiles="$CDIR/$MAKEF $CDIR/$LIBDIR"
-tarfiles="$CDIR/$NTAZ $CDIR/$TTAZ $CDIR/$STAZ $CDIR/$ATAZ"
+buildfiles="${CDIR}/${MAKEF} ${CDIR}/${LIBDIR}"
+tarfiles="${CDIR}/${NTAZ} ${CDIR}/${TTAZ} ${CDIR}/${STAZ} ${CDIR}/${ATAZ}"
 romfiles="${docfiles} ${comfiles} ${tarfiles}"
-romexes="$CDIR/xname $CDIR/$LIBDIR/$COLLIB"
+romexes="${CDIR}/xname ${CDIR}/${LIBDIR}/${COLLIB}"
 
-chmod 444 $romfiles
-chmod 555 $romexes
-tar cvfz $relfile $buildfiles $comfiles $specfiles $docfiles $tarfiles
-chmod 644 $romfiles
-chmod 755 $romexes
+chmod 444 ${romfiles}
+chmod 555 ${romexes}
+tar cvfz ${relfile} ${buildfiles} ${comfiles} ${specfiles} ${docfiles} ${tarfiles}
+chmod 644 ${romfiles}
+chmod 755 ${romexes}
 
 echo "--- 不要なファイルを削除 ---"
-rm -f $CDIR/README.md $tarfiles
+rm -f ${CDIR}/README.md ${tarfiles}
 
-cd $CDIR
-rm -f $TESTC
-if [ $existTesttos = 0 ]; then
-  ln -s $ORG_TESTC
+cd ${CDIR}
+rm -f ${TESTC}
+if [ ${existTesttos} = 0 ]; then
+  ln -s ${ORG_TESTC}
 else
-  ln -s $ORG_TESTTOS
+  ln -s ${ORG_TESTTOS}
 fi
 cd ..
 

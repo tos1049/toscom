@@ -1,12 +1,12 @@
 #!/bin/bash
 . ./TEST/_test
 
-if [ ! -f $TESTTOS ]; then
-  echo "$TESTTOS not exists"
+if [ ! -f ${TESTTOS} ]; then
+  echo "${TESTTOS} not exists"
   exit
 fi
 
-echo "### remove $TESTTOS"
-rm -fr $TESTTOS
-ln -s $ORG_TESTC
+echo "### remove ${TESTTOS}"
+rm -fr ${TESTTOS}
+ln -s ${ORG_TESTC}
 

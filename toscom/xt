@@ -1,12 +1,12 @@
 #!/bin/bash
 . ./TEST/_test
 
-if [ -f $TESTTOS ]; then
-  echo "$TESTTOS already exists"
+if [ -f ${TESTTOS} ]; then
+  echo "${TESTTOS} already exists"
   exit
 fi
 
-echo "### use $TESTTOS"
-rm -fr $TESTC
-ln -s $ORG_TESTTOS
+echo "### use ${TESTTOS}"
+rm -fr ${TESTC}
+ln -s ${ORG_TESTTOS}
 

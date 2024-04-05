@@ -19,13 +19,16 @@ else
 fi
 
 function fileconv() {
-  if [ -L $1 ]; then return 0; fi
-  if [ $2 = 1 ]; then chmod 664 $1; fi
-  cp $1 $1.tmp
-  iconv -f ${CODE_F} -t ${CODE_T} $1.tmp > $1
-  echo "  $1"
-  rm $1.tmp
-  if [ $2 = 1 ]; then chmod 444 $1; fi
+  local _filename=$1
+  local _modeChange=$2
+
+  if [ -L ${_filename} ]; then return 0; fi
+  if [ ${_modeChange} = 1 ]; then chmod 664 ${_filename}; fi
+  cp ${_filename} ${_filename}.tmp
+  iconv -f ${CODE_F} -t ${CODE_T} ${_filename}.tmp > ${_filename}
+  echo "  ${_filename}"
+  rm ${_filename}.tmp
+  if [ ${_modeChange} = 1 ]; then chmod 444 ${_filename}; fi
 }
 
 function fileconv0() {
@@ -37,18 +40,21 @@ function fileconv1() {
 }
 
 function convArcFile() {
-  if [ ! -e $1 ]; then return; fi
-  echo " $1"
-  chmod 664 $1
-  tmpdir=tmp.$1
-  mkdir $tmpdir
-  cd $tmpdir
-  tar xvfz ../$1 > /dev/null
-  fileconv0 $2
-  tar cvfz ../$1 $2 > /dev/null
+  local _archive=$1
+  local _filename=$2
+
+  if [ ! -e ${_archive} ]; then return; fi
+  echo " ${_archive}"
+  chmod 664 ${_archive}
+  local _tmpdir=tmp.${_archive}
+  mkdir ${_tmpdir}
+  cd ${_tmpdir}
+  tar xvfz ../${_archive} > /dev/null
+  fileconv0 ${_filename}
+  tar cvfz ../${_archive} ${_filename} > /dev/null
   cd ..
-  rm -fr $tmpdir
-  chmod 444 $1
+  rm -fr ${_tmpdir}
+  chmod 444 ${_archive}
 }
 
 function convSrc() {
@@ -62,36 +68,44 @@ function convSrc() {
 }
 
 function convArcDir() {
-  if [ ! -e $1 ]; then return; fi
-  echo " $1"
-  chmod 664 $1
-  tar xvfz $1 > /dev/null
-  cd $2
-  fileconv0 $3
+  local _archive=$1
+  local _dirname=$2
+  local _targets="$3"
+
+  if [ ! -e ${_archive} ]; then return; fi
+  echo " ${_archive}"
+  chmod 664 ${_archive}
+  tar xvfz ${_archive} > /dev/null
+  cd ${_dirname}
+  fileconv0 ${_targets}
   cd ..
-  tar cvfz $1 $2 > /dev/null
-  rm -fr $2
-  chmod 444 $1
+  tar cvfz ${_archive} ${_dirname} > /dev/null
+  rm -fr ${_dirname}
+  chmod 444 ${_archive}
 }
 
 function convArcSmpl() {
-  if [ ! -e $1 ]; then return; fi
-  echo " $1"
-  chmod 664 $1
-  tar xvfz $1 > /dev/null
-  cd $2
-  fileconv0 $3
-  spec="smpl_spec.h smpl_spec.c"
+  local _archive=$1
+  local _dirname=$2
+  local _targets="$3"
+
+  if [ ! -e ${_archive} ]; then return; fi
+  echo " ${_archive}"
+  chmod 664 ${_archive}
+  tar xvfz ${_archive} > /dev/null
+  cd ${_dirname}
+  fileconv0 ${_targets}
+  local _spec="smpl_spec.h smpl_spec.c"
   cd spec1
   echo "  -spec1-"
-  fileconv0 $spec
+  fileconv0 ${_spec}
   cd ../spec2
   echo "  -spec2-"
-  fileconv0 $spec
+  fileconv0 ${_spec}
   cd ../..
-  tar cvfz $1 $2 > /dev/null
-  rm -fr $2
-  chmod 444 $1
+  tar cvfz ${_archive} ${_dirname} > /dev/null
+  rm -fr ${_dirname}
+  chmod 444 ${_archive}
 }
 
 echo " toscom/"

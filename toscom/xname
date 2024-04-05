@@ -3,60 +3,68 @@
 . ./xnameconf
 
 function convert() {
-  grep -l "${2}_" $1 | xargs sed -i.cnvbak -e "s/${2}_/${3}_/g"
-  if [ "x$1" = "xREADME.md" ]; then return; fi
-  grep -l "${2^^}_" $1 | xargs sed -i.cnvbak -e "s/${2^^}_/${3^^}_/g"
-  if [ "x$4" = "x1" ]; then
-    # 日本語を含むモジュール名だと失敗するかも
-    grep -l "${2}モジュール" $1 | \
-        xargs sed -i.cnvbak -e "s/${2}モジュール/${3}モジュール/g"
+  local _files="$1"
+  local _old=$2
+  local _new=$3
+  local _japanese=$4
+
+  grep -l "${_old}_" ${_files} | xargs sed -i.cnvbak -e "s/${_old}_/${_new}_/g"
+  if [ "x${_files}" = "xREADME.md" ]; then return; fi
+  grep -l "${_old^^}_" ${_files} | xargs sed -i.cnvbak -e "s/${_old^^}_/${_new^^}_/g"
+  if [ "x${_japanese}" = "x1" ]; then
+    # 日本語を含むモジュール名は失敗するかも
+    grep -l "${_old}モジュール" ${_files} | \
+        xargs sed -i.cnvbak -e "s/${_old}モジュール/${_new}モジュール/g"
   fi
 }
 
 function procFiles() {
+  local _old=$1
+  local _new=$2
+
   echo ">> convert document files"
-  convert "*.txt" $1 $2 1
-  convert "README.md" $1 $2 1
+  convert "*.txt" ${_old} ${_new} 1
+  convert "README.md" ${_old} ${_new} 1
 
   echo ">> convert C source files"
-  convert "*.c" $1 $2 1
+  convert "*.c" ${_old} ${_new} 1
   echo ">> convert C header files"
-  convert "*.h" $1 $2 1
+  convert "*.h" ${_old} ${_new} 1
   echo ">> convert BUILD/makefile"
-  convert BUILD/makefile $1 $2 0
-  sed -i.cnvbak -e "s/${1}\.o/${2}\.o/g" BUILD/makefile
+  convert BUILD/makefile ${_old} ${_new} 0
+  sed -i.cnvbak -e "s/${_old}\.o/${_new}\.o/g" BUILD/makefile
 
-  echo ">> rename $1 files"
-  for FILE in $(ls ${1}_*.?); do mv $FILE ${FILE//${1}_/${2}_}; done
+  echo ">> rename ${_old} files"
+  for _file in $(ls ${_old}_*.?); do mv ${_file} ${_file//${_old}_/${_new}_}; done
 
   echo ">> remove temporary files"
   rm -fr *.cnvbak BUILD/*.cnvbak
 }
 
-arctmp=".tmpArca3527"
+ARCTMP=".tmpArca3527"
 
 function procArchive() {
-  local OLD=$1
-  local NEW=$2
-  local DIR=$3
+  local _old=$1
+  local _new=$2
+  local _dirname=$3
 
-  if [ ! -e "$OLD" ]; then return 0; fi
-  echo ">> convert $OLD"
-  mkdir $arctmp
-  cd $arctmp
-  mv ../$OLD .
-  tar xvfz $OLD >& /dev/null
-  rm -fr $OLD
-  cd $DIR
-  procFiles $OLDMODULE $NEWMODULE >& /dev/null
-  if [ $DIR != "." ]; then cd ..; fi
-  tar cvfz $NEW * >& /dev/null
-  mv $NEW ..
+  if [ ! -e "${_old}" ]; then return 0; fi
+  echo ">> convert ${_old}"
+  mkdir ${ARCTMP}
+  cd ${ARCTMP}
+  mv ../${_old} .
+  tar xvfz ${_old} >& /dev/null
+  rm -fr ${_old}
+  cd ${_dirname}
+  procFiles ${OLDMODULE} ${NEWMODULE} >& /dev/null
+  if [ ${_dirname} != "." ]; then cd ..; fi
+  tar cvfz ${_new} * >& /dev/null
+  mv ${_new} ..
   cd ..
-  rm -fr $arctmp
+  rm -fr ${ARCTMP}
 }
 
-procFiles $OLDMODULE $NEWMODULE
+procFiles ${OLDMODULE} ${NEWMODULE}
 procArchive ${OLDMODULE}_testtos.tar.gz ${NEWMODULE}_testtos.tar.gz .
 procArchive newenv.tar.gz newenv.tar.gz NEWENV
 
@@ -64,9 +72,9 @@ procArchive newenv.tar.gz newenv.tar.gz NEWENV
 if [ ${PWD##*/} = "smplComm" ]; then
   . ./.s.common
   cd spec1
-  procFiles $OLDMODULE $NEWMODULE
+  procFiles ${OLDMODULE} ${NEWMODULE}
   cd ../spec2
-  procFiles $OLDMODULE $NEWMODULE
+  procFiles ${OLDMODULE} ${NEWMODULE}
   cd ..
   if [ -e ${NEWMODULE}_window.c ]; then
     swapFiles spec2
