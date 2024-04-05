@@ -735,7 +735,7 @@ void *com_mallocFunc( size_t iSize, COM_FILEPRM, const char *iFormat, ... );
 /*
  * プロトタイプ形式 (この形で使用すること)
  *   void *com_realloc( void *iAddr, size_t iSize, const char *iFormat, ... );
- *   void *com_reallofc( void *iAddr, size_t iSize, const char *iFormat, ... );
+ *   void *com_reallocf( void *iAddr, size_t iSize, const char *iFormat, ... );
  */
 #define com_realloc( ADDR, SIZE, ... ) \
     com_reallocFunc( (ADDR), (SIZE), COM_FILELOC, __VA_ARGS__ )
@@ -1050,8 +1050,8 @@ typedef struct {
 
 /*
  * プロトタイプ形式 (この形で使用すること)
- *   BOOL com_createrBuffer( com_buf_t **oBuf, size_t iSize,
- *                           const char *iFormat, ... );
+ *   BOOL com_createBuffer( com_buf_t **oBuf, size_t iSize,
+ *                          const char *iFormat, ... );
  */
 #define com_createBuffer( BUF, SIZE, ... ) \
     com_createBufferFunc( (BUF), (SIZE), COM_FILELOC, __VA_ARGS__ )
@@ -1189,7 +1189,7 @@ BOOL com_setBufferFunc(
  * iSizeが内部一時バッファのサイズ COM_DATABUF_SIZE - 1 を超えると処理NGになる。
  * iSizeが 0指定の場合は、指定された文字列全体を結合する。
  *
- * バッファへの設定可追加家の違いだけで、データの扱い方については
+ * バッファへの設定か追加かの違いだけで、データの扱い方については
  * com_setBuffer()と同様なので、そちらの説明も参照して欲しい。
  */
 
