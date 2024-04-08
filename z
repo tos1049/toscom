@@ -1,5 +1,4 @@
 #!/bin/bash
-RELDIR=$1
 
 # toscomのアーカイブを作ったりするシェル
 #  toscom.*.tar.gz    リリースアーカイブ
@@ -33,15 +32,17 @@ FDIR="proto"
 
 ##### 編集中のファイルがあった場合は中断する
 function checkSwp() {
-  if [ "xzx${RELDIR}" = "xzx." ]; then
-    local _swptmp=($(find ${RELDIR} -name ".?.swp"))
+  local _target=$1
+
+  if [ "${_target}" = "." ]; then
+    mapfile -t _swptmp < <(find "${_target}" -name ".?.swp")
   else
-    if [ ! -d ${RELDIR} ]; then return; fi   # 存在しないディレクトリは何もしない
-    local _swptmp=($(find ${RELDIR} -name ".*.swp"))
+    if [ ! -d "${_target}" ]; then return; fi   # 存在しないディレクトリは何もしない
+    mapfile -t _swptmp < <(find "${_target}" -name ".*.swp")
   fi
-  if (( ${#_swptmp[0]} == 0 )); then return; fi
+  if [ ${#_swptmp[@]} -eq 0 ]; then return; fi
   echo "--- スワップファイルを発見(編集中では？) ---"
-  for swp in ${_swptmp[0]}; do echo ${swp}; done
+  for swp in "${_swptmp[@]}"; do echo "${swp}"; done
   echo
   exit
 }
@@ -54,12 +55,12 @@ echo "--- スワップファイルなし(編集中ファイルは多分なし) -
 
 ##### コメントアウトしてないテスト関数があったら中断する
 . ${CDIR}/TEST/_test
-if [ -f ${CDIR}/${TESTTOS} ]; then
+if [ -f "${CDIR}/${TESTTOS}" ]; then
   testcheck="${TESTTOS}"
 else
   testcheck="${ORG_TESTTOS}"
 fi
-testFunc=$(grep "^\s*test_" ${CDIR}/${testcheck})
+testFunc=$(grep "^\s*test_" "${CDIR}/${testcheck}")
 if [ -n "${testFunc}" ]; then
   echo "--- ${testcheck}: コメントアウトされていないテスト関数があるのでは？"
   echo "${testFunc}"
@@ -87,7 +88,7 @@ if [ "x${OLDMODULE}" != "xcom" ]; then
 fi
 
 ##### ファイル名生成
-if (( ${ISBETA} == 1 )); then
+if (( ISBETA == 1 )); then
   echo "--- ベータ版をこれから作成 ---"
   # ベータ版の場合は バージョン名に beta を付与
   APLVER="${APLVER}beta"
@@ -96,14 +97,14 @@ relfile="toscom.${APLVER}.tar.gz"
 
 rm -fr ${relfile}
 
-if (( ${ISBETA} == 0 )); then
+if (( ISBETA == 0 )); then
   # oldPackages にリリースアーカイブを退避
   if [ ! -e ${OPACK} ]; then mkdir ${OPACK}; fi
   mv toscom.*.tar.gz ${OPACK}
   # ベータ版は削除
   rm -fr ${OPACK}/toscom.*beta.tar.gz
 fi
-if (( ${ISBETA} != 1 )); then
+if (( ISBETA != 1 )); then
   # aboutIf.txtを HISTORYにバックアップ
   about=${CDIR}/aboutIf.txt
   if [ -e ${about} ]; then
@@ -114,7 +115,6 @@ if (( ${ISBETA} != 1 )); then
 fi
 
 echo "--- アーカイブファイル名 = ${relfile} ---"
-tartemp=""
 
 ##### プロトタイプのアーカイブ (現状処理省略)
 MAKEF="BUILD/makefile"
@@ -125,7 +125,7 @@ COLLIB="collectLibFiles"
 STAZ="smplcomm.tar.gz"
 if [  -e ${SDIR} ]; then
   echo "--- ${STAZ} を作成 ---"
-  cd ${SDIR}/BUILD
+  cd ${SDIR}/BUILD || exit
   make allclean >& /dev/null
   cd ..
   ./mpu
@@ -144,7 +144,7 @@ fi
 ATAZ="analyzer.tar.gz"
 if [ -e ${ADIR} ]; then
   echo "--- ${ATAZ} を作成 ---"
-  cd ${ADIR}/BUILD
+  cd ${ADIR}/BUILD || exit
   make allclean >& /dev/null
   cd ..
   ./mpu
@@ -158,7 +158,7 @@ if [ -e ${ADIR} ]; then
 fi
 
 ##### toscomのアーカイブ
-cd ${CDIR}
+cd ${CDIR} || exit
 
 echo "--- com_testtos.tar.gz を作成 ---"
 # まずは com_testtos.c をアーカイブ
@@ -166,7 +166,7 @@ TTAZ="com_testtos.tar.gz"
 
 ## com_testtos.cのリンクがある場合は一旦削除
 existTesttos=0
-if [ -f ${TESTTOS} ]; then
+if [ -f "${TESTTOS}" ]; then
   rm -fr ${TESTTOS}
   existTesttos=1
 fi
@@ -180,7 +180,7 @@ rm -fr ${TESTC}
 cp ${ORG_TESTC} ${TESTC}
 # スクリプトの最後で実体を削除しリンクを貼り直す
 
-cd BUILD
+cd BUILD || exit
 make allclean >& /dev/null
 
 cd ../..
@@ -189,7 +189,7 @@ cd ../..
 NTAZ="newenv.tar.gz"
 echo "--- ${NTAZ} を作成 ---"
 NDIR="NEWENV"
-cd ${CDIR}/${NDIR}
+cd ${CDIR}/${NDIR} || exit
 ./mpu
 cd ..
 NEWFILES="${NDIR}/com_* ${NDIR}/main.c"
@@ -236,12 +236,12 @@ chmod 755 ${romexes}
 echo "--- 不要なファイルを削除 ---"
 rm -f ${CDIR}/README.md ${tarfiles}
 
-cd ${CDIR}
+cd ${CDIR} || exit
 rm -f ${TESTC}
 if [ ${existTesttos} = 0 ]; then
-  ln -s ${ORG_TESTC}
+  ln -s ${ORG_TESTC} .
 else
-  ln -s ${ORG_TESTTOS}
+  ln -s ${ORG_TESTTOS} .
 fi
 cd ..
 

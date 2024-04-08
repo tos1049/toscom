@@ -12,7 +12,7 @@ STAZ="smplcomm.tar.gz"
 ATAZ="analyzer.tar.gz"
 
 # 一番日付の新しいファイルを処理対象とする
-TARLIST=(`ls -t toscom.*.tar.gz`)
+mapfile -t TARLIST < <(ls -t toscom.*.tar.gz)
 TARFILE=${TARLIST[0]}
 
 if [ -z "${TARFILE}" ]; then
@@ -28,17 +28,24 @@ cd ${TESTDIR}
 tar xvfz ${TARFILE} >& /dev/null
 
 function checker() {
+  local _title=$1
+  local _makeTarget=$2
+  local _binaryFile=$3
+  local _label=$4
+
   cat<< CHECKTOP
 
 
-------- check $1 -------
+------- check ${_title} -------
 CHECKTOP
+
   cd BUILD
-  make $2
-  if [ ! -e $3 ]; then
+  echo "> make ${_makeTarget}"
+  make ${_makeTarget}
+  if [ ! -e ${_binaryFile} ]; then
     cat<< CHECKNG
 ********************************
- $4 ビルド失敗！
+ ${_label} ビルド失敗！
 ********************************
 CHECKNG
     exit

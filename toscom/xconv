@@ -7,7 +7,7 @@ CHANGETO="EUCJP"
 
 . ./xnameconf
 
-ISUTF8=`file -i aboutIf.txt | grep utf-8`
+ISUTF8=$(file -i aboutIf.txt | grep utf-8)
 if [ -n "$ISUTF8" ]; then
   echo "UTF-8 -> $CHANGETO"
   CODE_F="UTF-8"
@@ -22,33 +22,33 @@ function fileconv() {
   local _filename=$1
   local _modeChange=$2
 
-  if [ -L ${_filename} ]; then return 0; fi
-  if [ ${_modeChange} = 1 ]; then chmod 664 ${_filename}; fi
+  if [ -L "${_filename}" ]; then return 0; fi
+  if [ "${_modeChange}" = "1" ]; then chmod 664 ${_filename}; fi
   cp ${_filename} ${_filename}.tmp
   iconv -f ${CODE_F} -t ${CODE_T} ${_filename}.tmp > ${_filename}
   echo "  ${_filename}"
   rm ${_filename}.tmp
-  if [ ${_modeChange} = 1 ]; then chmod 444 ${_filename}; fi
+  if [ "${_modeChange}" = "1" ]; then chmod 444 ${_filename}; fi
 }
 
 function fileconv0() {
-  for file; do fileconv $file 0; done
+  for file; do fileconv "${file}" 0; done
 }
 
 function fileconv1() {
-  for file; do fileconv $file 1; done
+  for file; do fileconv "${file}" 1; done
 }
 
 function convArcFile() {
   local _archive=$1
   local _filename=$2
 
-  if [ ! -e ${_archive} ]; then return; fi
+  if [ ! -e "${_archive}" ]; then return; fi
   echo " ${_archive}"
   chmod 664 ${_archive}
   local _tmpdir=tmp.${_archive}
   mkdir ${_tmpdir}
-  cd ${_tmpdir}
+  cd ${_tmpdir} || exit
   tar xvfz ../${_archive} > /dev/null
   fileconv0 ${_filename}
   tar cvfz ../${_archive} ${_filename} > /dev/null
@@ -72,11 +72,11 @@ function convArcDir() {
   local _dirname=$2
   local _targets="$3"
 
-  if [ ! -e ${_archive} ]; then return; fi
+  if [ ! -e "${_archive}" ]; then return; fi
   echo " ${_archive}"
   chmod 664 ${_archive}
   tar xvfz ${_archive} > /dev/null
-  cd ${_dirname}
+  cd ${_dirname}  || exit
   fileconv0 ${_targets}
   cd ..
   tar cvfz ${_archive} ${_dirname} > /dev/null
@@ -89,17 +89,17 @@ function convArcSmpl() {
   local _dirname=$2
   local _targets="$3"
 
-  if [ ! -e ${_archive} ]; then return; fi
+  if [ ! -e "${_archive}" ]; then return; fi
   echo " ${_archive}"
   chmod 664 ${_archive}
   tar xvfz ${_archive} > /dev/null
-  cd ${_dirname}
+  cd ${_dirname} || exit
   fileconv0 ${_targets}
   local _spec="smpl_spec.h smpl_spec.c"
-  cd spec1
+  cd spec1 || exit
   echo "  -spec1-"
   fileconv0 ${_spec}
-  cd ../spec2
+  cd ../spec2 || exit
   echo "  -spec2-"
   fileconv0 ${_spec}
   cd ../..
@@ -113,7 +113,7 @@ fileconv1 README* *.txt xname
 chmod 555 xname
 fileconv0 xnameconf
 convSrc
-convArcFile ${NEWMODULE}_testtos.tar.gz "${NEWMODULE}_testtos.c"
+convArcFile ${NEWMODULE}_testtos.tar.gz ${NEWMODULE}_testtos.c
 BUILDFILES="BUILD/makefile BUILD/.lib/gcc_sample"
 COMFILES="${NEWMODULE}_spec.* ${NEWMODULE}_test.c main.c newenv"
 convArcDir newenv.tar.gz NEWENV \
