@@ -341,7 +341,7 @@ specclean:
 
 ########## 生成物やログを全て削除 (make allclean) ############################
 allclean: clean logclean specclean
-
+	$(RM) -fr ../NEWENV/*.tar.gz
 
 
 
