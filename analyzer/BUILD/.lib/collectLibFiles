@@ -17,10 +17,23 @@ fi
 
 HEADERS=($(ls $SRC/*.h))
 
+function isNotOpenHeader() {
+  local _head=$1
+  local _list=(com_debug.h com_spec.h)
+
+  for _item in "${_list[@]}"; do
+    if [ ${_head} = ${_item} ]; then
+      echo "1"
+      return
+    fi
+  done
+  echo "0"
+}
+
 for HEADER in "${HEADERS[@]}"; do
   HNAME=$(basename "$HEADER")
-  if [ -e "$TOSCOM/$HNAME" ] && [[ ! $HNAME =~ _debug ]]; then
-    if [[ $HNAME =~ _spec ]] || [[ $HNAME =~ _custom ]]; then
+  if [ -e "$TOSCOM/$HNAME" ] && [ "$(isNotOpenHeader $HNAME)" = "0" ]; then
+    if [[ $HNAME =~ _custom ]]; then
       HNAME=$SRC/$HNAME
     else
       HNAME=$TOSCOM/$HNAME

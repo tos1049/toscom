@@ -296,7 +296,7 @@ rel: init
 # -I でヘッダファイルのあるパスを指定すると、インクルード時に指定するのが
 # ヘッダファイル名のみで良くなる。
 #
-LIBDIR := toscom_lib
+LIBDIR :=  libtoscom
 LIBFILE := libtoscom
 LIB := .lib
 
@@ -314,7 +314,7 @@ lib: rel
 	mkdir ${LIBDIR}/files
 	cp $(LIB)/gcc_sample $(LIBDIR)/files
 	cp ../com_spec.* ${LIBDIR}/files
-	cp ../com_test.c ${LIBDIR}/files
+	cp ../com_test*.c ${LIBDIR}/files
 	cp ../main.c     ${LIBDIR}/files
 	cp ${LIB}/ready  ${LIBDIR}
 	tar cvfz ${LIBDIR}.tar.gz $(LIBDIR)
@@ -343,7 +343,7 @@ logclean: specclean
 specclean:
 
 ########## 生成物やログを全て削除 (make allclean) ############################
-allclean: clean logclean
+allclean: clean logclean specclean
 
 
 
