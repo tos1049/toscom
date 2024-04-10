@@ -207,7 +207,7 @@ docfiles="${CDIR}/README.md ${CDIR}/about*.txt"
 docfiles+=" ${CDIR}/IF_NOT_UTF8"
 
 comfiles="${CDIR}/com_if.h ${CDIR}/com_proc.c ${CDIR}/com_procThread.c"
-comfiles+=" ${CDIR}/com_debug.h ${CDIR}/com_debug.c"
+comfiles+=" ${CDIR}/com_debugMacro.h ${CDIR}/com_debug.h ${CDIR}/com_debug.c"
 comfiles+=" ${CDIR}/com_extra.h ${CDIR}/com_extra.c"
 comfiles+=" ${CDIR}/com_select.h ${CDIR}/com_select.c"
 comfiles+=" ${CDIR}/com_window.h ${CDIR}/com_window.c"

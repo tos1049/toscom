@@ -142,6 +142,9 @@
 /* toscomの挙動でカスタマイズできるものについては、以下に宣言する */
 #include "com_custom.h"
 
+/* toscomの内部定義マクロ宣言 */
+#include "com_debugMacro.h"
+
 /* com_spec.h は本ヘッダの末尾にインクルードしている */
 
 
@@ -220,15 +223,6 @@ enum {
 #define COM_UNUSED( PRM )    (void)(PRM)
 
 /*
- * バッファクリアマクロ
- *   BUFFERに対象バッファの自体を指定することで、その全体をゼロクリアする。
- *   指定できるのは sizeof()で直接サイズを取得できる実態変数のみ。
- *   くれぐれも BUFFERにポインタ変数を使用しないこと。
- */
-#define COM_CLEAR_BUF( BUFFER ) \
-    do { memset( (BUFFER), 0, sizeof( BUFFER ) ); } while(0)
-
-/*
  * ポインタ設定ありの場合に値設定するマクロ
  *   PTRが NULLでなければ、そのポイント先に VALを設定する。
  */
@@ -258,33 +252,6 @@ enum {
  */
 #define COM_CONTAINBIT( TARGET, BITPATTERN ) \
     ( (TARGET) & (BITPATTERN) ) 
-
-/*
- * 3つのデータの受け渡しマクロ
- *   DATA1 <- DATA2 <- DATA3 と順に値を受け渡す。
- */
-#define COM_RELAY( DATA1, DATA2, DATA3 ) \
-    do { (DATA1) = (DATA2); (DATA2) = (DATA3); } while(0)
-
-/*
- * デバッグ情報用のファイル位置マクロ
- *   COM_FILEPRM は関数定義/プロトタイプ宣言用の仮引数定義マクロ。
- *   COM_FILEVAR は引数定義マクロで受け取った内容を渡すための実引数マクロ。
- *    (重複を避けるため、上記2つについては変数名に大文字を使用している)
- *   COM_FILELOC は現在位置を渡すための実引数マクロ。
- *
- *   なお COM_FILEPRM を引数に持つI/Fの多くはその指定の手間を省くため、
- *   I/F名の定義が関数形式マクロとなっている。これにより見た目の引数は
- *   減らせるが、I/F名と実体関数名が変わるということにもなっている。
- *   関数引数のチェックは実体関数で当然行われるため、関数形式マクロとは
- *   引数の数が違うために混亂する可能性は否定できない(申し訳ない)。
- *   エラー発生時はどの引数と対応するのか、マクロ定義をよく見ておくこと。
- */
-#define COM_FILEPRM  const char *iFILE, long iLINE, const char *iFUNC
-
-#define COM_FILEVAR  iFILE, iLINE, iFUNC
-
-#define COM_FILELOC  __FILE__, __LINE__, __func__
 
 /*
  * 条件式の実現性について、コンパイラに示唆するマクロ
