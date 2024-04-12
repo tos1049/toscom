@@ -1,0 +1,23 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: get ctags
+      run: sudo apt install exuberant-ctags
+    - name: check gcc version
+      run: gcc -v
+    - name: prepare com_test.c
+      run: cp toscom/TEST/com_test.c toscom/
+    - name: make
+      run: cd toscom/BUILD; make

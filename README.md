@@ -92,14 +92,21 @@
     ビルドして実行したら「not freed memory list」というのが出て、
     解放されずに浮いたままのメモリをプログラム終了時に出力します。
     com_free( z ); と文言を更にその後ろに足せば、何も言われなくなります。
+
     これが toscomのメモリ監視機能です。
+    com_malloc()や com_free()を使うと、メモリ監視機能は動作します。
+    メモリの確保には com_realloc()等、幾つかバリエーションが存在します。
+    逆に標準関数の malloc() や free()ではこの機能は動作しません。
 
     以下のような記述をすると(ファイルオープンだけして、わざとクローズしない)
         FILE* fp = com_fopen( "makefile", "r" );
         fgetc( fp );    // 変数fpの未使用警告対策
     プログラムを終了時に「not closed file list」というのが出ます。
     com_fclose( fp ); と更にその後ろに足せば、何も言われなくなります。
+
     これが toscomのファイル監視機能です。
+    com_fopen()や com_fclose()を使うと、ファイル監視機能は動作します。
+    逆に標準関数の fopen()や fclose()ではこの機能は動作しません。
 
 
 !!!!! grimoire？ !!!!!
