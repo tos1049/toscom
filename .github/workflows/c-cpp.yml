@@ -21,8 +21,10 @@ jobs:
       run: cp toscom/TEST/com_test.c toscom/
     - name: make
       run: cd toscom/BUILD; make
-    - name: change permission
-      run: chmod 755 z */mpu */newenv smplComm/s? toscom/NEWENV/mpu toscom/NEWENV/newenv
+    - name: change permission e
+      run: chmod 755 e
+    - name: execute e to change permission of others
+      run: ./e
     - name: execute smplComm/newenv
       run: cd smplComm; ./newenv
     - name: execute analyzer/newenv
