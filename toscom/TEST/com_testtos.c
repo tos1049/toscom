@@ -1480,8 +1480,8 @@ void test_random( void )
     startFunc( __func__ );
     int succeed = 0;
 
-    for( int i = 0;  i < 10;  i++ ) { com_printf( "%3d ", com_rand( 20 ) ); }
-    for( int i = 0;  i < 100; i++ ) {if( com_checkChance(50) ) { succeed++; }}
+    for( long i = 0;  i < 10;  i++ ) { com_printf( "%3ld ", com_rand( 20 ) ); }
+    for( long i = 0;  i < 100; i++ ) {if( com_checkChance(50) ) { succeed++; }}
     com_printf( "\n succeed = %d\n", succeed );
 }
 

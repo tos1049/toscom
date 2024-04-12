@@ -596,23 +596,28 @@ BOOL com_isPrime( ulong iNumber );
 /*
  * 乱数生成  com_rand()
  *   生成した乱数(1以上)を返す。
+ *   Linuxでは int最大値を超える乱数は生成できない。
  *   処理NGが発生した場合は、無条件で 0 を返す。
  * ---------------------------------------------------------------------------
  *   COM_ERR_RANDOMIZE: 標準関数(initstate_r/srandom_r/random_r)でNG発生
+ *                      Windows(Cygwin)では srandom/random でNG発生
  * ===========================================================================
  *   マルチスレッドの影響は受けない処理を使用している。
+ *   ただし Windows(Cygwin)では ～_r の標準関数が使用できないため、
+ *   マルチスレッドではうまく動作しない可能性がある。
  * ===========================================================================
  * 1～iMaxまでの乱数を返す。
  * iMaxを負数にした場合は、-1～-iMaxまでの乱数を返す。
  * iMaxを 0にした場合は 0しか返さない。
+ * 本I/Fを一番最初に呼んだ時に、現在時刻を srandom()にシードとして与える。
  *
+ * --- Linux向け固有情報 ---
  * 本I/Fを一番最初に呼んだ時に、現在時刻を srandom_r()にシードとして与える。
  * このI/Fを使うための状態情報バッファはスレッドごとに保持する。
- * random_r()で乱数を生成するが、その結果が int型のため、乱数関連のI/Fは
- * いずれも long型ではなく int型でデータを扱っているので注意すること。
- * (toscomは基本的に整数には long型を使用している)
+ * また、random_r()が int型を返却するため、iMax は long型だが、int最大値を
+ * 超える値を指定しても、int最大値を超える乱数は生成できないという制限がある。
  */
-int com_rand( int iMax );
+long com_rand( long iMax );
 
 /*
  * 確率判定  com_checkChance()
@@ -627,7 +632,7 @@ int com_rand( int iMax );
  * を返すというロジックになる。
  * なお「確率論で信用できるのは 0 か 100 だけ」である。
  */
-BOOL com_checkChance( int iChance );
+BOOL com_checkChance( long iChance );
 
 /*
  * ダイスロール  com_rollDice()
@@ -646,7 +651,7 @@ BOOL com_checkChance( int iChance );
  *
  * iDispを trueにした場合、結果を画面出力する。
  */
-int com_rollDice( int iDice, int iSide, int iAdjust, BOOL iDisp );
+long com_rollDice( long iDice, long iSide, long iAdjust, BOOL iDisp );
 
 
 

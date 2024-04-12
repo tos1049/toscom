@@ -488,12 +488,11 @@ static BOOL setSeed( void )
     return true;
 }
 
-// random_r()の結果が int型なので、int型をベースにした処理となる
-int com_rand( int iMax )
+long com_rand( long iMax )
 {
     if( iMax == 0 ) { return 0; }
     BOOL  negative = false;
-    if( iMax < 0 ) {iMax = abs( iMax );  negative = true;}
+    if( iMax < 0 ) {iMax = labs( iMax );  negative = true;}
     if( !gSetSeed ) {if( !(gSetSeed = setSeed()) ) {return 0;}}
     int  result = 0;
     if( !random_r( &gRandomBuf, &result ) ) {
@@ -501,7 +500,7 @@ int com_rand( int iMax )
         if( negative ) {result *= -1;}
     }
     else {com_error( COM_ERR_RANDOMIZE, "random_r() NG" );}
-    return result;
+    return (long)result;
 }
 #else   // __linux__  (Windows版は こちらの一般的な標準関数で)
 static BOOL setSeed( void )
@@ -513,56 +512,55 @@ static BOOL setSeed( void )
     return true;
 }
 
-// Linux版とあわせるため int型で処理をすすめる
-int com_rand( int iMax )
+long com_rand( long iMax )
 {
     if( iMax == 0 ) {return 0;}
     BOOL  negative = false;
-    if( iMax < 0 ) {iMax = abs( iMax );  negative = true;}
+    if( iMax < 0 ) {iMax = labs( iMax );  negative = true;}
     if( !gSetSeed ) {if( !(gSetSeed = setSeed()) ) {return 0;}}
     long  randomValue = random();
-    int  result = randomValue % iMax + 1;
+    long  result = randomValue % iMax + 1;
     if( negative ) {result *= -1;}
     return result;
 }
 #endif  // __linux__
 
-BOOL com_checkChance( int iChance )
+BOOL com_checkChance( long iChance )
 {
-    int  dice = com_rand( 100 );
+    long  dice = com_rand( 100 );
     if( dice > iChance ) {return false;}
     return true;
 }
 
-static void dispAdjust( int iAdjust )
+static void dispAdjust( long iAdjust )
 {
     if( iAdjust ) {
-        if( iAdjust > 0 ) {com_printf( " +%d", iAdjust );}
-        else {com_printf( " %d", iAdjust );}
+        if( iAdjust > 0 ) {com_printf( " +%ld", iAdjust );}
+        else {com_printf( " %ld", iAdjust );}
     }
 }
 
-int com_rollDice( int iDice, int iSide, int iAdjust, BOOL iDisp )
+long com_rollDice( long iDice, long iSide, long iAdjust, BOOL iDisp )
 {
     if( iDisp ) {
-        com_printf( "%dd%d", iDice, iSide );
+        com_printf( "%ldd%ld", iDice, iSide );
         dispAdjust( iAdjust );
         com_printf( ": " );
     }
-    int  result = 0;
-    for( int i = 0;  i < iDice;  i++ ) {
-        int  dice = com_rand( iSide );
+    long  result = 0;
+    for( long i = 0;  i < iDice;  i++ ) {
+        long  dice = com_rand( iSide );
         if( iDisp ) {
             if( i > 0 ) {com_printf( "+" );}
-            com_printf( "%d", dice );
+            com_printf( "%ld", dice );
         }
         result += dice;
     }
-    if( iDisp && iDice > 1 ) {com_printf( " = %d", result );}
+    if( iDisp && iDice > 1 ) {com_printf( " = %ld", result );}
     result += iAdjust;
     if( iDisp ) {
         dispAdjust( iAdjust );
-        if( iAdjust ) {com_printf( " = %d", result );}
+        if( iAdjust ) {com_printf( " = %ld", result );}
         com_printLf();
     }
     return result;
