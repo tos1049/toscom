@@ -21,5 +21,7 @@ jobs:
       run: cp toscom/TEST/com_test.c toscom/
     - name: make
       run: cd toscom/BUILD; make
+    - name: change permission
+      run: chmod 755 z
     - name: make archive files
       run: ./z
