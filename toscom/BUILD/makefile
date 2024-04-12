@@ -86,8 +86,8 @@ CFLAGS += -lpanel -lncursesw
 # Electric Fenceを使ったデバッグがしたい時のみ入れるオプション
 #CFLAGS += -lefence
 
-
-
+# 最新gccではセットされているコンパイルオプション
+CFLAGS += -Wformat-security
 
 
 
