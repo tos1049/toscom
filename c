@@ -34,10 +34,6 @@ function abortProc() {
   echo "  remove ${TESTDIR} ? >"
   read
 
-また単純なファイル内の文字列置換であれば、
-sed -i 's/置換前文字列/置換後文字列/g' ファイル名
-で、ファイル内の文字列置換が可能。
-最後の g を取った場合、最初に見つかった1箇所のみ置換となる。
   if [ -z "${REPLY}" ]; then
     rm -fr ${TESTDIR}
     echo "------ remove ${TESTDIR} ------"
