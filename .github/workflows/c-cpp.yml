@@ -19,7 +19,7 @@ jobs:
       run: gcc -v
     - name: prepare com_test.c
       run: cp toscom/TEST/com_test.c toscom/
-    - name: make
+    - name: make toscom
       run: cd toscom/BUILD; make
     - name: change permission e
       run: chmod 755 e
@@ -27,8 +27,16 @@ jobs:
       run: ./e
     - name: execute smplComm/newenv
       run: cd smplComm; ./newenv
+    - name: make smplComm ver1
+      run: cd smplComm/BUILD; make
+    - name: conert to smplComm ver2
+      run: cd smplComm; ./s2
+    - name: make smplComm ver2
+      run: cd smplComm/BUILD; make init
     - name: execute analyzer/newenv
       run: cd analyzer; ./newenv
+    - name: make analyzer
+      run: cd analyzer/BUILD; make
     - name: make archive files
       run: ./z
     - name: check archive file
