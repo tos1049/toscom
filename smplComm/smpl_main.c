@@ -679,7 +679,7 @@ static BOOL writeNewLog( FILE *iOld, FILE *iNew )
         return false;
     }
     while( fgets( gSmplBuff, sizeof(gSmplBuff), iOld ) ) {
-        fprintf( iNew, gSmplBuff );
+        fprintf( iNew, "%s", gSmplBuff );
     }
     fflush( iNew );
     return true;
