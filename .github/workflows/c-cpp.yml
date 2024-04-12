@@ -13,6 +13,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: make
+    - name: into BUILD
       run: cd toscom/BUILD
+    - name: make
       run: make
