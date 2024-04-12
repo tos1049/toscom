@@ -13,7 +13,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: into BUILD
-      run: cd toscom/BUILD
+    - name: get ctags
+      run: sudo apt install ctags
     - name: make
-      run: make
+      run: cd toscom/BUILD; make
