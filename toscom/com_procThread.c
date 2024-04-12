@@ -25,13 +25,11 @@ typedef struct {
     pthread_t ptid;
     com_thNotifyCB_t func;
     const char* label;
-} com_threadManage_t;
+} threadManage_t;
 
-static com_threadManage_t  gThreadList[COM_THREAD_MAX];
+static threadManage_t  gThreadList[COM_THREAD_MAX];
 
-enum {
-    COM_ALL_THREAD = -1
-};
+enum { COM_ALL_THREAD = -1 };
 
 
 
@@ -46,7 +44,7 @@ static com_threadId_t searchEmpty( void )
     return COM_NO_THREAD;
 }
 
-static com_threadManage_t *makeNewThreadInf(
+static threadManage_t *makeNewThreadInf(
         const void *iData, size_t iSize, com_thNotifyCB_t iFunc,
         const char *iLabel )
 {
@@ -60,7 +58,7 @@ static com_threadManage_t *makeNewThreadInf(
         if( !userdata ) {com_free( label );  return NULL;}
         memcpy( userdata, iData, iSize );
     }
-    gThreadList[newId] = (com_threadManage_t){
+    gThreadList[newId] = (threadManage_t){
         .isUse = true,
         .inf = (com_threadInf_t){ newId, userdata, iSize },
         .func = iFunc,   .label = label
@@ -68,7 +66,7 @@ static com_threadManage_t *makeNewThreadInf(
     return &(gThreadList[newId]);
 }
 
-static void freeThreadInfProc( com_threadManage_t *oInf )
+static void freeThreadInfProc( threadManage_t *oInf )
 {
     com_skipMemInfo( true );
     com_free( oInf->inf.data );
@@ -103,7 +101,7 @@ static void freeThreadInf( com_threadId_t iId )
 {
     com_skipMemInfo( true );
     for( com_threadId_t id = 0;  id < COM_THREAD_MAX;  id++ ) {
-        com_threadManage_t*  mng = &(gThreadList[id]);
+        threadManage_t*  mng = &(gThreadList[id]);
 
         if( iId == COM_ALL_THREAD || id == iId ) {
             if( mng->isUse && !mng->isFinished && existThreads() ) {
@@ -118,7 +116,7 @@ static void freeThreadInf( com_threadId_t iId )
 }
 
 static BOOL createThread(
-        com_threadManage_t *oMng, com_thBoot_t iBoot, const char *iLabel )
+        threadManage_t *oMng, com_thBoot_t iBoot, const char *iLabel )
 {
     pthread_attr_t  attr;
     if( pthread_attr_init( &attr ) ) {
@@ -149,7 +147,7 @@ BOOL com_createThread(
     const char  CREATE[] = "CREATE(%s)";
     com_mutexLock( &gMutex, CREATE, buff );
     com_skipMemInfo( true );
-    com_threadManage_t*  newInf = makeNewThreadInf(iUserData,iSize,iFunc,buff);
+    threadManage_t*  newInf = makeNewThreadInf(iUserData,iSize,iFunc,buff);
     com_skipMemInfo( false );
     if( newInf ) {
         if( !createThread( newInf, iBoot, buff ) ) {
@@ -172,17 +170,17 @@ BOOL com_createThread(
 static com_threadId_t getThreadId( pthread_t iPtid )
 {
     for( com_threadId_t id = 0;  id < COM_THREAD_MAX;  id++ ) {
-        com_threadManage_t*  mng = &(gThreadList[id]);
+        threadManage_t*  mng = &(gThreadList[id]);
         if( mng->isUse && mng->ptid == iPtid ) {return id;}
     }
     return COM_NO_THREAD;
 }
 
-static com_threadManage_t *getThreadInf(
+static threadManage_t *getThreadInf(
         com_threadId_t iThId, const char *iFuncName )
 {
     if( iThId < 0 || iThId > COM_THREAD_MAX ) {COM_PRMNGF(iFuncName,NULL);}
-    com_threadManage_t*  result = &(gThreadList[iThId]);
+    threadManage_t*  result = &(gThreadList[iThId]);
     if( !(result->isUse) ) {return NULL;}
     return result;
 }
@@ -194,7 +192,7 @@ void *com_getThreadUserData( pthread_t iPtid )
 
     const char  GETDATA[] = "GETDATA(%s)";
     com_mutexLock( &gMutex, GETDATA, THREAD_LABEL(thId) );
-    com_threadManage_t*  mng = getThreadInf( thId, __func__ );
+    threadManage_t*  mng = getThreadInf( thId, __func__ );
     com_mutexUnlock( &gMutex, GETDATA, THREAD_LABEL(thId ) );
     if( !mng ) {return NULL;}
     return mng->inf.data;
@@ -208,7 +206,7 @@ void com_readyThread( com_threadInf_t *iInf )
 {
     const char  READY[] = "READY(%s)";
     com_mutexLock( &gMutex, READY, THREAD_LABEL(iInf->thId) );
-    com_threadManage_t*  mng = &(gThreadList[iInf->thId]);
+    threadManage_t*  mng = &(gThreadList[iInf->thId]);
     mng->isRunning = true;
     mng->isFinished = false;
     mng->isConfirmed = false;
@@ -219,7 +217,7 @@ void *com_finishThread( com_threadInf_t *iInf )
 {
     const char  FINISH[] = "FINISH(%s)";
     com_mutexLock( &gMutex, FINISH, THREAD_LABEL(iInf->thId) );
-    com_threadManage_t*  mng = &(gThreadList[iInf->thId]);
+    threadManage_t*  mng = &(gThreadList[iInf->thId]);
     mng->inf = *iInf;
     mng->isFinished = true;
     com_mutexUnlock( &gMutex, FINISH, THREAD_LABEL(iInf->thId) );
@@ -230,7 +228,7 @@ void *com_finishThread( com_threadInf_t *iInf )
 
 /* スレッド終了と片付け *****************************************************/
 
-static COM_THRD_STATUS_t confirmFinish( com_threadManage_t *oMng )
+static COM_THRD_STATUS_t confirmFinish( threadManage_t *oMng )
 {
     if( oMng->isConfirmed ) {return COM_THST_FINISHED;}
     if( oMng->func ) {(oMng->func)( &(oMng->inf) );}
@@ -241,7 +239,7 @@ static COM_THRD_STATUS_t confirmFinish( com_threadManage_t *oMng )
 // mutexロックされた中で呼ばれることを前提とする
 static COM_THRD_STATUS_t checkThread( com_threadId_t iThId )
 {
-    com_threadManage_t*  mng = getThreadInf( iThId, __func__ );
+    threadManage_t*  mng = getThreadInf( iThId, __func__ );
     if( !mng ) {return COM_THST_NOTEXIST;}
     if( !(mng->isRunning) ) {return COM_THST_CREATED;}
     if( mng->isFinished ) {return confirmFinish( mng );}
@@ -289,7 +287,7 @@ BOOL com_freeThread( pthread_t iPtid )
     const char  FREE[] = "FREE(%s)";
     com_mutexLock( &gMutex, FREE, THREAD_LABEL(thId) );
     BOOL  result = false;
-    com_threadManage_t*  mng = getThreadInf( thId, __func__ );
+    threadManage_t*  mng = getThreadInf( thId, __func__ );
     if( mng ) {
         if( mng->isFinished ) {freeThreadInfProc( mng );  result = true;}
     } 

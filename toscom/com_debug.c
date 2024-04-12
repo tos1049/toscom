@@ -171,15 +171,15 @@ void com_suspendStdout( BOOL iMode )
 typedef struct {
     char date[16];  // パディングの都合で COM_DATA_SSIZE の代わりに 16
     char time[16];  // パディングの都合で COM_DATA_SSIZE の代わりに 16
-} com_stamp_t;
+} stamp_t;
 
-static void dispTimeStamp( FILE *ioFp, com_stamp_t *iStamp )
+static void dispTimeStamp( FILE *ioFp, stamp_t *iStamp )
 {
     if( iStamp ) {fprintf( ioFp, "[%s %s]", iStamp->date, iStamp->time );}
 }
 
 static void writeFile(
-        FILE *ioFp, BOOL iLineTop, com_stamp_t *iStamp, char *iPrefixLabel )
+        FILE *ioFp, BOOL iLineTop, stamp_t *iStamp, char *iPrefixLabel )
 {
     if( iLineTop ) {
         dispTimeStamp( ioFp, iStamp );
@@ -201,17 +201,17 @@ static FILE*  gOutput = NULL;
 
 // 画面出力用諸元データ
 typedef struct {
-    long           mode;       // デバッグモード (COM_DEBUG_MODE_t)
-    FILE*          fp;         // ログ出力先ファイルポインタ
-    BOOL*          lineTop;    // 先頭行フラグ
-    com_stamp_t    stamp;      // タイムスタンプ
-    char*          prefix;     // プレフィックス
-} com_outputInf_t;
+    long         mode;       // デバッグモード (COM_DEBUG_MODE_t)
+    FILE*        fp;         // ログ出力先ファイルポインタ
+    BOOL*        lineTop;    // 先頭行フラグ
+    stamp_t      stamp;      // タイムスタンプ
+    char*        prefix;     // プレフィックス
+} outputInf_t;
 
 static BOOL outputLine( com_seekFileResult_t *iInf )
 {
     if( !gOutput ) {gOutput = stdout;}
-    com_outputInf_t*  inf = iInf->userData;
+    outputInf_t*  inf = iInf->userData;
     // 画面出力(デバッグ表示ONの場合のみ
     if( inf->mode == COM_DEBUG_ON  && !gSuspendStdout ) {
         writeFile( gOutput, *(inf->lineTop), NULL,          inf->prefix );
@@ -227,15 +227,15 @@ static BOOL outputLine( com_seekFileResult_t *iInf )
 
 // 付与プレフィックス
 typedef enum {
-    COM_NO_PREFIX = 0,
-    COM_PREFIX_DBG,
-    COM_PREFIX_COM
-} COM_PREFIX_t;
+    NO_PREFIX = 0,
+    PREFIX_DBG,
+    PREFIX_COM
+} PREFIX_t;
 
-static BOOL getDebugPrefix( COM_PREFIX_t iPrefix, char **oPrefixLabel )
+static BOOL getDebugPrefix( PREFIX_t iPrefix, char **oPrefixLabel )
 {
-    if( iPrefix == COM_PREFIX_DBG ) {*oPrefixLabel = "DBG";}
-    if( iPrefix == COM_PREFIX_COM ) {
+    if( iPrefix == PREFIX_DBG ) {*oPrefixLabel = "DBG";}
+    if( iPrefix == PREFIX_COM ) {
         if( gNoComDebugLog ) {return false;}
         *oPrefixLabel = "COM";
     }
@@ -243,14 +243,14 @@ static BOOL getDebugPrefix( COM_PREFIX_t iPrefix, char **oPrefixLabel )
 }
 
 static void printProc(
-        COM_DEBUG_MODE_t iMode, COM_PREFIX_t iPrefix, FILE *ioFp,
+        COM_DEBUG_MODE_t iMode, PREFIX_t iPrefix, FILE *ioFp,
         const char *iText )
 {
     static BOOL  lineTop = true;
     if( iMode == COM_DEBUG_OFF ) {return;}
 
-    com_outputInf_t  outInf = { iMode, ioFp, &lineTop, {{0},{0}}, NULL };
-    com_stamp_t*  stamp = &(outInf.stamp);
+    outputInf_t  outInf = { iMode, ioFp, &lineTop, {{0},{0}}, NULL };
+    stamp_t*  stamp = &(outInf.stamp);
     com_getCurrentTime( COM_FORM_SIMPLE, stamp->date, stamp->time, NULL );
     if( !getDebugPrefix( iPrefix, &(outInf.prefix) ) ) {return;}
     // 改行コードごとに区切って1行ずつ出力
@@ -260,15 +260,15 @@ static void printProc(
 
 // 通常の画面出力＆ログ出力
 #define PRINT( TEXT ) \
-    printProc( COM_DEBUG_ON, COM_NO_PREFIX, gDebugLog, (TEXT) )
+    printProc( COM_DEBUG_ON, NO_PREFIX, gDebugLog, (TEXT) )
 
 // 通常の画面出力のみ
 #define PRINTOUT( TEXT ) \
-    printProc( COM_DEBUG_ON, COM_NO_PREFIX, NULL, (TEXT) )
+    printProc( COM_DEBUG_ON, NO_PREFIX, NULL, (TEXT) )
 
 // 通常のログ出力のみ
 #define PRINTLOG( TEXT ) \
-    printProc( COM_DEBUG_SILENT, COM_NO_PREFIX, gDebugLog, (TEXT) )
+    printProc( COM_DEBUG_SILENT, NO_PREFIX, gDebugLog, (TEXT) )
 
 #define DBGOUT_HEAD  COM_DEBUG_LOCKOFF( &gMutexOut, __func__ )
 #define DBGOUT_TAIL  COM_DEBUG_UNLOCKON( &gMutexOut, __func__ )
@@ -481,7 +481,7 @@ static void getLockAndForm(
 static void dispLog( BOOL iCom, const char *iFormat, va_list iAp )
 {
     getLockAndForm( __func__, gLogBuff, sizeof(gLogBuff), iFormat, iAp );
-    COM_PREFIX_t  prefix = iCom ? COM_PREFIX_COM : COM_NO_PREFIX;
+    PREFIX_t  prefix = iCom ? PREFIX_COM : NO_PREFIX;
     printProc( COM_DEBUG_SILENT, prefix, gDebugLog, gLogBuff );
     com_mutexUnlock( &gMutexOut, __func__ );
 }
@@ -541,7 +541,7 @@ COM_DEBUG_MODE_t com_getDebugPrint( void )
 static void debugCom( BOOL iCom )
 {
     (void)com_strcat( gLogBuff, "\n" );
-    COM_PREFIX_t  prefix = iCom ? COM_PREFIX_COM : COM_PREFIX_DBG;
+    PREFIX_t  prefix = iCom ? PREFIX_COM : PREFIX_DBG;
     printProc( gPrintDebugMode, prefix, gDebugLog, gLogBuff );
     gLogBuff[0] = '\0';
 }
@@ -656,7 +656,7 @@ typedef struct {
     long      code;    // エラーコード
     ulong     count;   // 発生カウント
     char*     name;    // 出力用ラベル
-} com_dbgErrCount_t;
+} dbgErrCount_t;
 
 static com_sortTable_t  gErrorTable = {0, COM_SORT_SKIP, 0, NULL, NULL};
 static BOOL  gOccuredError = false;   // エラー発生有無フラグ
@@ -667,7 +667,7 @@ void com_registerErrorCode( const com_dbgErrName_t *iList )
     com_mutexLockCom( &gMutexError, COM_FILELOC );
     BOOL  collision;
     for( ;  iList->code != COM_ERR_END;  iList++ ) {
-        com_dbgErrCount_t errData = { iList->code, 0, iList->name };
+        dbgErrCount_t errData = { iList->code, 0, iList->name };
         if( !com_addSortTableByKey( &gErrorTable, iList->code,
                                     &errData, sizeof(errData), &collision ) )
         {
@@ -688,7 +688,7 @@ ulong com_getErrorCount( long iCode )
     ulong  errCount = 0;
     com_sort_t**  srchData;
     if( com_searchSortTableByKey( &gErrorTable, iCode, &srchData ) ) {
-        com_dbgErrCount_t* err = srchData[0]->data;
+        dbgErrCount_t* err = srchData[0]->data;
         errCount = err->count;
     }
     COM_DEBUG_UNLOCKON( &gMutexError, __func__ );
@@ -700,7 +700,7 @@ void com_outputErrorCount( void )
     COM_DEBUG_LOCKOFF( &gMutexError, __func__ );
     PRINT( "\n### Error Count ###\n" );
     for( long i = 0;  i < gErrorTable.count;  i++ ) {
-        com_dbgErrCount_t* tmp = gErrorTable.table[i].data;
+        dbgErrCount_t* tmp = gErrorTable.table[i].data;
         if( !tmp->count ) {continue;}
         COM_CLEAR_BUF( gLogBuff );
         COM_MAKELOG( " %10ld [%03ld:%s]\n", tmp->count, tmp->code, tmp->name );
@@ -762,7 +762,7 @@ static void countError( long iCode )
     if( !gCountError ) {return;}
     com_sort_t** srchData;
     if( com_searchSortTableByKey( &gErrorTable, iCode, &srchData ) ) {
-        com_dbgErrCount_t* err = srchData[0]->data;
+        dbgErrCount_t* err = srchData[0]->data;
         (err->count)++;
     }
     else {com_debug( "!! fail to count error code(%ld)", iCode );}
@@ -800,7 +800,7 @@ void com_errorFunc(
         PRINT( gErrorLogBuf );
         COM_CLEAR_BUF( gLogBuff );
         COM_MAKELOG( " in %s:line %ld %s()\n", COM_FILEVAR );
-        printProc( gPrintDebugMode, COM_NO_PREFIX, gDebugLog, gLogBuff );
+        printProc( gPrintDebugMode, NO_PREFIX, gDebugLog, gLogBuff );
     }
     gLastErrorCode = iCode;
     countError( iCode );
@@ -829,17 +829,17 @@ char *com_strerror( int iErrno )
 // デバッグ監視機能共通処理 --------------------------------------------------
 
 // デバッグ監視共通データ
-typedef struct com_watchInfo {
+typedef struct watchInfo_ {
     long          type;
     long          seqno;
     const void*   ptr;
     size_t        size;
     char          label[COM_DEBUGINFO_LABEL]; // マクロ宣言は com_custom.h
-    struct com_watchInfo*  next;
+    struct watchInfo_*  next;
     char          file[COM_DEBUGINFO_LABEL];  // 呼び元ファイル名
     long          line;                       // 呼び元ライン数
     char          func[COM_DEBUGINFO_LABEL];  // 呼び元関数名
-} com_watchInfo_t;
+} watchInfo_t;
 
 // 監視情報のためのメモリ捕捉が失敗した場合、このフラグを trueにし、
 // その旨のエラー表示はするが、監視機能自体はその後も動作させる。
@@ -856,7 +856,7 @@ static void setLabel( const char *iLabel, char *oTarget, size_t iSize )
 }
 
 static void setWatchInfo(
-        com_watchInfo_t *oTarget, const char *iLabel, COM_FILEPRM )
+        watchInfo_t *oTarget, const char *iLabel, COM_FILEPRM )
 {
     setLabel( iLabel, oTarget->label, sizeof(oTarget->label) );
     setLabel( iFILE,  oTarget->file, sizeof(oTarget->file) );
@@ -872,10 +872,10 @@ static long increaseSeqno( long *ioSeqno )
 }
 
 static void sortInsert(
-        com_watchInfo_t **ioTop, long *ioSeqno, com_watchInfo_t *ioNew )
+        watchInfo_t **ioTop, long *ioSeqno, watchInfo_t *ioNew )
 {
-    com_watchInfo_t*  tmp = *ioTop;
-    com_watchInfo_t*  fwd = NULL;
+    watchInfo_t*  tmp = *ioTop;
+    watchInfo_t*  fwd = NULL;
     while( tmp ) {
         if( tmp->seqno == ioNew->seqno ) {
             ioNew->seqno = increaseSeqno( ioSeqno );  // 使用中なら+1
@@ -906,11 +906,11 @@ static void sortInsert(
 //  駆られたとき、そのデータ構造を見直すべき状況になることはあり得る。
 
 static BOOL addWatchInfo(
-        com_watchInfo_t **ioTop, com_watchInfo_t **oNew, long iType,
+        watchInfo_t **ioTop, watchInfo_t **oNew, long iType,
         long *ioSeqno, long *ioCount, const void *iPtr, size_t iSize,
         const char *iLabel, COM_FILEPRM )
 {
-    com_watchInfo_t*  newInfo = malloc( sizeof(com_watchInfo_t) );
+    watchInfo_t*  newInfo = malloc( sizeof(watchInfo_t) );
     if( !newInfo || *ioCount == COM_DEBUG_SEQNO_MAX ) {
         com_error( COM_ERR_DEBUGNG,
                    "##### fail to create new watchInfo(%s) #####", iLabel );
@@ -919,8 +919,8 @@ static BOOL addWatchInfo(
         return false;
     }
     (*ioCount)++;
-    *newInfo = (com_watchInfo_t){ iType, increaseSeqno(ioSeqno),
-                                  iPtr, iSize, "", NULL, "", 0, "" };
+    *newInfo = (watchInfo_t){ iType, increaseSeqno(ioSeqno),
+                              iPtr, iSize, "", NULL, "", 0, "" };
     setWatchInfo( newInfo, iLabel, COM_FILEVAR );
 
     if( *ioTop ) {sortInsert( ioTop, ioSeqno, newInfo );}
@@ -931,24 +931,24 @@ static BOOL addWatchInfo(
 
 enum { NO_DEBUG_INFO = -1 };
 
-static long checkWatchInfo( const com_watchInfo_t *iTop, const void *iPtr )
+static long checkWatchInfo( const watchInfo_t *iTop, const void *iPtr )
 {
-    for( const com_watchInfo_t* tmp = iTop;  tmp;  tmp = tmp->next ) {
+    for( const watchInfo_t* tmp = iTop;  tmp;  tmp = tmp->next ) {
         if( tmp->ptr == iPtr ) {return tmp->seqno;}
     }
     return NO_DEBUG_INFO;
 }
 
 static BOOL deleteWatchInfo(
-        com_watchInfo_t **ioTop, long *ioCount, const void *iPtr,
-        com_watchInfo_t *oTarget )
+        watchInfo_t **ioTop, long *ioCount, const void *iPtr,
+        watchInfo_t *oTarget )
 {
-    com_watchInfo_t*  fwd = NULL;
-    for( com_watchInfo_t* tmp = *ioTop;  tmp;  tmp = tmp->next ) {
+    watchInfo_t*  fwd = NULL;
+    for( watchInfo_t* tmp = *ioTop;  tmp;  tmp = tmp->next ) {
         if( tmp->ptr == iPtr ) {
             // 削除対象のデータをコピーして通知
             COM_SET_IF_EXIST( oTarget, *tmp );
-            com_watchInfo_t* next = tmp->next;
+            watchInfo_t* next = tmp->next;
             if( !fwd ) {*ioTop = next;}
             else {fwd->next = next;}
             free( tmp );
@@ -981,7 +981,7 @@ static BOOL judgeDebugError( BOOL iMode, long iDebug, long iInfo )
 }
 
 #define PRINTCOM( TEXT ) \
-    printProc( iMode, COM_PREFIX_COM, gDebugLog, (TEXT) )
+    printProc( iMode, PREFIX_COM, gDebugLog, (TEXT) )
 
 static void dispWatchInfo(
         COM_DEBUG_MODE_t iMode, const char *iPre, const char *iLabel,
@@ -1012,7 +1012,7 @@ COM_DEBUG_MODE_t com_getWatchMemInfo( void )
     return gWatchMemInfoMode;
 }
 
-static com_watchInfo_t*  gMemInfoTop = NULL;
+static watchInfo_t*  gMemInfoTop = NULL;
 static long  gMemInfoSeqno = 0;
 static long  gMemInfoCount = 0;
 
@@ -1030,7 +1030,7 @@ char *com_getMemOperator( COM_MEM_OPR_t iType )
 }
 
 static void dispMemInfo(
-        const char *iPre, COM_MEM_OPR_t iType, const com_watchInfo_t *oInfo,
+        const char *iPre, COM_MEM_OPR_t iType, const watchInfo_t *oInfo,
         COM_DEBUG_MODE_t iMode, COM_FILEPRM )
 {
     COM_CLEAR_BUF( gLogBuff );
@@ -1098,7 +1098,7 @@ void com_addMemInfo(
 
     com_setFuncTrace( false );
     COM_SET_FORMAT( gLogBuff );
-    com_watchInfo_t*  new = NULL;
+    watchInfo_t*  new = NULL;
     if( addWatchInfo( &gMemInfoTop, &new, iType,
                       &gMemInfoSeqno, &gMemInfoCount, iPtr, iSize, gLogBuff,
                       COM_FILEVAR ) )
@@ -1125,7 +1125,7 @@ void com_deleteMemInfo( COM_FILEPRM, COM_MEM_OPR_t iType, const void *iPtr )
     if( !gWatchMemInfoMode ) {return;}
 
     com_setFuncTrace( false );
-    com_watchInfo_t  tmp;
+    watchInfo_t  tmp;
     memset( &tmp, 0, sizeof(tmp) );
     if( !deleteWatchInfo( &gMemInfoTop, &gMemInfoCount, iPtr, &tmp ) ) {
         // 該当する情報がない＝二重解放の疑いが濃厚
@@ -1148,7 +1148,7 @@ void com_listMemInfo( void )
     if( !gMemInfoCount ) {com_setFuncTrace( true );  return;}
     com_printf( "\n### not freed memory list (%ld) ###\n", gMemInfoCount );
     if( gMemoryFailure ) {com_printf( "### but not enough memory ###\n" );}
-    for( com_watchInfo_t* tmp = gMemInfoTop;  tmp;  tmp = tmp->next ) {
+    for( watchInfo_t* tmp = gMemInfoTop;  tmp;  tmp = tmp->next ) {
         // 強制画面出力する
         gNoComDebugLog = false;
         dispMemInfo( "? M", tmp->type, tmp, COM_DEBUG_ON,
@@ -1202,12 +1202,12 @@ void com_skipFileInfo( BOOL iMode ) {
 #endif
 }
 
-static com_watchInfo_t*  gFileInfoTop = NULL;
+static watchInfo_t*  gFileInfoTop = NULL;
 static long  gFileInfoSeqno = 0;
 static long  gFileInfoCount = 0;
 
 static void dispFileInfo(
-        const char *iPre, COM_FILE_OPR_t iType, const com_watchInfo_t *oInfo,
+        const char *iPre, COM_FILE_OPR_t iType, const watchInfo_t *oInfo,
         COM_DEBUG_MODE_t iMode, COM_FILEPRM )
 {
     char*  type[] = { "open", "close" };
@@ -1225,7 +1225,7 @@ void com_addFileInfo(
     if( !gWatchFileInfoMode ) {return;}
 
     com_setFuncTrace( false );
-    com_watchInfo_t*  new = NULL;
+    watchInfo_t*  new = NULL;
     if( addWatchInfo( &gFileInfoTop, &new, iType,
                       &gFileInfoSeqno, &gFileInfoCount, iFp, 0, iPath,
                       COM_FILEVAR ) )
@@ -1251,7 +1251,7 @@ void com_deleteFileInfo( COM_FILEPRM, COM_FILE_OPR_t iType, const FILE *iFp )
     if( !gWatchFileInfoMode ) {return;}
 
     com_setFuncTrace( false );
-    com_watchInfo_t  tmp;
+    watchInfo_t  tmp;
     memset( &tmp, 0, sizeof(tmp) );
     if( !deleteWatchInfo( &gFileInfoTop, &gFileInfoCount, iFp, &tmp ) ) {
         // 該当する情報がない＝二重解放の疑いが濃厚
@@ -1273,7 +1273,7 @@ void com_listFileInfo( void )
     com_setFuncTrace( false );
     com_printf( "\n### not closed file list (%ld) ###\n", gFileInfoCount );
     if( gMemoryFailure ) {com_printf( "### but not enough memory ###\n" );}
-    for( com_watchInfo_t* tmp = gFileInfoTop;  tmp;  tmp = tmp->next ) {
+    for( watchInfo_t* tmp = gFileInfoTop;  tmp;  tmp = tmp->next ) {
         // 強制画面出力する
         gNoComDebugLog = false;
         dispFileInfo( "? F", tmp->type, tmp, COM_DEBUG_ON,
@@ -1369,12 +1369,12 @@ static __thread  char gFilePathBuf[COM_LINEBUF_SIZE];
 typedef struct {
     void*   addr;
     char*   name;
-} com_funcName_t;
+} funcName_t;
 
 __attribute__((no_instrument_function))
 static BOOL seekFuncName( com_seekFileResult_t *iInf )
 {
-    com_funcName_t*  data = iInf->userData;
+    funcName_t*  data = iInf->userData;
     ulong  addr = com_strtoul( iInf->line, 16, false );
     if( addr != (ulong)(data->addr) ) {return true;}
     (void)sscanf( iInf->line, "%*s %*s %s %s", gFileNameBuf, gFilePathBuf );
@@ -1390,7 +1390,7 @@ __attribute__((no_instrument_function))
 static const char *seekNameList( void *iFunc )
 {
     if( !com_checkExistFile( COM_NAMELIST ) ) {return NULL;}
-    com_funcName_t  data = { iFunc, NULL };
+    funcName_t  data = { iFunc, NULL };
     char  nmBuf[COM_LINEBUF_SIZE];
     (void)com_seekFile( COM_NAMELIST, seekFuncName, &data,
                         nmBuf, sizeof(nmBuf) );
@@ -1430,16 +1430,16 @@ void com_setFuncTraceReal( BOOL iMode, COM_FILEPRM )
 typedef struct {
     void*  func;
     long   level;
-} com_funcTrace_t;
+} funcTrace_t;
 
-static __thread com_funcTrace_t  gFuncTraceList[COM_FUNCTRACE_MAX];
+static __thread funcTrace_t  gFuncTraceList[COM_FUNCTRACE_MAX];
 
 // まだデバッグ機能が動作していない状態から動作することを想定し、
 // com_createRingBuf()によるバッファ領域の静的確保を行わず、手動設定する。
 // .bufについては別途関数内で gFuncTraceList を設定する。
 
 static __thread com_ringBuf_t  gFuncTracer = {
-    NULL, sizeof(com_funcTrace_t), COM_FUNCTRACE_MAX, 0, 0, 0,
+    NULL, sizeof(funcTrace_t), COM_FUNCTRACE_MAX, 0, 0, 0,
     true, false, 0, NULL
 };
 static __thread long  gFuncNestCount = 0;
@@ -1452,8 +1452,8 @@ void __cyg_profile_func_enter( void *iFunc, void *iCaller )
     COM_TRACER_SET( false );
     gFuncTracer.buf = gFuncTraceList;  // 初期化ではエラーになるのでここで設定
     com_pushRingBuf( &gFuncTracer,
-                     &(com_funcTrace_t){ iFunc, gFuncNestCount++ },
-                     sizeof( com_funcTrace_t ) );
+                     &(funcTrace_t){ iFunc, gFuncNestCount++ },
+                     sizeof( funcTrace_t ) );
     COM_TRACER_RESUME;
 }
 
@@ -1488,7 +1488,7 @@ void com_dispFuncTrace( void )
     com_mutexLock( &gMutexFuncTrace, __func__ );
     COM_TRACER_SET( false );
     com_printf( "\n##### function trace list #####\n" );
-    com_funcTrace_t*  tracer = NULL;
+    funcTrace_t*  tracer = NULL;
     for( size_t i = 0;  (tracer = com_pullRingBuf( &gFuncTracer ));  i++ ) {
         com_printf( "[%06zd] %p ", i, tracer->func );
         com_repeat( " ", tracer->level, false );

@@ -1097,11 +1097,10 @@ typedef struct {
     com_replaceCond_t*  cond;    // 入力された置換条件
     long  hitCount;              // 置換対象の検索ヒット数
     long  repCount;              // 実際に置換した数
-} com_repInf_t;
+} repInf_t;
 
 static const char *replaceString(
-        const char *iPos, const char *iSrc,
-        size_t *oLength, com_repInf_t *ioInf )
+        const char *iPos, const char *iSrc, size_t *oLength, repInf_t *ioInf )
 {
     // 見つかったより前の文字列をコピー
     size_t  fwdSize = (size_t)iSrc - (size_t)iPos;
@@ -1130,7 +1129,7 @@ long com_replaceString(
     const char*  pos = iSource;  // 処理中文字列位置
     const char*  src = NULL;     // 置換対象文字列位置
     resetReplaceOutput( oTarget, oLength );
-    com_repInf_t  inf = { iCond, 0, 0 };
+    repInf_t  inf = { iCond, 0, 0 };
     while( (src = strstr( pos, iCond->replacing )) ) {
         if( !(pos = replaceString( pos, src, oLength, &inf )) ) {
             (void)com_mutexUnlockCom( &gMutexRep, COM_FILELOC, true );
@@ -1290,14 +1289,14 @@ static void makeTmData(
     COM_SET_IF_EXIST( oVal, ctm );
 }
 
-typedef struct tm*(*com_timeFunc)(const time_t *timep, struct tm *result );
+typedef struct tm*(*timeFunc)(const time_t *timep, struct tm *result );
 
 static void setTime(
         COM_TIMEFORM_TYPE_t iType, char *oDate, char *oTime, com_time_t *oVal,
         const time_t *iTime, BOOL iLocal )
 {
     struct tm  result;
-    com_timeFunc  func = iLocal ? localtime_r : gmtime_r;
+    timeFunc  func = iLocal ? localtime_r : gmtime_r;
     if( !func( iTime, &result ) ) {
         com_error( COM_ERR_TIMENG, "convert NG (%ld)", *iTime );
         return;
@@ -1327,7 +1326,7 @@ static void setTimeVal(
         BOOL iLocal )
 {
     struct tm  result;
-    com_timeFunc  func = iLocal ? localtime_r : gmtime_r;
+    timeFunc  func = iLocal ? localtime_r : gmtime_r;
     if( !func( &(iTv->tv_sec), &result ) ) {
         com_error( COM_ERR_TIMENG, "%s convert NG (%ld)", iFunc, iTv->tv_sec );
         return;
@@ -1792,32 +1791,31 @@ static pthread_mutex_t  gMutexHash = PTHREAD_MUTEX_INITIALIZER;
 typedef struct {
     const void*  data;
     size_t       size;
-} com_hashData_t;
+} hashData_t;
 
-typedef struct com_hashUnit {
-    com_hashData_t        key;
-    com_hashData_t        data;
-    struct com_hashUnit*  next;
-} com_hashUnit_t;
+typedef struct hashUnit_ {
+    hashData_t        key;
+    hashData_t        data;
+    struct hashUnit_*  next;
+} hashUnit_t;
 
-typedef struct com_hashMng {
+typedef struct hashMng_ {
     size_t            tableSize;
     com_calcHashKey   func;
-    com_hashUnit_t**  table;
-} com_hashMng_t;
+    hashUnit_t**  table;
+} hashMng_t;
 
-static com_hashMng_t*  gHash = NULL;
+static hashMng_t*  gHash = NULL;
 static long  gHashCount = 0;
 
-static BOOL initHash(
-        com_hashData_t *oTarget, const void *iAddr, size_t iSize )
+static BOOL initHash( hashData_t *oTarget, const void *iAddr, size_t iSize )
 {
     if( !iAddr ) {return false;}
-    *oTarget = (com_hashData_t){ iAddr, iSize };
+    *oTarget = (hashData_t){ iAddr, iSize };
     return true;
 }
 
-static void freeUnit( COM_FILEPRM, com_hashUnit_t **oTarget )
+static void freeUnit( COM_FILEPRM, hashUnit_t **oTarget )
 {
     if( !(*oTarget) ) {return;}
     com_freeFunc( &((*oTarget)->key.data), COM_FILEVAR );
@@ -1825,9 +1823,9 @@ static void freeUnit( COM_FILEPRM, com_hashUnit_t **oTarget )
     com_freeFunc( oTarget, COM_FILEVAR );
 }
 
-static void freeTable( COM_FILEPRM, com_hashUnit_t *oTable )
+static void freeTable( COM_FILEPRM, hashUnit_t *oTable )
 {
-    com_hashUnit_t*  next = NULL;
+    hashUnit_t*  next = NULL;
     while( oTable ) {
         next = oTable->next;
         freeUnit( COM_FILEVAR, &oTable );
@@ -1851,8 +1849,8 @@ com_hashId_t com_registerHashFunc(
         com_errorExit( COM_ERR_HASHNG, "cannot create more hash table" );
     }
     com_mutexLockCom( &gMutexHash, COM_FILELOC );
-    com_hashUnit_t**  newTable =
-        com_mallocFunc( sizeof(com_hashUnit_t*) * iTableSize, COM_FILEVAR,
+    hashUnit_t**  newTable =
+        com_mallocFunc( sizeof(hashUnit_t*) * iTableSize, COM_FILEVAR,
                         "newHashTable(%ld)", gHashCount );
     if( !newTable ) {
         (void)com_mutexUnlockCom( &gMutexHash, COM_FILELOC, true );
@@ -1860,13 +1858,13 @@ com_hashId_t com_registerHashFunc(
     }
     for( size_t i = 0;  i < iTableSize;  i++ ) {newTable[i] = NULL;}
     gHash = com_reallocfFunc( gHash,
-                              sizeof(com_hashMng_t) * ((size_t)gHashCount + 1),
+                              sizeof(hashMng_t) * ((size_t)gHashCount + 1),
                               COM_FILEVAR, "newHashMng(%ld)", gHashCount );
     if( !gHash ) {
         (void)com_mutexUnlockCom( &gMutexHash, COM_FILELOC, true );
         com_errorExit( COM_ERR_HASHNG, "fail to create hash manage data" );
     }
-    gHash[gHashCount++] = (com_hashMng_t){ iTableSize, iFunc, newTable };
+    gHash[gHashCount++] = (hashMng_t){ iTableSize, iFunc, newTable };
     (void)com_mutexUnlockCom( &gMutexHash, COM_FILELOC, true );
     return (gHashCount - 1);
 }
@@ -1912,7 +1910,7 @@ static com_hash_t calcHashKey(
     return (sum & iTableSize);
 }
 
-static com_hashUnit_t **getTop( com_hashId_t iID, com_hashData_t *iKey )
+static hashUnit_t **getTop( com_hashId_t iID, hashData_t *iKey )
 {
     com_calcHashKey  func = gHash[iID].func;
     if( !func ) {func = calcHashKey;}
@@ -1921,14 +1919,13 @@ static com_hashUnit_t **getTop( com_hashId_t iID, com_hashData_t *iKey )
     return (gHash[iID].table + key);
 }
 
-static BOOL compareHashData( com_hashData_t *iData1, com_hashData_t *iData2 )
+static BOOL compareHashData( hashData_t *iData1, hashData_t *iData2 )
 {
     if( iData1->size != iData2->size ) {return false;}
     return !(memcmp( iData1->data, iData2->data, iData2->size ));
 }
 
-static com_hashUnit_t *searchHashData(
-        com_hashUnit_t *iUnit, com_hashData_t *iKey )
+static hashUnit_t *searchHashData( hashUnit_t *iUnit, hashData_t *iKey )
 {
     // iUnitは getTop()で与えられたアドレスのポイント先が来ることを想定
     for( ;  iUnit;  iUnit = iUnit->next ) {
@@ -1941,38 +1938,38 @@ static com_hashUnit_t *searchHashData(
     return NULL;
 }
 
-static com_hashUnit_t *getNewUnit( COM_FILEPRM )
+static hashUnit_t *getNewUnit( COM_FILEPRM )
 {
-    com_hashUnit_t*  new = com_mallocFunc( sizeof(com_hashUnit_t), COM_FILEVAR,
-                                           "getNewUnit" );
+    hashUnit_t*  new =
+        com_mallocFunc( sizeof(hashUnit_t), COM_FILEVAR, "getNewUnit" );
     if( !new ) {return NULL;}
-    *new = (com_hashUnit_t){ {NULL, 0}, {NULL, 0}, NULL };
+    *new = (hashUnit_t){ {NULL, 0}, {NULL, 0}, NULL };
     return new;
 }
 
 static BOOL initHashData(
-        COM_FILEPRM, const com_hashData_t *iData, com_hashData_t *oData,
+        COM_FILEPRM, const hashData_t *iData, hashData_t *oData,
         const char *iLabel )
 {
     void*  tmp = com_reallocFunc( (void*)oData->data, iData->size, COM_FILEVAR,
                                   iLabel );
     if( !tmp ) {return false;}
     memcpy( tmp, iData->data, iData->size );
-    *oData = (com_hashData_t){ tmp, iData->size };
+    *oData = (hashData_t){ tmp, iData->size };
     return true;
 }
 
-static COM_HASH_t addNG( com_hashUnit_t **iNew )
+static COM_HASH_t addNG( hashUnit_t **iNew )
 {
     freeUnit( COM_FILELOC, iNew );
     return COM_HASH_NG;
 }
 
 static COM_HASH_t addHashData(
-        COM_FILEPRM, com_hashUnit_t **iTop, const com_hashData_t *iKey,
-        const com_hashData_t *iData )
+        COM_FILEPRM, hashUnit_t **iTop, const hashData_t *iKey,
+        const hashData_t *iData )
 {
-    com_hashUnit_t*  new = getNewUnit( COM_FILEVAR );
+    hashUnit_t*  new = getNewUnit( COM_FILEVAR );
     if( !new ) {return COM_HASH_NG;}
     if( !initHashData( COM_FILEVAR, iKey, &(new->key), "addKey" ) ) {
         return addNG( &new );
@@ -1982,14 +1979,14 @@ static COM_HASH_t addHashData(
     }
     new->next = NULL;
 
-    com_hashUnit_t*  last = searchHashData( *iTop, NULL );
+    hashUnit_t*  last = searchHashData( *iTop, NULL );
     if( !last ) {*iTop = new;} else {last->next = new;}
 
     return COM_HASH_OK;
 }
 
 static COM_HASH_t overwriteHashData(
-        COM_FILEPRM, com_hashUnit_t *iPos, com_hashData_t *iData )
+        COM_FILEPRM, hashUnit_t *iPos, hashData_t *iData )
 {
     if( !initHashData( COM_FILEVAR, iData, &iPos->data, "overwriteData" ) ) {
         return COM_HASH_NG;
@@ -2001,14 +1998,14 @@ COM_HASH_t com_addHashFunc(
         com_hashId_t iID, BOOL iOverwrite, const void *iKey, size_t iKeySize,
         const void *iData, size_t iDataSize, COM_FILEPRM )
 {
-    com_hashData_t  key, data;
+    hashData_t  key, data;
     if( !com_checkHash( iID ) ) {COM_PRMNG(COM_HASH_NG);}
     if( !initHash( &key, iKey, iKeySize ) ) {COM_PRMNG(COM_HASH_NG);}
     if( !initHash( &data, iData, iDataSize ) ) {COM_PRMNG(COM_HASH_NG);}
 
     com_skipMemInfo( true );
-    com_hashUnit_t**  top = getTop( iID, &key );
-    com_hashUnit_t*  cur = searchHashData( *top, &key );
+    hashUnit_t**  top = getTop( iID, &key );
+    hashUnit_t*  cur = searchHashData( *top, &key );
     COM_HASH_t  result = COM_HASH_NG;
     if( !cur ) {result = addHashData( COM_FILEVAR, top, &key, &data );}
     else {
@@ -2024,10 +2021,10 @@ BOOL com_searchHash(
         const void **oData, size_t *oDataSize )
 {
     if( !com_checkHash( iID ) ) {COM_PRMNG(false);}
-    com_hashData_t  key;
+    hashData_t  key;
     if( !initHash( &key, iKey, iKeySize ) ) {COM_PRMNG(false);}
 
-    com_hashUnit_t*  tmp = searchHashData( *(getTop( iID, &key )), &key );
+    hashUnit_t*  tmp = searchHashData( *(getTop( iID, &key )), &key );
     if( !tmp ) {return false;}
     COM_SET_IF_EXIST( oData, tmp->data.data );
     COM_SET_IF_EXIST( oDataSize, tmp->data.size );
@@ -2038,15 +2035,15 @@ BOOL com_deleteHashFunc(
         com_hashId_t iID, const void *iKey, size_t iKeySize, COM_FILEPRM )
 {
     if( !com_checkHash( iID ) ) {COM_PRMNG(false);}
-    com_hashData_t  key;
+    hashData_t  key;
     if( !initHash( &key, iKey, iKeySize ) ) {COM_PRMNG(false);}
 
-    com_hashUnit_t**  top = getTop( iID, &key );
+    hashUnit_t**  top = getTop( iID, &key );
     // 該当キーなしの場合は、そのままOKで返すことにする
-    com_hashUnit_t*  tmp = searchHashData( *top, &key );
+    hashUnit_t*  tmp = searchHashData( *top, &key );
     if( !tmp ) {return true;}
 
-    com_hashUnit_t*  prev = NULL;
+    hashUnit_t*  prev = NULL;
     if( *top == tmp ) {*top = tmp->next;}
     else {
         prev = *top;
@@ -2490,26 +2487,26 @@ typedef struct {
     com_validator_t    func;           // チェック関数
     void*              cond;           // チェック条件
     com_valCondFree_t  freeFunc;       // チェック条件解放関数
-} com_cfgVald_t;
+} cfgVald_t;
 
 typedef struct {
     char*              key;
     long               valdCnt;
-    com_cfgVald_t*     vald;
+    cfgVald_t*         vald;
     char*              data;
-} com_cfgData_t;
+} cfgData_t;
 
-static com_cfgData_t* gCfgData = NULL;
+static cfgData_t* gCfgData = NULL;
 static long  gCfgDataCnt = 0;
 
-static void freeCfgVald( com_cfgVald_t *ioVald )
+static void freeCfgVald( cfgVald_t *ioVald )
 {
     if( !(ioVald->cond) ) {return;}
     if( ioVald->freeFunc ) {(ioVald->freeFunc)( &(ioVald->cond) );}
     com_free( ioVald->cond );
 }
 
-static void freeCfgData( com_cfgData_t *oCfg )
+static void freeCfgData( cfgData_t *oCfg )
 {
     com_free( oCfg->key );
     for( long i = 0 ;  i< oCfg->valdCnt;  i++ ) {
@@ -2527,7 +2524,7 @@ static void freeAllCfgData( void )
     gCfgDataCnt = 0;
 }
 
-static com_cfgData_t *searchCfgData( char *iKey )
+static cfgData_t *searchCfgData( char *iKey )
 {
     for( long i = 0; i < gCfgDataCnt;  i++ ) {
         if( !strcmp( iKey, gCfgData[i].key ) ) {return &gCfgData[i];}
@@ -2535,9 +2532,9 @@ static com_cfgData_t *searchCfgData( char *iKey )
     return NULL;
 }
 
-static com_cfgData_t *addNewCfgData( char *iKey, char *iData )
+static cfgData_t *addNewCfgData( char *iKey, char *iData )
 {
-    com_cfgData_t*  tmp =
+    cfgData_t*  tmp =
         com_reallocAddr( &gCfgData, sizeof(*gCfgData), COM_TABLEEND,
                          &gCfgDataCnt, 1, "addNewCfgData" );
     if( !tmp ) {return NULL;}
@@ -2585,7 +2582,7 @@ BOOL com_registerCfgUDigit( char *iKey, ulong iData )
 
 #define GET_CONFIG_DATA( CFG, NGCAUSE ) \
     if( !iKey ) {COM_PRMNG(NGCAUSE);} \
-    com_cfgData_t*  CFG = searchCfgData( iKey ); \
+    cfgData_t*  CFG = searchCfgData( iKey ); \
     if( !(CFG) ) { \
         com_error( COM_ERR_CONFIG, "config not exist (%s)", iKey ); \
         return (NGCAUSE); \
@@ -2605,7 +2602,7 @@ BOOL com_addCfgValidator(
 {
     GET_CONFIG_DATA( cfg, false );
     COM_DEBUG_AVOID_START( COM_NO_FUNCNAME );
-    com_cfgVald_t*  vald =
+    cfgVald_t*  vald =
         com_reallocAddr( &(cfg->vald), sizeof(*(cfg->vald)), COM_TABLEEND,
                          &(cfg->valdCnt), 1, "addCfgValidator" );
     if( !vald ) {
@@ -2817,10 +2814,10 @@ BOOL com_valOnOff( char *ioData, void *iCond )
     VAL_STRLIST;
 }
 
-static BOOL checkCfgData( com_cfgData_t *iCfg, char *iData )
+static BOOL checkCfgData( cfgData_t *iCfg, char *iData )
 {
     for( long i = 0;  i < iCfg->valdCnt;  i++ ) {
-        com_cfgVald_t* vald = &(iCfg->vald[i]);
+        cfgVald_t* vald = &(iCfg->vald[i]);
         if( vald ) {
             if( !(vald->func)( iData, vald->cond ) ) {
                 com_error( COM_ERR_CONFIG, "data is invalid (%s)", iData );
@@ -2910,7 +2907,7 @@ BOOL com_getCfgAll( long *ioCount, const char **oKey, const char **oData )
 {
     if( !ioCount || !oKey || !oData ) {COM_PRMNG(false);}
     if( *ioCount < 0 || *ioCount >= gCfgDataCnt ) {return false;}
-    com_cfgData_t*  tmp = &(gCfgData[*ioCount]);
+    cfgData_t*  tmp = &(gCfgData[*ioCount]);
     *oKey  = tmp->key;
     *oData = tmp->data;
     (*ioCount)++;
@@ -3325,7 +3322,7 @@ typedef struct {
     struct dirent**   nameList;   // scandir()結果
     long              nameCount;  // scandir()結果
     com_strChain_t*   child;      // サブディレクトリ名リスト
-} com_dirInf_t;
+} dirInf_t;
 
 static int isSkipEntry( const struct dirent *iEntry )
 {
@@ -3346,10 +3343,10 @@ static int scanDir(
 }
 
 static BOOL readyDir(
-        com_dirInf_t *oInf, const char *iPath, com_seekFilter_t iFilter,
+        dirInf_t *oInf, const char *iPath, com_seekFilter_t iFilter,
         COM_SEEK_TYPE_t iType, com_seekDirCB_t iFunc, void *ioUserData )
 {
-    *oInf = (com_dirInf_t){
+    *oInf = (dirInf_t){
         NULL, iFilter, iType, iFunc, ioUserData, NULL, 0, NULL
     };
     if( !(oInf->path = com_strdup( iPath, "readyDir(%s)", iPath )) ) {
@@ -3365,7 +3362,7 @@ static BOOL readyDir(
     return true;
 }
 
-static void finishDir( com_dirInf_t *oInf )
+static void finishDir( dirInf_t *oInf )
 {
     com_free( oInf->path );
     for( long n = 0; n < oInf->nameCount; n++ ) {free( oInf->nameList[n] );}
@@ -3389,8 +3386,7 @@ static BOOL matchEntryType( BOOL iIsDir, COM_SEEK_TYPE_t iType )
 }
 
 static BOOL procEntry(
-        com_seekDirResult_t *oResult, com_dirInf_t *iInf,
-        struct dirent *iEntry )
+        com_seekDirResult_t *oResult, dirInf_t *iInf, struct dirent *iEntry )
 {
     makePathTmp( iInf->path, iEntry->d_name );
     oResult->isDir = com_checkIsDir( gPathTmp );
@@ -3401,7 +3397,7 @@ static BOOL procEntry(
     return (iInf->func)( oResult );
 }
 
-static BOOL checkEntryList( com_dirInf_t *ioInf )
+static BOOL checkEntryList( dirInf_t *ioInf )
 {
     for( long i = 0;  i < ioInf->nameCount;  i++ ) {
         char*  dname = ioInf->nameList[i]->d_name;
@@ -3416,7 +3412,7 @@ static BOOL checkEntryList( com_dirInf_t *ioInf )
     return true;
 }
 
-static BOOL checkChildDir( com_dirInf_t *ioInf )
+static BOOL checkChildDir( dirInf_t *ioInf )
 {
     for( com_strChain_t* child = ioInf->child;  child;  child = child->next ) {
         makePathTmp( ioInf->path, child->data );
@@ -3428,7 +3424,7 @@ static BOOL checkChildDir( com_dirInf_t *ioInf )
 }
 
 static BOOL seekDir(
-        com_dirInf_t *oInf, const char *iPath, com_seekFilter_t iFilter,
+        dirInf_t *oInf, const char *iPath, com_seekFilter_t iFilter,
         COM_SEEK_TYPE_t iType, BOOL iCheckChild, com_seekDirCB_t iFunc,
         void *ioUserData )
 {
@@ -3446,7 +3442,7 @@ BOOL com_seekDir(
     if( !iPath || !(iType & COM_SEEK_BOTH) || !iFunc ) {COM_PRMNG(false);}
 
     if( !retryCount++ ) {com_mutexLockCom( &gMutexPath, COM_FILELOC );}
-    com_dirInf_t  inf;
+    dirInf_t  inf;
     BOOL  result = seekDir( &inf, iPath, iFilter, iType, iCheckChild, iFunc,
                             ioUserData );
     finishDir( &inf );
@@ -3494,9 +3490,9 @@ typedef struct {
     long*   fileCount;
     long*   dirCount;
     off_t*  totalSize;
-} com_countFile_t;
+} countFile_t;
 
-static void initCountInf( com_countFile_t *oData )
+static void initCountInf( countFile_t *oData )
 {
     COM_SET_IF_EXIST( oData->fileCount, 0 );
     COM_SET_IF_EXIST( oData->dirCount,  0 );
@@ -3522,7 +3518,7 @@ static BOOL addSize( const char *iPath, off_t *oSize )
 
 static BOOL countFiles( const com_seekDirResult_t *iInf )
 {
-    com_countFile_t*  data = iInf->userData;
+    countFile_t*  data = iInf->userData;
     if( !(iInf->isDir) ) {incrementData( data->fileCount );}
     else {incrementData( data->dirCount );}
 
@@ -3536,7 +3532,7 @@ BOOL com_countFiles(
 {
     if( !iPath ) {COM_PRMNG(false);}
 
-    com_countFile_t  data = { oFileCount, oDirCount, oTotalSize };
+    countFile_t  data = { oFileCount, oDirCount, oTotalSize };
     initCountInf( &data );
     if( !addSize( iPath, oTotalSize ) ) {return false;}  // 自身のサイズ加算
     com_skipMemInfo( true );
@@ -3552,7 +3548,7 @@ static BOOL checkFilter( const struct dirent *iEntry, com_seekFilter_t iFilter )
     return isSkipEntry( iEntry );
 }
 
-static int seekDir2( DIR *ioDir, com_dirInf_t *iInf, com_seekFilter_t iFilter )
+static int seekDir2( DIR *ioDir, dirInf_t *iInf, com_seekFilter_t iFilter )
 {
     int  readResult = 0;
     struct dirent*  dEntry;
@@ -3577,7 +3573,7 @@ BOOL com_seekDir2(
         return false;
     }
     // iPathの const外しになるが内容変更はしない
-    com_dirInf_t  inf = {
+    dirInf_t  inf = {
         (char*)iPath, NULL, iType, iFunc, ioUserData, NULL, 0, NULL
     };
     int  readResult = seekDir2( dir, &inf, iFilter );

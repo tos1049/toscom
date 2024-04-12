@@ -413,12 +413,12 @@ typedef struct {
     com_sigTlv_t  slr;
     com_sigTlv_t  dlr;
     com_sigTlv_t  cldpad;
-} com_sccpConnInf_t;
+} sccpConnInf_t;
 
 static long gSccpConnCnt = 0;
-static com_sccpConnInf_t*  gSccpConnInf = NULL;
+static sccpConnInf_t*  gSccpConnInf = NULL;
 
-static void clearSccpConnInf( com_sccpConnInf_t *oInf )
+static void clearSccpConnInf( sccpConnInf_t *oInf )
 {
     if( oInf->isUse ) {
         oInf->isUse = false;
@@ -448,7 +448,7 @@ static void collectSccpConnData(
                       com_searchPrm( COM_IAPRM, COM_CAP_SCCPPRM_CLDPAD ) );
 }
 
-static BOOL matchAnyPc( uint32_t iPc, com_sccpConnInf_t *iInf )
+static BOOL matchAnyPc( uint32_t iPc, sccpConnInf_t *iInf )
 {
     if( iPc == iInf->opc || iPc == iInf->dpc ) {return true;}
     return false;
@@ -463,7 +463,7 @@ static BOOL matchLr( com_sigTlv_t *iLr1, com_sigTlv_t *iLr2 )
     return true;
 }
 
-static BOOL matchAnyLr( com_sigTlv_t *iLr, com_sccpConnInf_t *iInf )
+static BOOL matchAnyLr( com_sigTlv_t *iLr, sccpConnInf_t *iInf )
 {
     if( !iLr ) {return false;}
     if( matchLr( iLr, &iInf->slr ) ) {return true;}
@@ -471,29 +471,29 @@ static BOOL matchAnyLr( com_sigTlv_t *iLr, com_sccpConnInf_t *iInf )
     return false;
 }
 
-static com_sccpConnInf_t *getUsableInf( long *oId )
+static sccpConnInf_t *getUsableInf( long *oId )
 {
     for( *oId = 0;  *oId < gSccpConnCnt;  (*oId)++ ) {
-        com_sccpConnInf_t*  inf = &(gSccpConnInf[*oId]);
+        sccpConnInf_t*  inf = &(gSccpConnInf[*oId]);
         if( !inf->isUse ) {
             memset( inf, 0, sizeof(*inf) );
             return inf;
         }
     }
-    com_sccpConnInf_t*  inf =
+    sccpConnInf_t*  inf =
         com_reallocAddr( &gSccpConnInf, sizeof(*gSccpConnInf), COM_TABLEEND,
                          &gSccpConnCnt, 1, "sccp connection inf" );
     *oId = gSccpConnCnt - 1;
     return inf;
 }
 
-static com_sccpConnInf_t *getSccpConnInf(
+static sccpConnInf_t *getSccpConnInf(
         uint32_t iOpc, uint32_t iDpc, com_sigTlv_t *iSlr, com_sigTlv_t *iDlr,
         long *oId, BOOL iAdd )
 {
     if( !iSlr ) {com_error( COM_ERR_NODATA, "no slr data" );  return NULL;}
     for( *oId = 0;  *oId < gSccpConnCnt;  (*oId)++ ) {
-        com_sccpConnInf_t*  inf = &(gSccpConnInf[*oId]);
+        sccpConnInf_t*  inf = &(gSccpConnInf[*oId]);
         if( !inf->isUse ) {continue;}
         if( !matchAnyPc( iOpc,inf ) || !matchAnyPc( iDpc,inf ) ) {continue;}
         if( !matchAnyLr( iSlr,inf ) ) {continue;}
@@ -501,9 +501,9 @@ static com_sccpConnInf_t *getSccpConnInf(
         return inf;
     }
     if( !iAdd ) {return NULL;}
-    com_sccpConnInf_t*  inf = getUsableInf( oId );
+    sccpConnInf_t*  inf = getUsableInf( oId );
     if( inf ) {
-        *inf = (com_sccpConnInf_t){ .isUse = true, .opc = iOpc, .dpc = iDpc };
+        *inf = (sccpConnInf_t){ .isUse = true, .opc = iOpc, .dpc = iDpc };
     }
     return inf;
 }
@@ -521,7 +521,7 @@ static void regSccpConn( com_sigInf_t *iHead, long iType )
     COLLECT_SCCP_CONN_DATA( iHead );
     long  id = -1;
     if( iType == COM_CAP_SCCP_CR ) {
-        com_sccpConnInf_t*  inf =
+        sccpConnInf_t*  inf =
             getSccpConnInf( m3uaPrm->opc, m3uaPrm->dpc, slr, NULL, &id, true );
         if( !inf ) {return;}
         (void)com_dupPrm( &inf->slr, slr );
@@ -529,7 +529,7 @@ static void regSccpConn( com_sigInf_t *iHead, long iType )
         com_dispDec( "    <<set %s#%ld>>", SCCPCONINF, id );
     }
     else if( iType == COM_CAP_SCCP_CC ) {
-        com_sccpConnInf_t*  inf =
+        sccpConnInf_t*  inf =
             getSccpConnInf( m3uaPrm->dpc, m3uaPrm->opc, dlr, NULL, &id, false );
         if( !inf ) {return;}
         (void)com_dupPrm( &inf->dlr, slr );  // コピー先は slr で正しい
@@ -554,7 +554,7 @@ static void canSccpConn( com_sigInf_t *iHead )
 {
     COLLECT_SCCP_CONN_DATA( iHead );
     long  id = -1;
-    com_sccpConnInf_t*  inf =
+    sccpConnInf_t*  inf =
         getSccpConnInf( m3uaPrm->dpc, m3uaPrm->opc, dlr, slr, &id, false );
     if( !inf ) {
         com_error( COM_ERR_ANALYZENG,
@@ -598,13 +598,13 @@ typedef struct {
     uint  routingId:1;   // ルーチン具識別子
     uint  reserved:1;    // 国内使用のため留保
     uint8_t  dmy[7];
-} com_sigSccpAddrId_t;
+} sigSccpAddrId_t;
 
 static long getSsn( com_sigTlv_t *iAdrInf )
 {
     if( !iAdrInf ) {return NO_SSN;}
     com_bin*  val = iAdrInf->value;
-    COM_CAST_HEAD( com_sigSccpAddrId_t, addrId, val );
+    COM_CAST_HEAD( sigSccpAddrId_t, addrId, val );
     if( !addrId->ssnId ) {return NO_SSN;}
     val += ADDRID_SIZE;
     if( addrId->pcId ) {val += POINTCODE_SIZE;}
@@ -622,7 +622,7 @@ static void getSccpSsn( com_sigInf_t *ioHead )
         if( !slr && !dlr ) {return;}
         if( !slr ) {slr = dlr;  dlr = NULL;}
         long  id = -1;
-        com_sccpConnInf_t*  inf = 
+        sccpConnInf_t*  inf = 
             getSccpConnInf( m3uaPrm->dpc, m3uaPrm->opc, slr, dlr, &id, false );
         if( inf ) {
             com_dispDec( "    <<match %s#%ld>>", SCCPCONINF, id );
@@ -1123,15 +1123,15 @@ typedef struct {
     long  isMondatry;
     long  cnt;
     long  tag[5];
-} com_sigTcapTags_t;
+} sigTcapTags_t;
 
 typedef struct {
     long  type;
     long  cnt;
-    com_sigTcapTags_t  tags[5];
-} com_sigTcapComp_t;
+    sigTcapTags_t  tags[5];
+} sigTcapComp_t;
 
-static com_sigTcapComp_t  gTcapComp[] = {
+static sigTcapComp_t  gTcapComp[] = {
     { COM_CAP_TCAP_INVOKE, 4, {
         { COM_SIG_TCAP_INVOKEID, true,
           2, {COM_CAP_TCAP_INVOKEID, COM_CAP_TCAP_NULL} },
@@ -1184,7 +1184,7 @@ static com_sigTcapComp_t  gTcapComp[] = {
     }
 };
 
-static com_sigTcapComp_t *getCompConf( long iType )
+static sigTcapComp_t *getCompConf( long iType )
 {
     for( ulong i = 0;  i < COM_ELMCNT(gTcapComp);  i++ ) {
         if( gTcapComp[i].type == iType ) {return &(gTcapComp[i]);}
@@ -1192,10 +1192,10 @@ static com_sigTcapComp_t *getCompConf( long iType )
     return NULL;
 }
 
-static BOOL matchTags( com_bin *iSignal, com_sigTcapComp_t *iConf, long *iCnt )
+static BOOL matchTags( com_bin *iSignal, sigTcapComp_t *iConf, long *iCnt )
 {
     if( *iCnt >= iConf->cnt ) {return false;}
-    com_sigTcapTags_t*  tags = &(iConf->tags[*iCnt]);
+    sigTcapTags_t*  tags = &(iConf->tags[*iCnt]);
     for( long i = 0;  i < tags->cnt;  i++ ) {
         if( tags->tag[i] == *iSignal ) {return true;}
     }
@@ -1205,7 +1205,7 @@ static BOOL matchTags( com_bin *iSignal, com_sigTcapComp_t *iConf, long *iCnt )
     return matchTags( iSignal, iConf, iCnt );
 }
 
-static com_bin *checkSignal( com_sigInf_t *ioHead, com_sigTcapComp_t **oConf )
+static com_bin *checkSignal( com_sigInf_t *ioHead, sigTcapComp_t **oConf )
 {
     com_bin*  signal = COM_SGTOP;
     if( !com_getTcapCompName( *signal ) ) {return NULL;}
@@ -1216,7 +1216,7 @@ static com_bin *checkSignal( com_sigInf_t *ioHead, com_sigTcapComp_t **oConf )
 
 static BOOL checkHeadPrm(
         long *ioCnt, com_sigPrm_t *iTarget, com_sigPrm_t *iHead,
-        com_bin *iSignal, com_sigTcapComp_t *iConf )
+        com_bin *iSignal, sigTcapComp_t *iConf )
 {
     if( iTarget != iHead ) {return true;}
     if( *ioCnt > iConf->cnt || !matchTags( iSignal, iConf, ioCnt ) ) {
@@ -1227,7 +1227,7 @@ static BOOL checkHeadPrm(
 
 static void setCompHead(
         long *ioCnt, com_sigPrm_t **ioTarget, com_sigPrm_t *iHead,
-        com_sigPrm_t *iPrm, com_sigTcapComp_t *iConf,
+        com_sigPrm_t *iPrm, sigTcapComp_t *iConf,
         com_sigTcapCompHead_t *oCompHead )
 {
     if( *ioTarget != iHead ) {return;}
@@ -1250,7 +1250,7 @@ static BOOL freeCompInf(
 
 BOOL com_getTcapCompInf( com_sigInf_t *ioHead )
 {
-    com_sigTcapComp_t*  headConf = NULL;
+    sigTcapComp_t*  headConf = NULL;
     com_bin*  signal = checkSignal( ioHead, &headConf );
     if( !signal ) {return false;}
     com_sigTcapCompHead_t*  compHead =
@@ -1275,10 +1275,10 @@ BOOL com_getTcapCompInf( com_sigInf_t *ioHead )
 }
 
 // コンポーネント部オペレーションコード名取得関数プロトタイプ
-typedef char *(com_getOpName_t)( long iOpcode );
+typedef char *(getOpName_t)( long iOpcode );
 
 // コンポーネント部出力 内部共通処理
-static void decodeTcapComponents( com_sigInf_t *iHead, com_getOpName_t iFunc )
+static void decodeTcapComponents( com_sigInf_t *iHead, getOpName_t iFunc )
 {
     COM_DECODER_START;
     com_dispDec( " %s MESSAGE [%ld]  <length=%zu>",

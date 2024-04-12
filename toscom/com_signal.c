@@ -341,18 +341,18 @@ typedef struct {
     long  initEnd;
     long  cnt;
     com_sigPrtclType_t*  list;
-} com_mngPrtclType_t;
+} mngProtocolType_t;
 
 static long  gPrtclTypeCnt = 0;
-static com_mngPrtclType_t*  gPrtclTypeInf = NULL;
+static mngProtocolType_t*  gPrtclTypeInf = NULL;
 
-static com_mngPrtclType_t *getPrtclTypeInf( long iBase, BOOL iMakeNew )
+static mngProtocolType_t *getPrtclTypeInf( long iBase, BOOL iMakeNew )
 {
     for( long i = 0;  i < gPrtclTypeCnt;  i++ ) {
         if( gPrtclTypeInf[i].base == iBase ) {return &(gPrtclTypeInf[i]);}
     }
     if( !iMakeNew ) {return NULL;}
-    com_mngPrtclType_t*  tmp =
+    mngProtocolType_t*  tmp =
         com_reallocAddr( &gPrtclTypeInf, sizeof(*gPrtclTypeInf),
                          COM_TABLEEND, &gPrtclTypeCnt, 1,
                          "add protocol type inf" );
@@ -366,7 +366,7 @@ void com_setPrtclType( COM_PRTCLTYPE_t iBase, com_sigPrtclType_t *iList )
     if( iBase == COM_NOT_USE ) {return;}
     if( !iList ) {COM_PRMNG();}
     com_skipMemInfo( true );
-    com_mngPrtclType_t*  mngInf = getPrtclTypeInf( iBase, true );
+    mngProtocolType_t*  mngInf = getPrtclTypeInf( iBase, true );
     for( ;  iList->target.type != COM_PRTCLTYPE_END;  iList++ ) {
         com_sigPrtclType_t*  newList =
             com_reallocAddr( &(mngInf->list), sizeof(*(mngInf->list)),
@@ -385,7 +385,7 @@ void com_setPrtclType( COM_PRTCLTYPE_t iBase, com_sigPrtclType_t *iList )
 long com_getPrtclType( COM_PRTCLTYPE_t iBase, long iType )
 {
     if( iBase == COM_NOT_USE ) {return 0;}
-    com_mngPrtclType_t*  mngInf = getPrtclTypeInf( iBase, false );
+    mngProtocolType_t*  mngInf = getPrtclTypeInf( iBase, false );
     if( !mngInf ) {COM_PRMNG(COM_SIG_UNKNOWN);}
     for( long i = 0;  i < mngInf->cnt;  i++ ) {
         com_sigPrtclType_t*  tmp = &(mngInf->list[i]);
@@ -397,7 +397,7 @@ long com_getPrtclType( COM_PRTCLTYPE_t iBase, long iType )
 long com_getPrtclLabel( COM_PRTCLTYPE_t iBase, char *iLabel )
 {
     if( iBase == COM_NOT_USE ) {return 0;}
-    com_mngPrtclType_t*  mngInf = getPrtclTypeInf( iBase, false );
+    mngProtocolType_t*  mngInf = getPrtclTypeInf( iBase, false );
     if( !mngInf ) {COM_PRMNG(COM_SIG_UNKNOWN);}
     for( long i = 0;  i < mngInf->cnt;  i++ ) {
         char*  target = mngInf->list[i].target.label;

@@ -656,9 +656,7 @@ void com_reverseNodeInf( com_nodeInf_t *oInf )
 #define  STRNCMP( TARGET, SOURCE ) \
     strncmp( (TARGET), SOURCE, strlen(SOURCE) )
 
-enum {
-    STATUSCODE_DIGITS = 3
-};
+enum { STATUSCODE_DIGITS = 3 };
 
 static BOOL getStatusCode( char *iSig, long *oType )
 {
@@ -1030,9 +1028,7 @@ BOOL com_analyzeTxtBase(
 
 // ASN.1解析用共通処理 ///////////////////////////////////////////////////////
 
-enum {
-    LONGFORM = 0x80
-};
+enum { LONGFORM = 0x80 };
 
 com_off com_getTagLength( com_bin *iSignal, com_off *oTag )
 {

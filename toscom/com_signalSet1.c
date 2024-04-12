@@ -380,9 +380,9 @@ static void dispIpv4FragInf( com_sigInf_t *iHead, struct ip *iIpv4 )
     }
 }
 
-typedef char*(com_getOptNameFunc_t)( long iType );
+typedef char*(getOptNameFunc_t)( long iType );
 
-static void dispPrtOptions( com_sigPrm_t *iPrm, com_getOptNameFunc_t func )
+static void dispPrtOptions( com_sigPrm_t *iPrm, getOptNameFunc_t func )
 {
     for( long i = 0;  i < iPrm->cnt;  i++ ) {
         com_sigTlv_t*  tlv = &(iPrm->list[i]);
@@ -856,7 +856,7 @@ static com_sigPrtclType_t  gTcpOptLen1[] = {
     { {COM_PRTCLTYPE_END}, COM_SIG_UNKNOWN }
 };
 
-typedef void(*com_setAddrFunc_t)(
+typedef void(*setAddrFunc_t)(
         com_sigTcpNode_t *oNode, com_sigInf_t *ioHead );
 
 static void setV4Addr( com_sigTcpNode_t *oNode, com_sigInf_t *ioHead )
@@ -884,7 +884,7 @@ static BOOL makeNodeInf( com_sigTcpNode_t *oNode, com_sigInf_t *ioHead )
 {
     memset( oNode, 0, sizeof(*oNode) );
     if( !ioHead->prev ) {return false;}
-    com_setAddrFunc_t  func = NULL;
+    setAddrFunc_t  func = NULL;
     long  ipType = ioHead->prev->sig.ptype;
     if( ipType == COM_SIG_IPV4 ) {func = setV4Addr;}
     else if( ipType == COM_SIG_IPV6 ) {func = setV6Addr;}
@@ -947,7 +947,7 @@ static void addRecvSize(
     else {oInf->dstRecv += iDataSize;}
 }
 
-typedef BOOL(*com_procTcpFunc_t)(
+typedef BOOL(*procTcpFunc_t)(
         com_sigTcpInf_t *oInf, com_off iDataSize, com_sigTcpNode_t *iNode,
         com_sigInf_t *ioHead );
 
@@ -1027,7 +1027,7 @@ static BOOL getSeq(
 {
     memset( oInf, 0, sizeof(*oInf) );
     COM_CAST_HEAD( struct tcphdr, tcp, COM_SGTOP );
-    com_procTcpFunc_t  func = procAck;
+    procTcpFunc_t  func = procAck;
     if( COM_IS_TCP_SYN ) {func = procSyn;}
     if( COM_IS_TCP_FIN ) {func = procFin;}
     return (func)( oInf, iDataSize, iNode, ioHead );
@@ -1579,10 +1579,10 @@ typedef struct {
     char*          callId;
     com_nodeInf_t  upInf;
     long           payloadType;
-} com_sdpSessionInf_t;
+} sdpSessionInf_t;
 
 static long  gSdpSesCnt = 0;
-static com_sdpSessionInf_t*  gSdpSesInf = NULL;
+static sdpSessionInf_t*  gSdpSesInf = NULL;
 
 static void freeSdpSesInf( void )
 {
@@ -1592,15 +1592,15 @@ static void freeSdpSesInf( void )
     com_free( gSdpSesInf );
 }
 
-static com_sdpSessionInf_t *checkSdpSesInf( long iCnt, char *iCallId )
+static sdpSessionInf_t *checkSdpSesInf( long iCnt, char *iCallId )
 {
-    com_sdpSessionInf_t*  tmp = &(gSdpSesInf[iCnt]);
+    sdpSessionInf_t*  tmp = &(gSdpSesInf[iCnt]);
     if( !tmp->isUse ) {return NULL;}
     if( strcmp( iCallId, tmp->callId ) ) {return NULL;}
     return tmp;
 }
 
-static com_sdpSessionInf_t *clearSdpSesInf( com_sdpSessionInf_t *oInf )
+static sdpSessionInf_t *clearSdpSesInf( sdpSessionInf_t *oInf )
 {
     com_free( oInf->callId );
     memset( oInf, 0, sizeof(*oInf) );
@@ -1608,7 +1608,7 @@ static com_sdpSessionInf_t *clearSdpSesInf( com_sdpSessionInf_t *oInf )
 }
 
 static BOOL setSdpSesInf(
-        com_sdpSessionInf_t *oInf, com_nodeInf_t *iInf, char *iCallId )
+        sdpSessionInf_t *oInf, com_nodeInf_t *iInf, char *iCallId )
 {
     if( !(oInf->callId = com_strdup( iCallId, "new sdp session callId" )) ) {
         return false;
@@ -1618,17 +1618,17 @@ static BOOL setSdpSesInf(
     return true;
 }
 
-static com_sdpSessionInf_t *getSdpSesInf(
+static sdpSessionInf_t *getSdpSesInf(
         com_nodeInf_t *iInf, char *iCallId, long *oId, BOOL iAdd )
 {
-    com_sdpSessionInf_t*  tmp = NULL;
+    sdpSessionInf_t*  tmp = NULL;
     for( long i = 0;  i < gSdpSesCnt;  i++ ) {
         if( (tmp = checkSdpSesInf( i, iCallId )) ) {*oId = i;  return tmp;}
     }
     if( !iAdd ) {return NULL;}
     tmp = NULL;
     for( long i = 0;  i < gSdpSesCnt;  i++ ) {
-        com_sdpSessionInf_t*  inf = &(gSdpSesInf[i]);
+        sdpSessionInf_t*  inf = &(gSdpSesInf[i]);
         if( !inf->isUse ) {tmp = clearSdpSesInf( inf );  *oId = i;  break;}
     }
     if( !tmp ) {  // 再利用できるものがないときは新規追加
@@ -1661,7 +1661,7 @@ static void setSdpAddrPort(
 }
 
 static void setSdpPrmInf(
-        com_sdpSessionInf_t *oSdp, com_sigInf_t *iHead, BOOL iOrg )
+        sdpSessionInf_t *oSdp, com_sigInf_t *iHead, BOOL iOrg )
 {
     char*  cVal = com_strdup(com_getTxtHeaderVal( COM_IAPRM, "c" ), "sdp c");
     char*  mVal = com_strdup(com_getTxtHeaderVal( COM_IAPRM, "m" ), "sdp m");
@@ -1687,7 +1687,7 @@ static void createSdpSession( com_sigInf_t *iHead )
     com_getNodeInf( iHead, &cpInf );
     char*  callId = com_getTxtHeaderVal( &sip->prm, COM_CAP_SIPHDR_CALLID );
     long  id = 0;
-    com_sdpSessionInf_t*  sdpInf = NULL;
+    sdpSessionInf_t*  sdpInf = NULL;
     if( sipType < COM_SIG_SIP_RESPONSE ) {
         if( !(sdpInf = getSdpSesInf( &cpInf,callId,&id,true )) ) {return;}
         setSdpPrmInf( sdpInf, iHead, true );
@@ -1778,7 +1778,7 @@ static BOOL checkSdpNodeInf(
 static long getPortFromSdpInf( com_nodeInf_t *iInf )
 {
     for( long i = 0;  i < gSdpSesCnt;  i++ ) {
-        com_sdpSessionInf_t*  tmp = &(gSdpSesInf[i]);
+        sdpSessionInf_t*  tmp = &(gSdpSesInf[i]);
         if( !tmp->isUse ) {continue;}
         if( checkSdpNodeInf( iInf, &tmp->upInf, 0 ) ) {
             DEBUGSIG( "#   <<match %s#%ld as RTP>>\n", SDPINF, i );
@@ -2316,9 +2316,9 @@ char *com_getDhcpv6MsgType( void *iSigTop )
 typedef struct {
     ulong  bitmask;
     long   shift;
-} com_sigDnsBitMap_t;
+} sigDnsBitMap_t;
 
-static com_sigDnsBitMap_t  gDnsBitMap[] = {
+static sigDnsBitMap_t  gDnsBitMap[] = {
     { 0x8000, 15 },  // QR      (1bit)
     { 0x7800, 11 },  // OPCODE  (4bit)
     { 0x0400, 10 },  // AA      (1bit)
@@ -2333,7 +2333,7 @@ ulong com_getDnsFlagsField( com_sigInf_t *iHead, COM_CAP_DNSBIT_t iId )
 {
     COM_CAST_HEAD( com_sigDnsHdr_t, dns, COM_ISGTOP );
     uint16_t  flags = com_getVal16( dns->flags, COM_IORDER );
-    com_sigDnsBitMap_t*  tmp = &(gDnsBitMap[iId]);
+    sigDnsBitMap_t*  tmp = &(gDnsBitMap[iId]);
     return com_getBitField( flags, tmp->bitmask, tmp->shift );
 }
 
@@ -2504,20 +2504,20 @@ static char*  gDnsRecType[] = {
 typedef struct {
     long    type;
     char*   label;
-} com_sigDnsTypeUnit_t;
+} sigDnsTypeUnit_t;
 
 enum { RR_DATACNT_MAX = 8 };
 
 typedef struct {
     long    type;
     char*   label;
-    com_sigDnsTypeUnit_t  dataType[RR_DATACNT_MAX];
-} com_sigDnsType_t;
+    sigDnsTypeUnit_t  dataType[RR_DATACNT_MAX];
+} sigDnsType_t;
 
-#define  COM_ANYLABEL_ANY   "anything"
-#define  COM_ANYLABEL_TXT   "TXT-DATA"
+#define  ANYLABEL_ANY   "anything"
+#define  ANYLABEL_TXT   "TXT-DATA"
 
-static com_sigDnsType_t  gDnsTypeInf[] = {
+static sigDnsType_t  gDnsTypeInf[] = {
     { COM_CAP_DNS_RTYPE_A,      "A (1) host address",
       { {COM_CAP_DNS_RR_V4ADDR,    "ADDRESS"} } },
     { COM_CAP_DNS_RTYPE_NS,     "NS (2) authoritative name server",
@@ -2543,7 +2543,7 @@ static com_sigDnsType_t  gDnsTypeInf[] = {
     { COM_CAP_DNS_RTYPE_MR,     "MG (9) mail rename domain name",
       { {COM_CAP_DNS_RR_DNAME,     "NEWNAME"} } },
     { COM_CAP_DNS_RTYPE_NULL,   "NULL (10)",
-      { {COM_CAP_DNS_RR_ANY,       COM_ANYLABEL_ANY} } },  // 形式不問
+      { {COM_CAP_DNS_RR_ANY,       ANYLABEL_ANY} } },  // 形式不問
     { COM_CAP_DNS_RTYPE_WKS,    "WKS (11) well known service description",
       { {COM_CAP_DNS_RR_V4ADDR,    "ADDRESS"},
         {COM_CAP_DNS_RR_8BIT,      "PROTOCOL"},
@@ -2591,22 +2591,22 @@ com_off com_getDomain(
     return size;
 }
 
-static com_sigDnsType_t *getDnsTypeInf( long iType )
+static sigDnsType_t *getDnsTypeInf( long iType )
 {
     if( iType < 0 ) {return NULL;}
-    for( com_sigDnsType_t * inf = gDnsTypeInf;  inf->type;  inf++ ) {
+    for( sigDnsType_t * inf = gDnsTypeInf;  inf->type;  inf++ ) {
         if( inf->type == iType ) {return inf;}
     }
     return NULL;
 }
 
-#define COM_DISP_RDATA_PRM \
+#define DISP_RDATA_PRM \
     com_bin **ioPtr, com_off *ioRest, \
-    com_sigDnsTypeUnit_t *iUnit, com_sigInf_t *iHead
+    sigDnsTypeUnit_t *iUnit, com_sigInf_t *iHead
 
-typedef BOOL(*com_dispDnsRdata_t)( COM_DISP_RDATA_PRM );
+typedef BOOL(*dispDnsRdata_t)( DISP_RDATA_PRM );
 
-static BOOL dispRd_DNAME( COM_DISP_RDATA_PRM )
+static BOOL dispRd_DNAME( DISP_RDATA_PRM )
 {
     char  tmpName[COM_LINEBUF_SIZE + 1];
     com_off  size = com_getDomain( iHead, *ioPtr, tmpName, sizeof(tmpName) );
@@ -2626,7 +2626,7 @@ static com_off getChrStr( char *oBuf, com_bin **ioPtr, com_off *ioRest )
     return true;
 }
 
-static BOOL dispRd_CHSTR( COM_DISP_RDATA_PRM )
+static BOOL dispRd_CHSTR( DISP_RDATA_PRM )
 {
     COM_UNUSED( iHead );
     char  tmpTxt[COM_LINEBUF_SIZE] = {0};
@@ -2635,7 +2635,7 @@ static BOOL dispRd_CHSTR( COM_DISP_RDATA_PRM )
     return true;
 }
 
-static BOOL dispRdValue( COM_DISP_RDATA_PRM, long iSize )
+static BOOL dispRdValue( DISP_RDATA_PRM, long iSize )
 {
     COM_UNUSED( iHead );
     ulong  value = (ulong)com_calcValue( *ioPtr, iSize );
@@ -2645,22 +2645,22 @@ static BOOL dispRdValue( COM_DISP_RDATA_PRM, long iSize )
     return true;
 }
 
-static BOOL dispRd_8BIT( COM_DISP_RDATA_PRM )
+static BOOL dispRd_8BIT( DISP_RDATA_PRM )
 {
     return dispRdValue( ioPtr, ioRest, iUnit, iHead, COM_8BIT_SIZE );
 }
 
-static BOOL dispRd_16BIT( COM_DISP_RDATA_PRM )
+static BOOL dispRd_16BIT( DISP_RDATA_PRM )
 {
     return dispRdValue( ioPtr, ioRest, iUnit, iHead, COM_16BIT_SIZE );
 }
 
-static BOOL dispRd_32BIT( COM_DISP_RDATA_PRM )
+static BOOL dispRd_32BIT( DISP_RDATA_PRM )
 {
     return dispRdValue( ioPtr, ioRest, iUnit, iHead, COM_32BIT_SIZE );
 }
 
-static BOOL dispRd_V4ADDR( COM_DISP_RDATA_PRM )
+static BOOL dispRd_V4ADDR( DISP_RDATA_PRM )
 {
     COM_UNUSED( iHead );
     char  tmpAddr[16] = {0};
@@ -2671,7 +2671,7 @@ static BOOL dispRd_V4ADDR( COM_DISP_RDATA_PRM )
     return true;
 }
 
-static BOOL dispRd_BITMAP( COM_DISP_RDATA_PRM )
+static BOOL dispRd_BITMAP( DISP_RDATA_PRM )
 {
     COM_UNUSED( iHead );
     com_dispDec( "       <%s>", iUnit->label );
@@ -2681,7 +2681,7 @@ static BOOL dispRd_BITMAP( COM_DISP_RDATA_PRM )
     return true;
 }
 
-static BOOL dispRd_TXT( COM_DISP_RDATA_PRM )
+static BOOL dispRd_TXT( DISP_RDATA_PRM )
 {
     COM_UNUSED( iHead );
     char  tmpTxt[COM_LINEBUF_SIZE] = {0};
@@ -2693,30 +2693,30 @@ static BOOL dispRd_TXT( COM_DISP_RDATA_PRM )
     return true;
 }
 
-static BOOL dispRd_ANY( COM_DISP_RDATA_PRM )
+static BOOL dispRd_ANY( DISP_RDATA_PRM )
 {
-    if( !strcmp( iUnit->label, COM_ANYLABEL_ANY ) ) {
+    if( !strcmp( iUnit->label, ANYLABEL_ANY ) ) {
         return dispRd_BITMAP( ioPtr, ioRest, iUnit, iHead );
     }
     return false;
 }
 
-static com_dispDnsRdata_t  gDispRdata[] = {
+static dispDnsRdata_t  gDispRdata[] = {
     NULL,           dispRd_DNAME,    dispRd_CHSTR,    dispRd_8BIT,
     dispRd_16BIT,   dispRd_32BIT,    dispRd_V4ADDR,   dispRd_BITMAP,
     dispRd_ANY,     dispRd_TXT
 };
 
 static void dispRdata(
-        com_sigInf_t *iHead, com_sigDnsRecord_t *iRd, com_sigDnsType_t *iInf )
+        com_sigInf_t *iHead, com_sigDnsRecord_t *iRd, sigDnsType_t *iInf )
 {
     com_dispDec( "    TTL = %ld", iRd->rttl );
     if( !iInf ) {return;}
-    com_sigDnsTypeUnit_t*  list = iInf->dataType;
+    sigDnsTypeUnit_t*  list = iInf->dataType;
     com_bin*  ptr = iRd->rdata.top;
     com_off  rest = iRd->rdata.len;
     for( long i = 0;  list[i].type && (i < RR_DATACNT_MAX);  i++ ) {
-        com_dispDnsRdata_t  func = gDispRdata[list[i].type];
+        dispDnsRdata_t  func = gDispRdata[list[i].type];
         if( func ) {
             com_dispDec( "    RDLEN = %zu", iRd->rdata.len );
             com_dispBin( "RDATA", iRd->rdata.top, iRd->rdata.len, "", true );
@@ -2733,7 +2733,7 @@ static void dispRrs( com_sigInf_t *iHead, com_sigDnsRecord_t *iRd )
     (void)com_getDomain( iHead, iRd->rname.top, tmpName, sizeof(tmpName) );
     com_dispDec( "    %sNAME = %s", qd, tmpName );
     com_printf( "#    %sTYPE = ", qd );
-    com_sigDnsType_t*  inf = getDnsTypeInf( iRd->rtype );
+    sigDnsType_t*  inf = getDnsTypeInf( iRd->rtype );
     if( inf ) {com_printf( "%s\n", inf->label );}
     else {com_printf( "%lu (unknwon type)\n", iRd->rtype );}
     com_dispDec( "    %sCLASS = %s", qd, com_getDnsOpName( iRd->rclass ) );

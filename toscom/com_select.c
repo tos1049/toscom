@@ -36,11 +36,11 @@ typedef struct {
     com_sockFilterCB_t filterFunc;    // 受信フィルタリング関数
     com_sockaddr_t srcInf;            // 自側アドレス情報
     com_sockaddr_t dstInf;            // 対抗アドレス情報
-} com_eventInf_t;
+} eventInf_t;
 
 static pthread_mutex_t  gMutexEvent = PTHREAD_MUTEX_INITIALIZER;
 static com_selectId_t   gEventId = 0;       // 現在のイベント登録数
-static com_eventInf_t*  gEventInf = NULL;   // イベント情報実体
+static eventInf_t*  gEventInf = NULL;   // イベント情報実体
 
 enum {
     NO_EVENTS = -1,
@@ -55,7 +55,7 @@ enum {
         return (RETURN); \
     } while(0)
 
-static BOOL checkAvailInf( com_eventInf_t *iInf, BOOL iIsTimer )
+static BOOL checkAvailInf( eventInf_t *iInf, BOOL iIsTimer )
 {
     if( iInf->isUse ) {return false;}
     // タイマーイベント用なら、前回タイマーイベントの空き情報は使わない
@@ -86,7 +86,7 @@ static com_selectId_t getEventId( BOOL iIsTimer )
         if( !result ) {UNLOCKRETURN( COM_NO_SOCK );}
     }
     // 情報初期化
-    gEventInf[id] = (com_eventInf_t){
+    gEventInf[id] = (eventInf_t){
         .isUse = false,  .timer = COM_NO_SOCK,  .expireFunc = NULL,
         .sockId = COM_NO_SOCK,  .eventFunc = NULL,  .stdinFunc = NULL,
         .filterFunc = NULL
@@ -96,26 +96,26 @@ static com_selectId_t getEventId( BOOL iIsTimer )
 
 // デバッグ出力用イベント一覧
 typedef enum {
-    COM_MOD_SOCKET,             // socket()実施
-    COM_MOD_BIND,               // bind()実施
-    COM_MOD_LISTEN,             // listen()実施
-    COM_MOD_CONNECT,            // connect()実施
-    COM_MOD_ACCEPT,             // accept()実施
-    COM_MOD_SEND,               // データ送信
-    COM_MOD_RECEIVE,            // データ受信
-    COM_MOD_DROP,               // データ受信がフィルタリングにより破棄
-    COM_MOD_CLOSE,              // 自分で close()実施
-    COM_MOD_CLOSED,             // 対向からのTCPクローズ
-    COM_MOD_STDINON,            // 標準入力受付登録
-    COM_MOD_STDIN,              // 標準入力受付
-    COM_MOD_STDINOFF,           // 標準入力受付解除
-    COM_MOD_TIMERON,            // タイマー起動
-    COM_MOD_EXPIRED,            // タイマー満了
-    COM_MOD_TIMERMOD,           // タイマー修正
-    COM_MOD_TIMERSTOP,          // タイマー停止
-    COM_MOD_TIMEROFF,           // タイマー解除
-    COM_MOD_NOEVENT     // 最後は必ずこれで
-} COM_MOD_EVENT_t;
+    MOD_SOCKET,             // socket()実施
+    MOD_BIND,               // bind()実施
+    MOD_LISTEN,             // listen()実施
+    MOD_CONNECT,            // connect()実施
+    MOD_ACCEPT,             // accept()実施
+    MOD_SEND,               // データ送信
+    MOD_RECEIVE,            // データ受信
+    MOD_DROP,               // データ受信がフィルタリングにより破棄
+    MOD_CLOSE,              // 自分で close()実施
+    MOD_CLOSED,             // 対向からのTCPクローズ
+    MOD_STDINON,            // 標準入力受付登録
+    MOD_STDIN,              // 標準入力受付
+    MOD_STDINOFF,           // 標準入力受付解除
+    MOD_TIMERON,            // タイマー起動
+    MOD_EXPIRED,            // タイマー満了
+    MOD_TIMERMOD,           // タイマー修正
+    MOD_TIMERSTOP,          // タイマー停止
+    MOD_TIMEROFF,           // タイマー解除
+    MOD_NOEVENT     // 最後は必ずこれで
+} MOD_EVENT_t;
 
 static char* gModEvent[] = {
     "socket", "bind", "listen", "connect", "accept",
@@ -163,7 +163,7 @@ static void logStdin( const void *iData, size_t iSize )
     com_dbgCom( "      %s", (const char*)iData );
 }
 
-static char *getAddLabel( COM_MOD_EVENT_t iModEvent, com_eventInf_t *iInf )
+static char *getAddLabel( MOD_EVENT_t iModEvent, eventInf_t *iInf )
 {
     COM_UNUSED( iModEvent );  // 今後使うかもしれないので仮引数はキープ
     if( iInf->type > COM_SOCK_RAWRCV ) {
@@ -173,7 +173,7 @@ static char *getAddLabel( COM_MOD_EVENT_t iModEvent, com_eventInf_t *iInf )
 }
 
 static void logSocket(
-        COM_MOD_EVENT_t iModEvent, com_eventInf_t *iInf,
+        MOD_EVENT_t iModEvent, eventInf_t *iInf,
         const uchar *iData, size_t iSize )
 {
     char*  prot[] = {
@@ -183,10 +183,10 @@ static void logSocket(
     char*  addLabel = getAddLabel( iModEvent, iInf );
     if( !addLabel ) {com_dbgCom( "        type = %s", prot[iInf->type] );}
     else {com_dbgCom( "        type = %s (%s)", prot[iInf->type], addLabel );}
-    if( iModEvent == COM_MOD_SEND ) {
+    if( iModEvent == MOD_SEND ) {
         printSignal( &iInf->srcInf, &iInf->dstInf, iData, iSize );
     }
-    else if( iModEvent == COM_MOD_RECEIVE || iModEvent == COM_MOD_DROP ) {
+    else if( iModEvent == MOD_RECEIVE || iModEvent == MOD_DROP ) {
         printSignal( &iInf->dstInf, &iInf->srcInf, iData, iSize );
     }
     else {
@@ -195,23 +195,23 @@ static void logSocket(
     }
 }
 
-static void logTimer( com_eventInf_t *iInf )
+static void logTimer( eventInf_t *iInf )
 {
     com_dbgCom( "      timer = %ld msec", iInf->timer );
     printStartTime( &iInf->startTime );
 }
 
 static void debugEventLog( 
-        COM_MOD_EVENT_t iModEvent, com_selectId_t iId, com_eventInf_t *iInf,
+        MOD_EVENT_t iModEvent, com_selectId_t iId, eventInf_t *iInf,
         const uchar *iData, size_t iSize )
 {
     if( !com_getDebugPrint() || !gDebugEvent ) {return;}
     com_dbgCom( "==SELECT %s (ID=%ld)", gModEvent[iModEvent], iId );
-    if( iModEvent == COM_MOD_STDIN ) {logStdin( iData, iSize );}
-    else if( iModEvent <= COM_MOD_CLOSED ) {
+    if( iModEvent == MOD_STDIN ) {logStdin( iData, iSize );}
+    else if( iModEvent <= MOD_CLOSED ) {
         logSocket( iModEvent, iInf, iData, iSize );
     }
-    else if( iModEvent >= COM_MOD_TIMERON ) {logTimer( iInf );}
+    else if( iModEvent >= MOD_TIMERON ) {logTimer( iInf );}
 }
 
 
@@ -387,7 +387,7 @@ static BOOL setSocketOptions(
 }
 
 static BOOL createSocket(
-        COM_SOCK_TYPE_t iType, com_selectId_t iId, com_eventInf_t *oInf,
+        COM_SOCK_TYPE_t iType, com_selectId_t iId, eventInf_t *oInf,
         const void *iSrc, const com_sockopt_t *iOpt )
 {
     int  family, type, protocol;
@@ -404,12 +404,12 @@ static BOOL createSocket(
         close( oInf->sockId );
         return false;
     }
-    debugEventLog( COM_MOD_SOCKET, iId, oInf, NULL, 0 );
+    debugEventLog( MOD_SOCKET, iId, oInf, NULL, 0 );
     return true;
 }
 
 static BOOL execBind(
-        com_selectId_t iId, com_eventInf_t *oInf,
+        com_selectId_t iId, eventInf_t *oInf,
         const void *iAddr, socklen_t iLen )
 {
     int  ret = bind( oInf->sockId, iAddr, iLen );
@@ -418,13 +418,13 @@ static BOOL execBind(
                    "fail to bind socket[%s]", com_strerror( errno ) );
         return false;
     }
-    debugEventLog( COM_MOD_BIND, iId, oInf, NULL, 0 );
+    debugEventLog( MOD_BIND, iId, oInf, NULL, 0 );
     return true;
 }
 
 #ifdef __linux__
 static BOOL bindPacketRaw(
-        com_selectId_t iId, com_eventInf_t *oInf,
+        com_selectId_t iId, eventInf_t *oInf,
         const struct sockaddr_ll *iSrc )
 {
     if( iSrc->sll_ifindex < 0 ) {return true;}
@@ -436,7 +436,7 @@ static BOOL bindPacketRaw(
 #endif // __linux__
 
 static BOOL bindUnixDomain(
-        com_selectId_t iId, com_eventInf_t *oInf,
+        com_selectId_t iId, eventInf_t *oInf,
         const struct sockaddr_un *iSrc )
 {
     com_copyAddr( &(oInf->srcInf), (const void*)iSrc );
@@ -444,7 +444,7 @@ static BOOL bindUnixDomain(
 }
 
 static BOOL makeBind(
-        COM_SOCK_TYPE_t iType, com_selectId_t iId, com_eventInf_t *oInf,
+        COM_SOCK_TYPE_t iType, com_selectId_t iId, eventInf_t *oInf,
         const void *iSrc )
 {
 #ifdef __linux__
@@ -460,8 +460,7 @@ static BOOL makeBind(
     return execBind( iId, oInf, src->ai_addr, src->ai_addrlen );
 }
 
-static BOOL startTcpClient(
-        com_eventInf_t *oInf, const struct addrinfo *iDst )
+static BOOL startTcpClient( eventInf_t *oInf, const struct addrinfo *iDst )
 {
     const void*  addr = NULL;
     socklen_t  len = 0;
@@ -476,7 +475,7 @@ static BOOL startTcpClient(
     return true;
 }
 
-static BOOL startTcpServer( com_eventInf_t *oInf )
+static BOOL startTcpServer( eventInf_t *oInf )
 {
     int  ret = listen( oInf->sockId, 128 );
     if( ret < 0 ) {
@@ -488,7 +487,7 @@ static BOOL startTcpServer( com_eventInf_t *oInf )
     return true;
 }
 
-static int closeSocket( com_eventInf_t *oInf )
+static int closeSocket( eventInf_t *oInf )
 {
     oInf->isUse = false;
     if( oInf->isUnix ) {
@@ -498,26 +497,26 @@ static int closeSocket( com_eventInf_t *oInf )
     return close( oInf->sockId );
 }
 
-static com_selectId_t closeSocketEnd( com_eventInf_t *oInf )
+static com_selectId_t closeSocketEnd( eventInf_t *oInf )
 {
     (void)closeSocket( oInf );  // close()に失敗しても気にしない
     UNLOCKRETURN( COM_NO_SOCK );
 }
 
 static com_selectId_t readyTransport(
-        COM_SOCK_TYPE_t iType, com_selectId_t iId, com_eventInf_t *oInf,
+        COM_SOCK_TYPE_t iType, com_selectId_t iId, eventInf_t *oInf,
         const void *iDstInf )
 {
     BOOL  result = true;
-    COM_MOD_EVENT_t  event = COM_MOD_NOEVENT;
+    MOD_EVENT_t  event = MOD_NOEVENT;
     switch( iType ) {
         case COM_SOCK_TCP_CLIENT:   // サーバーにつなぎに行く
             result = startTcpClient( oInf, iDstInf );
-            event = COM_MOD_CONNECT;
+            event = MOD_CONNECT;
             break;
         case COM_SOCK_TCP_SERVER:   // クライアントからの接続を待つ
             result = startTcpServer( oInf );
-            event = COM_MOD_LISTEN;
+            event = MOD_LISTEN;
             break;
         default:  break;            // TCP以外は処理なし
     }
@@ -559,8 +558,8 @@ com_selectId_t com_createSocket(
     if( !checkCreatePrm( iType, iSrcInf, iDstInf ) ) {COM_PRMNG(COM_NO_SOCK);}
     com_selectId_t  id = selectEventId( false );  // 仮ID取得
     if( !iEventFunc ) {iEventFunc = dummyEventFunc;}
-    com_eventInf_t  inf = { .isUse = true,  .timer = COM_NO_SOCK,
-                            .eventFunc = iEventFunc, .type = iType };
+    eventInf_t  inf = { .isUse = true,  .timer = COM_NO_SOCK,
+                        .eventFunc = iEventFunc, .type = iType };
     com_mutexUnlock( &gMutexEvent, __func__ );
     if( !createSocket( iType, id, &inf, iSrcInf, iOpt ) ) {return COM_NO_SOCK;}
     if( !makeBind( iType, id, &inf, iSrcInf ) ) {return closeSocketEnd( &inf );}
@@ -575,19 +574,19 @@ com_selectId_t com_createSocket(
     UNLOCKRETURN( id );
 }
 
-static com_eventInf_t *checkSocketInf( com_selectId_t iId, BOOL iLock )
+static eventInf_t *checkSocketInf( com_selectId_t iId, BOOL iLock )
 {
     // returnSocketInf()で排他アンロックする想定
     if( iLock ) {com_mutexLock( &gMutexEvent, __func__ );}
     if( iId < 0 || iId > gEventId ) {return NULL;}
-    com_eventInf_t*  tmp = &(gEventInf[iId]);
+    eventInf_t*  tmp = &(gEventInf[iId]);
     if( !tmp->isUse || tmp->sockId == COM_NO_SOCK ) {return NULL;}
     return tmp;
 }
 
 BOOL com_deleteSocket( com_selectId_t iId )
 {
-    com_eventInf_t*  tmp = checkSocketInf( iId, true );
+    eventInf_t*  tmp = checkSocketInf( iId, true );
     if( !tmp ) {com_prmNG(NULL);  UNLOCKRETURN( false );}
     if( tmp->sockId == ID_STDIN ) {UNLOCKRETURN( false );}
     if( 0 > closeSocket( tmp ) ) {
@@ -596,7 +595,7 @@ BOOL com_deleteSocket( com_selectId_t iId )
         UNLOCKRETURN( false );
     }
     // ユーザーからの切断要求なので、TCPでも切断通知は出さない
-    debugEventLog( COM_MOD_CLOSE, iId, tmp, NULL, 0 );
+    debugEventLog( MOD_CLOSE, iId, tmp, NULL, 0 );
     UNLOCKRETURN( true );
 }
 
@@ -605,7 +604,7 @@ BOOL com_sendSocket(
         const com_sockaddr_t *iDst )
 {
     int  ret = 0;
-    com_eventInf_t* tmp = checkSocketInf( iId, false );
+    eventInf_t* tmp = checkSocketInf( iId, false );
     if( !tmp || !iData ) {COM_PRMNG(false);}
     if( tmp->type == COM_SOCK_RAWRCV ) {COM_PRMNG(false);}
     if( tmp->type == COM_SOCK_UDP ||
@@ -621,7 +620,7 @@ BOOL com_sendSocket(
                    "fail to send packet by %ld [%s]", iId, com_strerror(errno));
         return false;
     }
-    debugEventLog( COM_MOD_SEND, iId, tmp, iData, iDataSize );
+    debugEventLog( MOD_SEND, iId, tmp, iData, iDataSize );
     return true;
 }
 
@@ -657,11 +656,11 @@ static BOOL checkNoRecv( BOOL iNonBlock, int iErrno )
 }
 
 static COM_RECV_RESULT_t checkRecvResult(
-        com_selectId_t iId, ssize_t iLen, int iErrno, com_eventInf_t *iInf,
+        com_selectId_t iId, ssize_t iLen, int iErrno, eventInf_t *iInf,
         BOOL iNonBlock, void *iData )
 {
     if( iLen ==  0  && iInf->type > COM_SOCK_UDP ) {
-        debugEventLog( COM_MOD_CLOSED, iId, iInf, NULL, 0 );
+        debugEventLog( MOD_CLOSED, iId, iInf, NULL, 0 );
         return COM_RECV_CLOSE;
     }
     if( iLen < 0 ) {
@@ -673,11 +672,11 @@ static COM_RECV_RESULT_t checkRecvResult(
     }
     if( iInf->filterFunc ) {
         if( (iInf->filterFunc)( iId, iData, iLen ) ) {
-            debugEventLog( COM_MOD_DROP, iId, iInf, iData, (size_t)iLen );
+            debugEventLog( MOD_DROP, iId, iInf, iData, (size_t)iLen );
             return COM_RECV_DROP;
         }
     }
-    debugEventLog( COM_MOD_RECEIVE, iId, iInf, iData, (size_t)iLen );
+    debugEventLog( MOD_RECEIVE, iId, iInf, iData, (size_t)iLen );
     return COM_RECV_OK;
 }
 
@@ -686,7 +685,7 @@ COM_RECV_RESULT_t com_receiveSocket(
         BOOL iNonBlock, ssize_t *oLen, com_sockaddr_t *oFrom )
 {
     COM_SET_IF_EXIST( oLen, 0 );
-    com_eventInf_t*  tmp = checkSocketInf( iId, false );
+    eventInf_t*  tmp = checkSocketInf( iId, false );
     if( !tmp || !oData || !oLen ) {COM_PRMNG(COM_RECV_NG);}
     struct sockaddr*  srcAddr = NULL;
     socklen_t*  addrLen = NULL;
@@ -708,7 +707,7 @@ COM_RECV_RESULT_t com_receiveSocket(
 
 BOOL com_filterSocket( com_selectId_t iId, com_sockFilterCB_t iFilterFunc )
 {
-    com_eventInf_t*  tmp = checkSocketInf( iId, false );
+    eventInf_t*  tmp = checkSocketInf( iId, false );
     if( !tmp ) {COM_PRMNG(false);}
     tmp->filterFunc = iFilterFunc;
     return true;
@@ -716,7 +715,7 @@ BOOL com_filterSocket( com_selectId_t iId, com_sockFilterCB_t iFilterFunc )
 
 int com_getSockId( com_selectId_t iId )
 {
-    com_eventInf_t*  tmp = checkSocketInf( iId, true );
+    eventInf_t*  tmp = checkSocketInf( iId, true );
     if( !tmp ) {com_prmNG(NULL);  UNLOCKRETURN( false );}
     // タイマーならNG返却
     if( tmp->expireFunc ) {UNLOCKRETURN( COM_NO_SOCK );}
@@ -728,7 +727,7 @@ int com_getSockId( com_selectId_t iId )
 
 static com_sockaddr_t *getAddrInf( com_selectId_t iId, BOOL iIsSrc )
 {
-    com_eventInf_t*  tmp = checkSocketInf( iId, true );
+    eventInf_t*  tmp = checkSocketInf( iId, true );
     if( !tmp ) {com_prmNG(NULL);  UNLOCKRETURN( NULL );}
     if( iIsSrc ) {UNLOCKRETURN( &tmp->srcInf );}
     UNLOCKRETURN( &tmp->dstInf );
@@ -756,8 +755,8 @@ com_selectId_t com_registerTimer(
     com_selectId_t  id = getEventId( true );
     com_skipMemInfo( false );
     if( id == COM_NO_SOCK ) {UNLOCKRETURN( COM_NO_SOCK );}
-    com_eventInf_t*  inf = &(gEventInf[id]);
-    *inf = (com_eventInf_t){
+    eventInf_t*  inf = &(gEventInf[id]);
+    *inf = (eventInf_t){
         .isUse = true,  .timer = iTimer,  .expireFunc = iExpireFunc,
         .isStopped = false,  .sockId = COM_NO_SOCK
     };
@@ -765,15 +764,15 @@ com_selectId_t com_registerTimer(
         inf->isUse = false;
         UNLOCKRETURN( COM_NO_SOCK );
     }
-    debugEventLog( COM_MOD_TIMERON, id, inf, NULL, 0 );
+    debugEventLog( MOD_TIMERON, id, inf, NULL, 0 );
     UNLOCKRETURN( id );
 }
 
-static com_eventInf_t *checkTimerInf( com_selectId_t iId, BOOL iLock )
+static eventInf_t *checkTimerInf( com_selectId_t iId, BOOL iLock )
 {
     if( iId < 0 || iId > gEventId ) { return NULL; }
     if( iLock ) { com_mutexLock( &gMutexEvent, __func__ ); }
-    com_eventInf_t*  tmp = &(gEventInf[iId]);
+    eventInf_t*  tmp = &(gEventInf[iId]);
     if( tmp->timer == COM_NO_SOCK ) {return NULL;}
     if( !tmp->isUse ) {return NULL;}
     return tmp;
@@ -781,26 +780,26 @@ static com_eventInf_t *checkTimerInf( com_selectId_t iId, BOOL iLock )
 
 BOOL com_stopTimer( com_selectId_t iId )
 {
-    com_eventInf_t*  tmp = checkTimerInf( iId, true );
+    eventInf_t*  tmp = checkTimerInf( iId, true );
     if( !tmp ) {com_prmNG(NULL); UNLOCKRETURN(false);}
     tmp->isStopped = true;
-    debugEventLog( COM_MOD_TIMERSTOP, iId, tmp, NULL, 0 );
+    debugEventLog( MOD_TIMERSTOP, iId, tmp, NULL, 0 );
     UNLOCKRETURN( true );
 }
 
 BOOL com_cancelTimer( com_selectId_t iId )
 {
-    com_eventInf_t*  tmp = checkTimerInf( iId, true );
+    eventInf_t*  tmp = checkTimerInf( iId, true );
     if( !tmp ) {com_prmNG(NULL); UNLOCKRETURN(false);}
     tmp->isUse = false;
-    debugEventLog( COM_MOD_TIMEROFF, iId, tmp, NULL, 0 );
+    debugEventLog( MOD_TIMEROFF, iId, tmp, NULL, 0 );
     UNLOCKRETURN( true );
 }
 
 static BOOL expireTimer( com_selectId_t iId )
 {
-    com_eventInf_t*  inf = &(gEventInf[iId]);
-    debugEventLog( COM_MOD_EXPIRED, iId, inf, NULL, 0 );
+    eventInf_t*  inf = &(gEventInf[iId]);
+    debugEventLog( MOD_EXPIRED, iId, inf, NULL, 0 );
     inf->isStopped = true;
     return (inf->expireFunc)( iId );
 }
@@ -815,14 +814,14 @@ static long calcMsec( struct timeval *iTime )
 
 static long calculateRestTime( com_selectId_t iId, struct timeval *iNow )
 {
-    com_eventInf_t*  tmp = &(gEventInf[iId]);
+    eventInf_t*  tmp = &(gEventInf[iId]);
     long  pastTime = calcMsec( iNow ) - calcMsec( &(tmp->startTime) );
     return (1000L * tmp->timer - pastTime);
 }
 
 static BOOL checkTimer( com_selectId_t iId, struct timeval *iNow )
 {
-    com_eventInf_t*  tmp = checkTimerInf( iId, false );
+    eventInf_t*  tmp = checkTimerInf( iId, false );
     if( !tmp ) {return true;}
     if( tmp->isStopped ) {return true;}
     if( 0 < calculateRestTime( iId, iNow ) ) {return true;}
@@ -855,14 +854,14 @@ BOOL com_checkTimer( com_selectId_t iId )
 
 BOOL com_resetTimer( com_selectId_t iId, long iTimer )
 {
-    com_eventInf_t*  tmp = checkTimerInf( iId, true );
+    eventInf_t*  tmp = checkTimerInf( iId, true );
     if( !tmp || iTimer < 0 ) {com_prmNG(NULL);  UNLOCKRETURN(false); }
     if( iTimer > 0 ) {tmp->timer = iTimer;}
     tmp->isStopped = false;
     if( !com_gettimeofday( &(tmp->startTime), "reset timer time" ) ) {
         tmp->isStopped = true;
     }
-    if( !tmp->isStopped ) {debugEventLog( COM_MOD_TIMERMOD,iId,tmp,NULL,0 );}
+    if( !tmp->isStopped ) {debugEventLog( MOD_TIMERMOD,iId,tmp,NULL,0 );}
     UNLOCKRETURN( !tmp->isStopped );
 }
 
@@ -887,7 +886,7 @@ static int createFdList( fd_set *oFds, int *oMax, int *oFdList )
     FD_ZERO( oFds );
     int  count = 0;
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
-        com_eventInf_t* tmp = &(gEventInf[id]);
+        eventInf_t* tmp = &(gEventInf[id]);
         if( !(tmp->isUse) ) {continue;}
         if( tmp->sockId == COM_NO_SOCK ) {continue;}
         addFdList( tmp->sockId, oFds, oMax, oFdList, &count );
@@ -917,7 +916,7 @@ static struct timeval *checkNextTimer( struct timeval *iTm )
     long  count = 0;
     long  timer = 0;
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
-        com_eventInf_t*  tmp = &(gEventInf[id]);
+        eventInf_t*  tmp = &(gEventInf[id]);
         if( !(tmp->isUse) ) {continue;}
         if( tmp->timer == COM_NO_SOCK || tmp->isStopped ) {continue;}
         getTimeValue( &timer, &now, id );
@@ -931,7 +930,7 @@ static struct timeval *checkNextTimer( struct timeval *iTm )
 static com_selectId_t searchId( int iFd )
 {
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
-        com_eventInf_t*  tmp = &(gEventInf[id]);
+        eventInf_t*  tmp = &(gEventInf[id]);
         if( tmp->isUse && tmp->sockId == iFd ) {return id;}
     }
     return FD_ERROR;
@@ -973,7 +972,7 @@ static void setAcceptInf(
         com_selectId_t iAcc, com_selectId_t iListen,
         com_sockEventCB_t iEventFunc, int iAccSd, com_sockaddr_t *iFrom )
 {
-    com_eventInf_t*  tmp = &(gEventInf[iAcc]);
+    eventInf_t*  tmp = &(gEventInf[iAcc]);
     *tmp = gEventInf[iListen];   // まず listenソケットの設定をコピー
     // 構造体リテラルを使うと指定しないものが 0になるため、個別に設定する
     tmp->isListen = false;
@@ -985,7 +984,7 @@ static void setAcceptInf(
 com_selectId_t com_acceptSocket(
         com_selectId_t iListen, BOOL iNonBlock, com_sockEventCB_t iEventFunc )
 {
-    com_eventInf_t*  tmp = checkSocketInf( iListen, false );
+    eventInf_t*  tmp = checkSocketInf( iListen, false );
     if( !tmp ) {COM_PRMNG(COM_NO_SOCK);}
     if( !tmp->isListen ) {COM_PRMNG(COM_NO_SOCK);}
 
@@ -1000,12 +999,12 @@ com_selectId_t com_acceptSocket(
     com_skipMemInfo( false );
     if( accId == COM_NO_SOCK ) {close( accSd );  return COM_NO_SOCK;}
     setAcceptInf( accId, iListen, iEventFunc, accSd, &fromAddr );
-    debugEventLog( COM_MOD_ACCEPT, accId, tmp, NULL, 0 );
+    debugEventLog( MOD_ACCEPT, accId, tmp, NULL, 0 );
     return accId;
 }
 
 static BOOL callEventFunc(
-        const com_eventInf_t *iInf, com_selectId_t iId,
+        const eventInf_t *iInf, com_selectId_t iId,
         int iEvent, void *iData, size_t iDataSize, int iError )
 {
     if( !iInf->eventFunc ) {
@@ -1027,7 +1026,7 @@ static BOOL acceptTcpConnection( com_selectId_t iId, BOOL iNonBlock )
 
 static BOOL closeTcpConnection( com_selectId_t iId )
 {
-    com_eventInf_t*  tmp = &(gEventInf[iId]);
+    eventInf_t*  tmp = &(gEventInf[iId]);
     // 非TCP接続時は何もせずに返す(念の為の処理)
     if( COM_UNLIKELY( tmp->type <= COM_SOCK_UDP )) {return true;}
 
@@ -1052,15 +1051,15 @@ static BOOL readStdin( com_selectId_t iId )
     ssize_t  bytes = read( 0, gRecvBuf, gRecvBufSize );
     com_printfLogOnly( (char*)gRecvBuf );
     gRecvBuf[bytes - 1] = '\0';
-    com_eventInf_t*  inf = &(gEventInf[iId]);
-    debugEventLog( COM_MOD_STDIN, iId, inf, gRecvBuf, (size_t)bytes );
+    eventInf_t*  inf = &(gEventInf[iId]);
+    debugEventLog( MOD_STDIN, iId, inf, gRecvBuf, (size_t)bytes );
     return (inf->stdinFunc)( (char*)gRecvBuf, (size_t)bytes );
 }
 
 static BOOL recvPacket( com_selectId_t iId, BOOL iNonBlock, long *oDrop )
 {
     memset( gRecvBuf, 0, gRecvBufSize );
-    com_eventInf_t*  inf = &(gEventInf[iId]);
+    eventInf_t*  inf = &(gEventInf[iId]);
     if( inf->sockId == ID_STDIN ) {return readStdin( iId );}
     if( inf->isListen ) {return acceptTcpConnection(iId,iNonBlock);}
 
@@ -1127,7 +1126,7 @@ BOOL com_watchEvent( void ) {
     GET_CURRENT;
     long  drop = 0;
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
-        com_eventInf_t* inf = &(gEventInf[id]);
+        eventInf_t* inf = &(gEventInf[id]);
         if( !inf->isUse ) {continue;}
         if( inf->eventFunc ) {
             if( !recvPacket( id, true, &drop ) ) {result = false;}
@@ -1148,25 +1147,25 @@ com_selectId_t com_registerStdin( com_getStdinCB_t iRecvFunc )
     com_selectId_t  id = getEventId( false );
     com_skipMemInfo( false );
     if( id == COM_NO_SOCK ) {return COM_NO_SOCK;}
-    com_eventInf_t*  tmp = &(gEventInf[id]);
-    *tmp = (com_eventInf_t){
+    eventInf_t*  tmp = &(gEventInf[id]);
+    *tmp = (eventInf_t){
         .isUse = true,  // .allowMultiLine = iMulti, // 複数行は中断中
         .timer = COM_NO_SOCK,  .sockId = ID_STDIN,  .stdinFunc = iRecvFunc
     };
     gStdinId = id;
-    debugEventLog( COM_MOD_STDINON, id, tmp, NULL, 0 );
+    debugEventLog( MOD_STDINON, id, tmp, NULL, 0 );
     return gStdinId;
 }
 
 void com_cancelStdin( com_selectId_t iId )
 {
-    com_eventInf_t*  tmp = checkSocketInf( iId, false );
+    eventInf_t*  tmp = checkSocketInf( iId, false );
     if( !tmp ) {COM_PRMNG();}
     if( tmp->sockId != ID_STDIN ) {COM_PRMNG();}
 
     tmp->isUse = false;
     gStdinId = COM_NO_SOCK;
-    debugEventLog( COM_MOD_STDINOFF, iId, tmp, NULL, 0 );
+    debugEventLog( MOD_STDINOFF, iId, tmp, NULL, 0 );
     return;
 }
 
@@ -1532,12 +1531,12 @@ static long collectIfInfo( void )
 typedef struct {
     struct nlmsghdr     hdr;
     struct ifinfomsg    body;
-} com_getLinkReq_t;
+} getLinkReq_t;
 
 typedef struct {
     struct nlmsghdr     hdr;
     struct ifaddrmsg    body;
-} com_getAddrReq_t;
+} getAddrReq_t;
 
 static void setNlmsgHdr( struct nlmsghdr *oHdr, size_t iSize, ushort iType )
 {
@@ -1559,7 +1558,7 @@ static void setNlmsgHdr( struct nlmsghdr *oHdr, size_t iSize, ushort iType )
 static char  gAddrBuff[COM_DATABUF_SIZE];
 static char  gRouteBuff[COM_DATABUF_SIZE];
 
-typedef BOOL(*com_nlmsgFunc_t)(
+typedef BOOL(*nlmsgFunc_t)(
     struct nlmsghdr *iMsg, size_t iMsgLen, void *iUserData );
 
 #define BREAK( RESULT ) \
@@ -1569,7 +1568,7 @@ typedef BOOL(*com_nlmsgFunc_t)(
 
 static BOOL recvNlmsg(
         com_selectId_t iId, char *oBuf, size_t iBufSize,
-        com_nlmsgFunc_t iFunc, void *iUserData )
+        nlmsgFunc_t iFunc, void *iUserData )
 {
     BOOL  result = false;
     while(1) {
@@ -1690,7 +1689,7 @@ struct linkinfo {
     com_ifinfo_t* ifInfo;
 };
 
-// com_nlmsgFunc_t型関数
+// nlmsgFunc_t型関数
 static BOOL getAddr( struct nlmsghdr *iMsg, size_t iMsgLen, void *iUserData )
 {
     struct linkinfo*  inf = iUserData;
@@ -1714,13 +1713,13 @@ static BOOL getAddrList( struct linkinfo *ioInf )
 {
     com_selectId_t  id = createNetlinkSocket();
     if( id == COM_NO_SOCK ) {return false;}
-    SETMSGHDR( com_getAddrReq_t, RTM_GETADDR );
+    SETMSGHDR( getAddrReq_t, RTM_GETADDR );
     msg.body.ifa_family = 0;  // AF_INET
     if( !com_sendSocket( id, &msg, msg.hdr.nlmsg_len, NULL ) ) {return false;}
     return recvNlmsg( id, gAddrBuff, sizeof(gAddrBuff), getAddr, ioInf );
 }
 
-// com_nlmsgFunc_t型関数
+// nlmsgFunc_t型関数
 static BOOL getLink( struct nlmsghdr *iMsg, size_t iMsgLen, void *iUserData )
 {
     COM_UNUSED( iUserData );
@@ -1738,7 +1737,7 @@ static long getIfInfoByNetlink( void )
 {
     com_selectId_t  id = createNetlinkSocket();
     if( id == COM_NO_SOCK ) {return COM_IFINFO_ERR;}
-    SETMSGHDR( com_getLinkReq_t, RTM_GETLINK );
+    SETMSGHDR( getLinkReq_t, RTM_GETLINK );
     msg.body.ifi_family = ARPHRD_ETHER;
     if( !com_sendSocket( id, &msg, msg.hdr.nlmsg_len, NULL ) ) {
         return COM_IFINFO_ERR;
@@ -1997,7 +1996,7 @@ void com_dispDebugSelect( void )
     if( !com_getDebugPrint() ) {return;}
     com_dbgCom( "=== Current Event Info List Start ===" );
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
-        com_eventInf_t* tmp = &(gEventInf[id]);
+        eventInf_t* tmp = &(gEventInf[id]);
         com_dbgCom( "#%-3ld  isUse=%ld  isListen=%ld",
                       id, tmp->isUse, tmp->isListen );
         com_dbgCom( "    timer=%ld", tmp->timer );
@@ -2038,7 +2037,7 @@ static void finalizeSelect( void )
 {
     COM_DEBUG_AVOID_START( COM_NO_SKIPMEM );
     for( com_selectId_t id = 0;  id < gEventId;  id++ ) {
-        com_eventInf_t*  tmp = &(gEventInf[id]);
+        eventInf_t*  tmp = &(gEventInf[id]);
         if( !tmp->isUse ) {continue;}
         if( tmp->timer != COM_NO_SOCK ) {com_cancelTimer( id );}
         if( tmp->sockId != COM_NO_SOCK ) {

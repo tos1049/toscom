@@ -20,9 +20,9 @@ typedef struct {
     com_cwin_t*  inf;      // ウィンドウ情報リスト
     com_winId_t  act;      // アクティブウィンドウID
     BOOL         keypad;   // キーパッド有無
-} com_winInf_t;
+} winInf_t;
 
-static com_winInf_t  gWin;  // ウィンドウモードの情報を一元管理
+static winInf_t  gWin;  // ウィンドウモードの情報を一元管理
 
 #define ACTWIN  (&(gWin.inf[gWin.act]))
 
@@ -520,9 +520,9 @@ typedef struct {
     const com_winpos_t*  pos;  // 入力内容 表示位置 (com_inputWindow()の引数)
     BOOL           echo;       // 入力内容 表示要否 (com_inputWindow()の引数)
     BOOL           clear;      // 入力内容 消去要否 (com_inputWindow()の引数)
-} com_workInput_t;
+} workInput_t;
 
-static com_workInput_t  gWorkUser[COM_WINTEXT_BUF_COUNT];
+static workInput_t  gWorkUser[COM_WINTEXT_BUF_COUNT];
 
 static void initializeInput( void )
 {
@@ -547,7 +547,7 @@ enum {
     KEYESC = 0x1B    // ESC
 };
 
-static com_workInput_t *setWork( com_winTextId_t iId, com_workInput_t *iWork )
+static workInput_t *setWork( com_winTextId_t iId, workInput_t *iWork )
 {
     if( iId == COM_NO_WIN ) {return NULL;}
     if( iWork ) {gWorkUser[iId] = *iWork;}
@@ -556,7 +556,7 @@ static com_workInput_t *setWork( com_winTextId_t iId, com_workInput_t *iWork )
     return &(gWorkUser[iId]);
 }
 
-static BOOL getWorkBuff( com_workInput_t *iWork )
+static BOOL getWorkBuff( workInput_t *iWork )
 {
     com_winTextId_t*  tid = &(iWork->win->textId);
     if( *tid == COM_NO_WIN ) {
@@ -576,7 +576,7 @@ static BOOL getWorkBuff( com_workInput_t *iWork )
     return true;
 }
 
-static void deleteInput( com_workInput_t *iWork, wchar_t iTarget )
+static void deleteInput( workInput_t *iWork, wchar_t iTarget )
 {
     // 多バイト文字を頑張って消す作業
     char  tmp[8] = {0};
@@ -588,7 +588,7 @@ static void deleteInput( com_workInput_t *iWork, wchar_t iTarget )
     }
 }
 
-static void clearText( com_workInput_t *iWork, BOOL iBackSpace )
+static void clearText( workInput_t *iWork, BOOL iBackSpace )
 {
     if( iWork->pos ) {com_moveCursor( iWork->id, iWork->pos );}
     if( wcslen( gWorkWstr ) == 0 ) {return;}
@@ -610,7 +610,7 @@ static BOOL isEnter( COM_IN_TYPE_t iType, wint_t iWch )
     return false;
 }
 
-static void resetWstrBuff( com_workInput_t *iWork )
+static void resetWstrBuff( workInput_t *iWork )
 {
     memset( gWorkWstr, 0, COM_WINTEXT_BUF_SIZE );
     *gWorkSize = 0;
@@ -619,7 +619,7 @@ static void resetWstrBuff( com_workInput_t *iWork )
     *tid = COM_NO_WIN;
 }
 
-static void resetWorkBuffer( com_workInput_t *iWork )
+static void resetWorkBuffer( workInput_t *iWork )
 {
     if( iWork->echo && iWork->clear ) {
         clearText( iWork, false );
@@ -635,7 +635,7 @@ static void convertText( void )
     wcstombs( gInputText, gWorkWstr, sizeof(gInputText) );
 }
 
-static BOOL confirmText( com_workInput_t *iWork )
+static BOOL confirmText( workInput_t *iWork )
 {
     convertText();
     *(iWork->input) = gInputText;
@@ -644,7 +644,7 @@ static BOOL confirmText( com_workInput_t *iWork )
     return true;
 }
 
-static BOOL backText( com_workInput_t *iWork )
+static BOOL backText( workInput_t *iWork )
 {
     if( *gWorkWstr == L'\0' ) {return false;}
     if( iWork->echo ) {clearText( iWork, true );}
@@ -656,7 +656,7 @@ static BOOL backText( com_workInput_t *iWork )
     return false;
 }
 
-static BOOL cancelText( com_workInput_t *iWork )
+static BOOL cancelText( workInput_t *iWork )
 {
     if( iWork->echo ) {iWork->clear = true;}
     resetWorkBuffer( iWork );
@@ -671,7 +671,7 @@ static int getInputSize( wint_t iVal )
     return (size_t)wctomb( tmp, iVal );
 }
 
-static int isOverSize( com_workInput_t *iWork, wint_t iInput )
+static int isOverSize( workInput_t *iWork, wint_t iInput )
 {
     int  inSize = getInputSize( iInput );
     if( iWork->win->border ) {
@@ -687,7 +687,7 @@ static int isOverSize( com_workInput_t *iWork, wint_t iInput )
     return inSize;
 }
 
-static BOOL addText( com_workInput_t *iWork, wint_t *iInput )
+static BOOL addText( workInput_t *iWork, wint_t *iInput )
 {
     if( *iInput != KEYLF && !iswprint( *iInput ) ) {return false;}
     int  size = isOverSize( iWork, *iInput );
@@ -700,14 +700,14 @@ static BOOL addText( com_workInput_t *iWork, wint_t *iInput )
 // 関数ポインタは void*型と直接交換できないため、構造体を噛ませる
 typedef struct {
     com_intrKeyCB_t func;
-} com_tmpIntrKeyCBFunc_t;
+} tmpIntrKeyCBFunc_t;
 
 static BOOL setInterruptKey(
         com_winId_t iId, const com_intrKey_t *iIntrKey, com_hashId_t iHash )
 {
     long  key;
     for( ;  (key = iIntrKey->key);  iIntrKey++ ) {
-        com_tmpIntrKeyCBFunc_t  tmp = { iIntrKey->func };
+        tmpIntrKeyCBFunc_t  tmp = { iIntrKey->func };
         if( !com_addHash( iHash,true,&key,sizeof(key),&tmp,sizeof(tmp) ) ) {
             return false;
         }
@@ -734,8 +734,7 @@ static BOOL searchKeyHash( com_hashId_t iHash, long iKey, const void **oData )
     return true;
 }
 
-static BOOL detectInterrupt(
-        com_workInput_t *iWork, wint_t iWch, BOOL *oResult )
+static BOOL detectInterrupt( workInput_t *iWork, wint_t iWch, BOOL *oResult )
 {
     const void* data;
     if( !searchKeyHash( iWork->win->intrHash, (long)iWch, &data ) ) {
@@ -747,14 +746,14 @@ static BOOL detectInterrupt(
     return true;
 }
 
-static void echoKey( com_workInput_t *iWork )
+static void echoKey( workInput_t *iWork )
 {
     if( !iWork->echo ) {return;}
     com_mprintw( iWork->id, iWork->pos, 0, "%ls", gWorkWstr );
     com_refreshWindow();
 }
 
-static BOOL pushOneKey( wint_t *iWch, com_workInput_t *iWork )
+static BOOL pushOneKey( wint_t *iWch, workInput_t *iWork )
 {
     *gWorkWstr = (wchar_t)(*iWch);
     echoKey( iWork );
@@ -762,7 +761,7 @@ static BOOL pushOneKey( wint_t *iWch, com_workInput_t *iWork )
 }
 
 static BOOL inputStringLine( 
-        com_workInput_t *iWork, wint_t *iWch, com_wininopt_t *iOpt )
+        workInput_t *iWork, wint_t *iWch, com_wininopt_t *iOpt )
 {
     if( isEnter( iOpt->type, *iWch ) ) {return confirmText( iWork );}
     else if( *iWch == KEYBS ) {return backText( iWork );}
@@ -781,7 +780,7 @@ BOOL com_inputWindow(
         const com_winpos_t *iPos )
 {
     if( !iOpt ) {COM_PRMNG(false);}
-    com_workInput_t  work = {
+    workInput_t  work = {
         checkWinId( &iId ), iId, iOpt->size, oInput, iPos,
         iOpt->echo, iOpt->clear
     };
@@ -807,7 +806,7 @@ size_t com_getRestSize( com_winId_t iId )
 
 #define GET_WINWORK( NGRET ) \
     GET_WIN( NGRET ); \
-    com_workInput_t*  work = NULL; \
+    workInput_t*  work = NULL; \
     if( !(work = setWork( win->textId, NULL )) ) {COM_PRMNG( NGRET );} \
     do{} while(0)
 
@@ -838,14 +837,14 @@ void com_cancelInputWindow( com_winId_t iId )
 // 関数ポインタは void*型と直接交換できないため、構造体を噛ませる
 typedef struct {
     com_keyCB_t func;
-} com_tmpKeyCBfunc_t;
+} tmpKeyCBFunc_t;
 
 static BOOL setWindowKeymap(
         com_winId_t iId, const com_keymap_t *iKeymap, com_hashId_t iHash )
 {
     long  key;
     for( ;  (key = iKeymap->key);  iKeymap++ ) {
-        com_tmpKeyCBfunc_t  tmp = { iKeymap->func };
+        tmpKeyCBFunc_t  tmp = { iKeymap->func };
         if( !com_addHash( iHash,true,&key,sizeof(key),&tmp,sizeof(tmp) ) ) {
             return false;
         }
@@ -891,7 +890,7 @@ static BOOL searchWindowKeymap( com_keyCB_t *iFunc, com_hashId_t iHash )
 {
     const void*  data;
     if( !searchKeyHash( iHash, (long)gLastKey, &data ) ) {return false;}
-    com_tmpKeyCBfunc_t  tmp;
+    tmpKeyCBFunc_t  tmp;
     memcpy( &tmp, data, sizeof(*iFunc) );
     *iFunc = tmp.func;
     return true;
