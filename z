@@ -5,19 +5,31 @@
 #
 # ./z → ./c でリリースファイルの各種ビルドチェック実施
 # 問題なければリリース
-APLEVR=$1
+#
+# 引数1で版数(APLVER)指定。
+# 省略時または "-"指定時は、デフォルト値を使用する。
+# デフォルト値の定義は、引数1で版数を指定したとき自己修正して保持する。
+#
+# 引数2はリリース版指定で REL を指定した場合、リリース版作成。
+# それ以外の指定あるいは省略時は、ベータ版作成として処理を進める。
+#
+APLVER=$1
 ISBETA=$2
 
 ##### バージョン指定
-if [ -z "${APLVER}" ]; then APLVER="3.1"; fi
-echo -n "バージョン:${APLVER}"
-if [ -z "${ISBETA}" ]; then ISBETA=1; echo " (ベータ)"
+if [ -z "${APLVER}" ] || [ "${APLVER}" = "-" ]; then
+  APLVER="3.1"
 else
-  if [ "${ISBETA}" = "1" ] || [ "${ISBETA^^}" = "BETA" ]
-  then ISBETA=1; echo " (ベータ)"
-  else ISBETA=0; echo " (リリース)"
-  fi
+  # 上のデフォルト設定の変数定義(21行目)を、引数指定された版数に書き換える
+  sed -i "21c\ \ APLVER=\"${APLVER}\"" $0
 fi
+echo -n "バージョン:${APLVER}"
+if [ "${ISBETA^^}" = "REL" ]
+then ISBETA=0; echo " (リリース)"
+else ISBETA=1; echo " (ベータ)"
+fi
+
+exit
 
 # $APLVER はファイル名に続く文字列そのものになる
 # toscom/aboutIf.txt の冒頭のバージョン数は手動で上記 $APLVER に合わせること。
