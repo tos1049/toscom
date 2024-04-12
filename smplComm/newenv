@@ -68,7 +68,9 @@ USE_SIGNAL3=0
 # smplComm固有処理
 if [ ! -e smpl_spec.h ]; then
   ln -s spec1/smpl_spec.h
+  echo "smpl_spec.h -> created"
   ln -s spec1/smpl_spec.c
+  echo "smpl_spec.c -> created"
 fi
 
 ########################################

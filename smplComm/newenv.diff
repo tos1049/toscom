@@ -6,7 +6,7 @@
 < USE_SELECT=0
 ---
 > USE_SELECT=1
-68,72c68,72
+68,72c68,74
 < 
 < 
 < 
@@ -16,5 +16,7 @@
 > # smplComm固有処理
 > if [ ! -e smpl_spec.h ]; then
 >   ln -s spec1/smpl_spec.h
+>   echo "smpl_spec.h -> created"
 >   ln -s spec1/smpl_spec.c
+>   echo "smpl_spec.c -> created"
 > fi
