@@ -27,18 +27,8 @@ jobs:
       run: ./e
     - name: execute smplComm/newenv
       run: cd smplComm; ./newenv
-    - name: make smplComm ver1
-      run: cd smplComm/BUILD; make
-    - name: conert to smplComm ver2
-      run: cd smplComm; ./s2
-    - name: make smplComm ver2
-      run: cd smplComm/BUILD; make init
-    - name: rejume to smplComm ver1 (for archive make)
-      run: cd smplComm; ./s1
     - name: execute analyzer/newenv
       run: cd analyzer; ./newenv
-    - name: make analyzer
-      run: cd analyzer/BUILD; make
     - name: make archive files
       run: ./z
     - name: check archive file
@@ -51,6 +41,14 @@ jobs:
       run: cd test; tar xvfz toscom.*.tar.gz
     - name: make test
       run: cd test/toscom/BUILD; make
+    - name: make smplComm ver1
+      run: cd smplComm/BUILD; make
+    - name: conert to smplComm ver2
+      run: cd smplComm; ./s2
+    - name: make smplComm ver2
+      run: cd smplComm/BUILD; make init
+    - name: make analyzer
+      run: cd analyzer/BUILD; make
     #- name: try to execute checker
     #  run: ./c
 
