@@ -33,25 +33,25 @@ jobs:
       run: ./z
     - name: check archive file
       run: ls toscom.*.tar.gz
-    - name: create test directory
+    - name: [test] create test directory
       run: mkdir test
-    - name: copy archive to test
+    - name: [test] copy archive to test
       run: cp toscom.*.tar.gz test/
-    - name: extract archive
+    - name: [test] extract archive
       run: cd test; tar xvfz toscom.*.tar.gz
-    - name: make test
+    - name: [test] make test
       run: cd test/toscom/BUILD; make
-    - name: extract smplComm
+    - name: [test] extract smplComm
       run: cd test; tar xvfz toscom/smplcomm.tar.gz
-    - name: make smplComm ver1
+    - name: [test] make smplComm ver1
       run: cd test/smplComm/BUILD; make
-    - name: conert to smplComm ver2
+    - name: [test] convert to smplComm ver2
       run: cd test/smplComm; ./s2
-    - name: make smplComm ver2
+    - name: [test] make smplComm ver2
       run: cd test/smplComm/BUILD; make init
-    - name: extract anayzer
+    - name: [test] extract anayzer
       run: cd test; tar xvfz toscom/analyzer.tar.gz
-    - name: make analyzer
+    - name: [test] make analyzer
       run: cd test/analyzer/BUILD; make
     - name: execute resetTxt/newenv
       run: cd resetTxt; ./newenv
