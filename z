@@ -5,10 +5,19 @@
 #
 # ./z → ./c でリリースファイルの各種ビルドチェック実施
 # 問題なければリリース
+APLEVR=$1
+ISBETA=$2
 
 ##### バージョン指定
-APLVER="3.1"
-ISBETA=1
+if [ -z "${APLVER}" ]; then APLVER="3.1"; fi
+echo -n "バージョン:${APLVER}"
+if [ -z "${ISBETA}" ]; then ISBETA=1; echo " (ベータ)"
+else
+  if [ "${ISBETA}" = "1" ] || [ "${ISBETA^^}" = "BETA" ]
+  then ISBETA=1; echo " (ベータ)"
+  else ISBETA=0; echo " (リリース)"
+  fi
+fi
 
 # $APLVER はファイル名に続く文字列そのものになる
 # toscom/aboutIf.txt の冒頭のバージョン数は手動で上記 $APLVER に合わせること。
