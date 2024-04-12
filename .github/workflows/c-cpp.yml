@@ -53,6 +53,8 @@ jobs:
       run: cd test; tar xvfz toscom/analyzer.tar.gz
     - name: make analyzer
       run: cd test/analyzer/BUILD; make
+    - name: execute resetTxt/newenv
+      run: cd resetTxt; ./newenv
     - name: make resetTxt
       run: cd resetTxt/BUILD; make
     #- name: try to execute checker
