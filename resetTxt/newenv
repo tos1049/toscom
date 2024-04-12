@@ -211,7 +211,7 @@ function setText() {
 # 旧モジュール名のファイルがあると判断したら、削除する
 if [ ${NEWMODULE} != ${OLDMODULE} ] && [ -e ${OLDMODULE}_spec.c ]; then
   echo "delete ${OLDMODULE}_* links"
-  rm -fr ${OLDMODULE}_if.h ${OLDMODULE}_proc*.c ${OLDMODULE}_debug.?
+  rm -fr ${OLDMODULE}_if.h ${OLDMODULE}_proc*.c ${OLDMODULE}_debug*.?
   rm -fr ${OLDMODULE}_extra.?
   rm -fr ${OLDMODULE}_select.?
   rm -fr ${OLDMODULE}_window.?
@@ -226,13 +226,13 @@ fi
 # モジュール名は com から変更される可能性があるので、ファイル名に含めない
 
 ### 基本機能 (必須) ###
-COMBASE=(if.h proc.c procThread.c debug.h debug.c)
+COMBASE=(if.h proc.c procThread.c debugMacro.h debug.h debug.c)
 # ライブラリの記述は修正不要
 setFiles "x1" "${COMBASE[*]}"
 
 ### エキストラ機能 (USE_EXTRA) ###
 COMEXTRA=(extra.h extra.c)
-LIBEXTRA="\-lm"
+LIBEXTRA="-lm"
 # makefileで -lm の記述がある行を修正対象とする
 setFiles "x$USE_EXTRA" "${COMEXTRA[*]}" "extra.h" "$LIBEXTRA"
 
@@ -243,24 +243,32 @@ setFiles "x$USE_SELECT" "${COMSELECT[*]}" "select.h"
 
 ### ウィンドウ機能 (USE_WINDOW) ###
 COMWINDOW=(window.h window.c)
-LIBWINDOW="\-lncursesw"
+LIBWINDOW="-lncursesw"
 # makefileで -lncursesw の記述がある行を修正対象とする
 setFiles "x$USE_WINDOW" "${COMWINDOW[*]}" "window.h" "$LIBWINDOW"
 
 ### シグナル機能 (USE_SIGNAL1/USE_SIGNAL2/USE_SIGNAL3) ###
-COMSIG1=(signal.h signal.c signalCom.h signalCom.c signalPrt1.h signalPrt1.c)
-COMSIG2=(signalPrt2.h signalPrt2.c)
-COMSIG3=(signalPrt3.h signalPrt3.c)
+COMSIG1=(signal.h signal.c signalCom.h signalCom.c signalSet1.h signalSet1.c)
+COMSIG2=(signalSet2.h signalSet2.c)
+COMSIG3=(signalSet3.h signalSet3.c)
 # シグナル機能はセット1がない場合、セット2・セット3も削除する
 judgeFlag "x$USE_SIGNAL1"
 if [ $? = 0 ]; then
-  USE_SIGNAL2=0
-  USE_SIGNAL3=0 
+  judgeFlag "x$USE_SIGNAL2"
+  if [ $? = 1 ]; then
+    echo "USE_SIGNAL2 needs USE_SIGNAL1"
+    USE_SIGNAL2=0
+  fi
+  judgeFlag "x$USE_SIGNAL3"
+  if [ $? = 1 ]; then
+    echo "USE_SIGNAL3 needs USE_SIGNAL1"
+    USE_SIGNAL3=0
+  fi
 fi
 # ライブラリの記述は修正不要
 setFiles "x$USE_SIGNAL1" "${COMSIG1[*]}" "signal.h"
-setFiles "x$USE_SIGNAL2" "${COMSIG2[*]}" "signalPrt2.h"
-setFiles "x$USE_SIGNAL3" "${COMSIG3[*]}" "signalPrt3.h"
+setFiles "x$USE_SIGNAL2" "${COMSIG2[*]}" "signalSet2.h"
+setFiles "x$USE_SIGNAL3" "${COMSIG3[*]}" "signalSet3.h"
 
 ### 説明テキストファイル ###
 setText README.md
