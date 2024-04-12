@@ -31,6 +31,8 @@ jobs:
       run: cd analyzer; ./newenv
     - name: make archive files
       run: ./z
+    - name: check archive file
+      run: ls toscom.*.tar.gz
     #- name: try to execute checker
     #  run: ./c
 
