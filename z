@@ -18,7 +18,7 @@ ISBETA=$2
 
 ##### バージョン指定
 if [ -z "${APLVER}" ] || [ "${APLVER}" = "-" ]; then
-  APLVER="3.1"
+  APLVER="3.2"
 else
   # 上のデフォルト設定の変数定義を、引数指定された版数に書き換える
   # (最初に見つかるのが上の行のはずなので、gは付けずにその行のみ書き換え)
@@ -111,7 +111,8 @@ fi
 if (( ISBETA == 1 )); then
   echo "--- ベータ版をこれから作成 ---"
   # ベータ版の場合は バージョン名に beta を付与
-  APLVER="3.1"
+  # 注意！ 敢えて " " で囲んでいない。(自己修正の対象になるのを避けるため)
+  APLVER=${APLVER}beta
 fi
 relfile="toscom.${APLVER}.tar.gz"
 
