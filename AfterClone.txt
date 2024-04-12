@@ -1,6 +1,7 @@
 リポジトリからクローンを作成した後の環境構築
-(1) ./e 実行 
-(2) analyzer、smplComm、resetTxt のそれぞれで ./newenv 実行
+(1) chmod 755 e  で実行属性付与
+(2) ./e 実行でそれ以外のスクリプトに実行属性付与
+(3) analyzer、smplComm、resetTxt のそれぞれで ./newenv 実行
 
 ここまでやっておけば ./z でアーカイブを作成可能になる。
 
