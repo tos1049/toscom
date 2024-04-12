@@ -31,3 +31,6 @@ jobs:
       run: cd analyzer; ./newenv
     - name: make archive files
       run: ./z
+    - name: try to execute checker
+      run: ./c
+
