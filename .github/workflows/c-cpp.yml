@@ -33,6 +33,8 @@ jobs:
       run: cd smplComm; ./s2
     - name: make smplComm ver2
       run: cd smplComm/BUILD; make init
+    - name: rejume to smplComm ver1 (for archive make)
+      run: cd smplComm; ./s1
     - name: execute analyzer/newenv
       run: cd analyzer; ./newenv
     - name: make analyzer
