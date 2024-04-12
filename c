@@ -22,10 +22,32 @@ fi
 
 rm -fr ${TESTDIR}
 mkdir ${TESTDIR}
+ORGDIR=$(pwd)
 
 cp ${TARFILE} ${TESTDIR}
 cd ${TESTDIR}
 tar xvfz ${TARFILE} >& /dev/null
+
+function abortProc() {
+  cd ${ORGDIR}
+  echo "----------"
+  echo "  remove ${TESTDIR} ? >"
+  read
+
+また単純なファイル内の文字列置換であれば、
+sed -i 's/置換前文字列/置換後文字列/g' ファイル名
+で、ファイル内の文字列置換が可能。
+最後の g を取った場合、最初に見つかった1箇所のみ置換となる。
+  if [ -z "${REPLY}" ]; then
+    rm -fr ${TESTDIR}
+    echo "------ remove ${TESTDIR} ------"
+  else
+    echo "------ remain ${TESTDIR} ------"
+  fi
+}
+
+# CTRL+Cで中断するときもテスト用一時ディレクトリを削除するか聞くようにする
+trap abortProc sigint
 
 function checker() {
   local _title=$1
@@ -170,13 +192,8 @@ cat<< CHECKOK
 BUILD CHECK ALL GREEN!
 checked directory: ${TESTDIR}
 
-(HIT ENTER KEY)
 CHECKOK
 
-read
-
-# 最後にチェック用ディレクトリを削除して終了
-cd ..
-rm -fr ${TESTDIR}
-echo "removed ${TESTDIR}"
+# 最後にチェック用ディレクトリを削除するか聞いて終了
+abortProc
 
