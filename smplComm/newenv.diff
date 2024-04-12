@@ -6,3 +6,16 @@
 < USE_SELECT=0
 ---
 > USE_SELECT=1
+68,72c68,72
+<
+<
+<
+<
+<
+---
+> # smplComm固有処理
+> if [ ! -e smpl_spec.h ]; then
+>   ln -s spec1/smpl_spec.h
+>   ln -s spec1/smpl_spec.c
+> fi
+

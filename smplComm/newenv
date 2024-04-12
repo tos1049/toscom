@@ -65,11 +65,11 @@ USE_SIGNAL3=0
 # 先に打つか、make init でビルド実施すること。
 #
 
-
-
-
-
-
+# smplComm固有処理
+if [ ! -e smpl_spec.h ]; then
+  ln -s spec1/smpl_spec.h
+  ln -s spec1/smpl_spec.c
+fi
 
 ########################################
 ### 以後の処理は何も手を加えないこと ###
