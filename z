@@ -20,16 +20,15 @@ ISBETA=$2
 if [ -z "${APLVER}" ] || [ "${APLVER}" = "-" ]; then
   APLVER="3.1"
 else
-  # 上のデフォルト設定の変数定義(21行目)を、引数指定された版数に書き換える
-  sed -i "21c\ \ APLVER=\"${APLVER}\"" $0
+  # 上のデフォルト設定の変数定義を、引数指定された版数に書き換える
+  # (最初に見つかるのが上の行のはずなので、gは付けずにその行のみ書き換え)
+  sed -i "s/APLVER=\".*\"/APLVER=\"${APLVER}\"/" $0
 fi
 echo -n "バージョン:${APLVER}"
 if [ "${ISBETA^^}" = "REL" ]
 then ISBETA=0; echo " (リリース)"
 else ISBETA=1; echo " (ベータ)"
 fi
-
-exit
 
 # $APLVER はファイル名に続く文字列そのものになる
 # toscom/aboutIf.txt の冒頭のバージョン数は手動で上記 $APLVER に合わせること。
@@ -112,7 +111,7 @@ fi
 if (( ISBETA == 1 )); then
   echo "--- ベータ版をこれから作成 ---"
   # ベータ版の場合は バージョン名に beta を付与
-  APLVER="${APLVER}beta"
+  APLVER="3.1"
 fi
 relfile="toscom.${APLVER}.tar.gz"
 
