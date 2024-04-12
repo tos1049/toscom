@@ -114,10 +114,11 @@ chmod 555 xname
 fileconv0 xnameconf
 convSrc
 convArcFile ${NEWMODULE}_testtos.tar.gz ${NEWMODULE}_testtos.c
-BUILDFILES="BUILD/makefile BUILD/.lib/gcc_sample"
+BUILDFILES="BUILD/makefile"
+BUILDLIBFILES="BUILD/.lib/gcc_sample"
 COMFILES="${NEWMODULE}_spec.* ${NEWMODULE}_test.c main.c newenv"
 convArcDir newenv.tar.gz NEWENV \
-       "${BUILDFILES} *.c *.h newenv"
+       "${BUILDFILES} ${BUILDLIBFILES} *.c *.h newenv"
 convArcDir analyzer.tar.gz analyzer \
        "${BUILDFILES} ${COMFILES} anlz_*"
 convArcSmpl smplcomm.tar.gz smplComm \
