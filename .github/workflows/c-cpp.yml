@@ -13,49 +13,49 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: get ctags
+    - name: "get ctags"
       run: sudo apt install exuberant-ctags
-    - name: check gcc version
+    - name: "check gcc version"
       run: gcc -v
-    - name: prepare com_test.c
+    - name: "prepare com_test.c"
       run: cp toscom/TEST/com_test.c toscom/
-    - name: make toscom
+    - name: "make toscom"
       run: cd toscom/BUILD; make
-    - name: change permission e
+    - name: "change permission e"
       run: chmod 755 e
-    - name: execute e to change permission of others
+    - name: "execute e to change permission of others"
       run: ./e
-    - name: execute smplComm/newenv
+    - name: "execute smplComm/newenv"
       run: cd smplComm; ./newenv
-    - name: execute analyzer/newenv
+    - name: "execute analyzer/newenv"
       run: cd analyzer; ./newenv
-    - name: make archive files
+    - name: "make archive files"
       run: ./z
-    - name: check archive file
+    - name: "check archive file"
       run: ls toscom.*.tar.gz
-    - name: [test] create test directory
+    - name: "[test] create test directory"
       run: mkdir test
-    - name: [test] copy archive to test
+    - name: "[test] copy archive to test"
       run: cp toscom.*.tar.gz test/
-    - name: [test] extract archive
+    - name: "[test] extract archive"
       run: cd test; tar xvfz toscom.*.tar.gz
-    - name: [test] make test
+    - name: "[test] make test"
       run: cd test/toscom/BUILD; make
-    - name: [test] extract smplComm
+    - name: "[test] extract smplComm"
       run: cd test; tar xvfz toscom/smplcomm.tar.gz
-    - name: [test] make smplComm ver1
+    - name: "[test] make smplComm ver1"
       run: cd test/smplComm/BUILD; make
-    - name: [test] convert to smplComm ver2
+    - name: "[test] convert to smplComm ver2"
       run: cd test/smplComm; ./s2
-    - name: [test] make smplComm ver2
+    - name: "[test] make smplComm ver2"
       run: cd test/smplComm/BUILD; make init
-    - name: [test] extract anayzer
+    - name: "[test] extract anayzer"
       run: cd test; tar xvfz toscom/analyzer.tar.gz
-    - name: [test] make analyzer
+    - name: "[test] make analyzer"
       run: cd test/analyzer/BUILD; make
-    - name: execute resetTxt/newenv
+    - name: "execute resetTxt/newenv"
       run: cd resetTxt; ./newenv
-    - name: make resetTxt
+    - name: "make resetTxt"
       run: cd resetTxt/BUILD; make
     #- name: try to execute checker
     #  run: ./c
