@@ -14,6 +14,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: get ctags
-      run: sudo apt install ctags
+      run: sudo apt install exuberant-ctags
     - name: make
       run: cd toscom/BUILD; make
