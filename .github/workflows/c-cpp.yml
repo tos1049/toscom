@@ -41,14 +41,18 @@ jobs:
       run: cd test; tar xvfz toscom.*.tar.gz
     - name: make test
       run: cd test/toscom/BUILD; make
+    - name: extrcct smplComm
+      run: cd test; tar xvfz toscom/smplcomm.tar.gz
     - name: make smplComm ver1
-      run: cd smplComm/BUILD; make
+      run: cd test/smplComm/BUILD; make
     - name: conert to smplComm ver2
-      run: cd smplComm; ./s2
+      run: cd test/smplComm; ./s2
     - name: make smplComm ver2
-      run: cd smplComm/BUILD; make init
+      run: cd test/smplComm/BUILD; make init
+    - name: extrcct anayzer
+      run: cd test; tar xvfz toscom/analyzer.tar.gz
     - name: make analyzer
-      run: cd analyzer/BUILD; make
+      run: cd test/analyzer/BUILD; make
     #- name: try to execute checker
     #  run: ./c
 
