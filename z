@@ -152,14 +152,14 @@ if [  -e ${SDIR} ]; then
   cd ..
   ./mpu
   cd ..
-  smplNrm="${SDIR}/${MAKEF} ${SDIR}/${LIBDIR}"
+  smplNrm="${SDIR}/${MAKEF}"
   smplNrm+=" ${SDIR}/*.h ${SDIR}/*.c"
   smplNrm+=" ${SDIR}/*.txt ${SDIR}/README.md ${SDIR}/newenv"
   smplExe="${SDIR}/s? ${SDIR}/.s.common"
   smplDir="${SDIR}/spec?"
-  chmod 555 ${smplExe} ${SDIR}/${LIBDIR}/${COLLIB}
+  chmod 555 ${smplExe}
   tar cvfz ${CDIR}/${STAZ} ${smplNrm} ${smplExe} ${smplDir}
-  chmod 755 ${smplExe} ${SDIR}/${LIBDIR}/${COLLIB}
+  chmod 755 ${smplExe}
 fi
 
 ##### Analyzerのアーカイブ
@@ -171,12 +171,10 @@ if [ -e ${ADIR} ]; then
   cd ..
   ./mpu
   cd ..
-  anlzNrm="${ADIR}/${MAKEF} ${ADIR}/${LIBDIR}"
+  anlzNrm="${ADIR}/${MAKEF}"
   anlzNrm+=" ${ADIR}/*.h ${ADIR}/*.c"
   anlzNrm+=" ${ADIR}/*.txt ${ADIR}/README.md ${ADIR}/newenv"
-  chmod 555 ${ADIR}/${LIBDIR}/${COLLIB}
   tar cvfz ${CDIR}/${ATAZ} ${anlzNrm}
-  chmod 755 ${ADIR}/${LIBDIR}/${COLLIB}
 fi
 
 ##### toscomのアーカイブ
