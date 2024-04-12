@@ -428,7 +428,7 @@ static void writeWindow(
     WINDOW*  window = iWin->window;
     if( iAttr ) {wattron( window, iAttr );}
     if( iPos ) {wmove( window, iPos->y, iPos->x );}
-    wprintw( window, iText );
+    wprintw( window, "%s", iText );
     if( iAttr ) {wattroff( window, iAttr );}
 
     if( iPos ) {
