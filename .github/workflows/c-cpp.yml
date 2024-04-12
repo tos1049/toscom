@@ -21,3 +21,5 @@ jobs:
       run: cp toscom/TEST/com_test.c toscom/
     - name: make
       run: cd toscom/BUILD; make
+    - name: make archive files
+      run: ./z
