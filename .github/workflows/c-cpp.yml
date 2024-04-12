@@ -43,6 +43,14 @@ jobs:
       run: ./z
     - name: check archive file
       run: ls toscom.*.tar.gz
+    - name: create test directory
+      run: mkdir test
+    - name: copy archive to test
+      run: cp toscom.*.tar.gz test/
+    - name: extract archive
+      run: cd test; tar xvfz toscom.*.tar.gz
+    - name: make test
+      run: cd test/toscom/BUILD; make
     #- name: try to execute checker
     #  run: ./c
 
