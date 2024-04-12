@@ -86,8 +86,8 @@ CFLAGS += -lpanel -lncursesw
 # Electric Fenceを使ったデバッグがしたい時のみ入れるオプション
 #CFLAGS += -lefence
 
-
-
+# 暫定対処(com_window.c: writeWindow()で警告が出るのを抑制)
+CFLAGS += -Wno-format-security
 
 
 
