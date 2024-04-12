@@ -22,6 +22,6 @@ jobs:
     - name: make
       run: cd toscom/BUILD; make
     - name: change permission
-      run: chmod 755 z
+      run: chmod 755 z */mpu */newenv smplComm/s? toscom/NEWENV/mpu toscom/NEWENV/newenv
     - name: make archive files
       run: ./z
