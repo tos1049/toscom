@@ -29,6 +29,10 @@ jobs:
       run: cd smplComm; ./newenv
     - name: "execute analyzer/newenv"
       run: cd analyzer; ./newenv
+    - name: "execute resetTxt/newenv"
+      run: cd resetTxt; ./newenv
+    - name: "make resetTxt"
+      run: cd resetTxt/BUILD; make
     - name: "make archive files"
       run: ./z
     - name: "check archive file"
@@ -53,10 +57,6 @@ jobs:
       run: cd test; tar xvfz toscom/analyzer.tar.gz
     - name: "[test] make analyzer"
       run: cd test/analyzer/BUILD; make
-    - name: "execute resetTxt/newenv"
-      run: cd resetTxt; ./newenv
-    - name: "make resetTxt"
-      run: cd resetTxt/BUILD; make
     #- name: try to execute checker
     #  run: ./c
 
