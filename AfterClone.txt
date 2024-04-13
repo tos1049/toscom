@@ -11,5 +11,5 @@
 (色々考えると削除よりはコメントアウトの方を推奨する)
 
 ※githubのアクション build で上記を実際に実行している。
-　「sudo apt install exberant-ctags」で ctagsインストールも実施している。
+　「sudo apt install exuberant-ctags」で ctagsインストールも実施している。
 　(Ubuntuではこれで行けそう)
