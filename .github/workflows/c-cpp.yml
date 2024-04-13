@@ -21,6 +21,8 @@ jobs:
       run: cp toscom/TEST/com_test.c toscom/
     - name: "make toscom"
       run: cd toscom/BUILD; make
+    - name: "make checkf toscom"
+      run: cd toscom/BUILD; make checkf
     - name: "change permission e"
       run: chmod 755 e
     - name: "execute e to change permission of others"
