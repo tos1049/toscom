@@ -233,12 +233,12 @@ enum {
 static BOOL showHelp( com_getOptInf_t *iOptInf )
 {
     COM_UNUSED( iOptInf );
-    com_printf( gHelpBasic );
+    com_printf( "%s", gHelpBasic );
     dispProtocolList( PROTOLIST_LEFT, PROTOLIST_RIGHT );
     com_printLf();
-    com_printf( gHelpOption );
+    com_printf( "%s", gHelpOption );
     com_printLf();
-    com_printf( gHelpFiles );
+    com_printf( "%s", gHelpFiles );
     com_printLf();
     com_exit( COM_NO_ERROR );
     return true;  // ここは通らない
@@ -295,7 +295,7 @@ void anlz_start( int iArgc, char **iArgv )
     if( !gFileCnt ) {directMode();}
     for( long i = 0;  i < gFileCnt;  i++ ) {
         com_printLf();
-        com_printTag( "-", 79, COM_PTAG_LEFT, gFileList[i] );
+        com_printTag( "-", 79, COM_PTAG_LEFT, "%s", gFileList[i] );
         com_printLf();
         if( !strstr( gFileList[i], ".log" ) ) {readCapFile( gFileList[i] );}
         else {readCapLog( gFileList[i] );}
