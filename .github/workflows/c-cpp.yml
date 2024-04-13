@@ -19,9 +19,9 @@ jobs:
       run: gcc -v
     - name: "prepare com_test.c"
       run: cp toscom/TEST/com_test.c toscom/
-    - name: "make toscom"
+    - name: "toscom make"
       run: cd toscom/BUILD; make
-    - name: "make checkf toscom"
+    - name: "toscom make checkf"
       run: cd toscom/BUILD; make checkf
     - name: "change permission e"
       run: chmod 755 e
@@ -33,8 +33,10 @@ jobs:
       run: cd analyzer; ./newenv
     - name: "execute resetTxt/newenv"
       run: cd resetTxt; ./newenv
-    - name: "make resetTxt"
+    - name: "resetTxt make"
       run: cd resetTxt/BUILD; make
+    - name: "resetTxt make checkf"
+      run: cd resetTxt/BUILD; make checkf
     - name: "make archive files"
       run: ./z
     - name: "check archive file"
@@ -45,20 +47,26 @@ jobs:
       run: cp toscom.*.tar.gz test/
     - name: "[test] extract archive"
       run: cd test; tar xvfz toscom.*.tar.gz
-    - name: "[test] make test"
+    - name: "[test] toscom make"
       run: cd test/toscom/BUILD; make
     - name: "[test] extract smplComm"
       run: cd test; tar xvfz toscom/smplcomm.tar.gz
-    - name: "[test] make smplComm ver1"
+    - name: "[test] smplComm ver1 make"
       run: cd test/smplComm/BUILD; make
+    - name: "[test] smplComm ver1 make checkf"
+      run: cd test/smplComm/BUILD; make checkf
     - name: "[test] convert to smplComm ver2"
       run: cd test/smplComm; ./s2
-    - name: "[test] make smplComm ver2"
+    - name: "[test] smplComm ver2 make"
       run: cd test/smplComm/BUILD; make init
+    - name: "[test] smplComm ver2 make checkf"
+      run: cd test/smplComm/BUILD; make checkf
     - name: "[test] extract anayzer"
       run: cd test; tar xvfz toscom/analyzer.tar.gz
-    - name: "[test] make analyzer"
+    - name: "[test] analyzer make"
       run: cd test/analyzer/BUILD; make
+    - name: "[test] analyzer make checkf"
+      run: cd test/analyzer/BUILD; make checkf
     #- name: try to execute checker
     #  run: ./c
 
