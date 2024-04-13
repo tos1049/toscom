@@ -157,7 +157,7 @@ static char  gClearLine[] = "***************************************"
 void com_clear( void )
 {
     if( 0 > system( "clear" ) ) {return;}
-    for( int i = 0; i < 3; i++ ) {com_printfLogOnly( gClearLine );}
+    for( int i = 0; i < 3; i++ ) {com_printfLogOnly( "%s", gClearLine );}
 }
 
 static __thread BOOL  gSuspendStdout = false;

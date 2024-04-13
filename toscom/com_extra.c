@@ -202,7 +202,7 @@ size_t com_inputMultiLine( char *oData, size_t iSize, const char *iFormat, ... )
 {
     if( !oData ) {COM_PRMNG(0);}
     COM_SET_FORMAT( gPromptBuff );
-    if( iFormat ) {com_printf( gPromptBuff );}
+    if( iFormat ) {com_printf( "%s", gPromptBuff );}
     memset( oData, 0, iSize );
     clearerr( stdin );
     size_t  result = fread( oData, 1, iSize, stdin );

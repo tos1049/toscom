@@ -1049,7 +1049,7 @@ void com_switchEventBuffer( void *iBuf, size_t iBufSize )
 static BOOL readStdin( com_selectId_t iId )
 {
     ssize_t  bytes = read( 0, gRecvBuf, gRecvBufSize );
-    com_printfLogOnly( (char*)gRecvBuf );
+    com_printfLogOnly( "%s", (char*)gRecvBuf );
     gRecvBuf[bytes - 1] = '\0';
     eventInf_t*  inf = &(gEventInf[iId]);
     debugEventLog( MOD_STDIN, iId, inf, gRecvBuf, (size_t)bytes );

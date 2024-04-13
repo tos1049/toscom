@@ -39,7 +39,7 @@ static void dbgWin( const char *iFormat, ... )
 {
     if( !gDbgWin ) {return;}
     COM_SET_FORMAT( gDbgWinBuff );
-    com_dbgCom( gDbgWinBuff );
+    com_dbgCom( "%s", gDbgWinBuff );
 }
 
 static com_winpos_t *getCurPos( com_cwin_t *iWin )
@@ -114,7 +114,7 @@ static com_cwin_t *checkWinId( com_winId_t *ioId )
 static void forceExit( const char *iError )
 {
     com_finishWindow();
-    com_errorExit( COM_ERR_WINDOWNG, iError );
+    com_errorExit( COM_ERR_WINDOWNG, "%s", iError );
 }
 
 static void moveToActCursor( com_cwin_t *ioAct )
