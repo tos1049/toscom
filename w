@@ -4,7 +4,7 @@ WORKDIR=$1
 # ワークディレクトリにアーカイブをコピーし展開する
 
 if [ -z "${WORKDIR}" ]; then
-  WORKDIR="work"
+  WORKDIR="work_toscom"
 fi
 
 echo "WORKDIR=${WORKDIR}"
