@@ -65,7 +65,7 @@ static void readCapFile( char *iFile )
         }
         iFile = NULL;  // 継続読込のためにファイル名はNULL設定
     }
-    com_debug( " cause = %ld", inf.cause );
+    com_debugFunc( " cause = %ld", inf.cause );
     com_freeCapInf( &inf );
 }
 
