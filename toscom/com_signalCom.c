@@ -107,7 +107,7 @@ BOOL com_analyzeAsNetworkLayer( COM_ANALYZER_PRM )
     long*  ptype = &COM_SGTYPE;
     if( *ptype != COM_SIG_IPV4 && *ptype != COM_SIG_IPV6 ) {
         if( !getIpVersion( ioHead ) ) {
-           DEBUGSIG( "# ... not IP Header, tyy as ARP\n" );
+           DEBUGSIG( "# ... not IP Header, try as ARP\n" );
           return com_analyzeArp( COM_ANALYZER_VAR );
         }
     }

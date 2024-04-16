@@ -212,7 +212,7 @@ long com_detectProtocol(
 com_sigInf_t *com_getProtocol( com_sigInf_t *iHead, long iProtocol );
 
 /*
- * 汎用信号でコードI/F  com_decodeSignal()
+ * 汎用信号デコードI/F  com_decodeSignal()
  * ---------------------------------------------------------------------------
  *   COM_ERR_DEBUGNG: [com_prmNG] !iHead
  * ===========================================================================
@@ -241,7 +241,7 @@ void com_decodeSignal( COM_DECODER_PRM );
  *   いわば「起点となるI/F」に過ぎない。
  *
  *   プロトコルごとの個別I/Fについては com_signalSet?.c にて定義する。
- *   また、独自の関数を作成s,それを既存のプロトコル用の処理に切り替えることも
+ *   また、独自の関数を作成し,それを既存のプロトコル用の処理に切り替えることも
  *   可能。これを望む場合、com_signal.h にて com_setCustomAnalyzer()・
  *   com_setCustomDecoder()・com_setCustomFreer() といったI/Fを使用する。
  *
