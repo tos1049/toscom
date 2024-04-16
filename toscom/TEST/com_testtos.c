@@ -25,7 +25,7 @@
 
 static void startFunc( const char *iFunc )
 {
-    com_printTag( "*", 79, COM_PTAG_CENTER, iFunc );
+    com_printTag( "*", 79, COM_PTAG_CENTER, "%s", iFunc );
 }
 
 
@@ -172,12 +172,12 @@ void test_getOpt( void )
     com_printLf();
 
     char errMsg[] = "---error is correct result\n";
-    if( COM_LIKELY(!GETOPTION( gOptList1 )) ) {com_printf( errMsg );}
-    if( COM_LIKELY(!GETOPTION( gOptList2 )) ) {com_printf( errMsg );}
+    if( COM_LIKELY(!GETOPTION( gOptList1 )) ) {com_printf( "%s", errMsg );}
+    if( COM_LIKELY(!GETOPTION( gOptList2 )) ) {com_printf( "%s", errMsg );}
     if( COM_UNLIKELY(!GETOPTION( gOptList3 )) ) {com_printf("** too bad **\n");}
     viewRestList( &cnt, &list );  // これだけはエラーにならず残り引数取得可能
-    if( COM_LIKELY(!GETOPTION( gOptList4 )) ) {com_printf( errMsg );}
-    if( COM_LIKELY(!GETOPTION( gOptList5 )) ) {com_printf( errMsg );}
+    if( COM_LIKELY(!GETOPTION( gOptList4 )) ) {com_printf( "%s", errMsg );}
+    if( COM_LIKELY(!GETOPTION( gOptList5 )) ) {com_printf( "%s", errMsg );}
 }
 
 ///// test_strdup() //////////////////////////////////////////////////////////
@@ -520,7 +520,7 @@ static void testPrintTag( char *iTag, size_t iWidth, const char *iFormat, ... )
     char label[COM_LINEBUF_SIZE];
     COM_SET_FORMAT( label );    // [DBG] com_debug.h が必要
     for( COM_PTAG_POS_t pos = COM_PTAG_LEFT; pos <= COM_PTAG_RIGHT; pos++ ) {
-        com_printTag( iTag, iWidth, pos, label );
+        com_printTag( iTag, iWidth, pos, "%s", label );
     }
 }
 
