@@ -548,6 +548,7 @@ static long getHeadType( ulong iHeadValue )
 {
     if( iHeadValue == COM_CAP_FILE_SHB  ) {return COM_SIG_PCAPNG;}
     if( iHeadValue == COM_CAP_FILE_PCAP ) {return COM_SIG_LIBPCAP;}
+    if( iHeadValue == COM_CAP_FILE_PCAP_R ) { return COM_SIG_LIBPCAP; }
     return COM_SIG_UNKNOWN;
 }
 
@@ -801,11 +802,23 @@ static BOOL getPcapng( com_capInf_t *oCapInf )
     return true;
 }
 
+static void convertOrder32( uint32_t *ioValue, BOOL iOrder )
+{
+    if( !iOrder ) { *ioValue = ntohl( *ioValue ); }
+}
+
+static void procOrderPktHdr( com_pcapPkthdr_t *ioPktHdr, BOOL iOrder )
+{
+    convertOrder32( &(ioPktHdr->capLen), iOrder );
+    convertOrder32( &(ioPktHdr->len), iOrder );
+}
+
 static BOOL getLibpcap( com_capInf_t *oCapInf )
 {
     static com_bin  buf[sizeof(com_pcapPkthdr_t)];
     if( !readCapture( oCapInf, buf, sizeof(buf) ) ) {return false;}
     COM_CAST_HEAD( com_pcapPkthdr_t, pkthdr, buf );
+    procOrderPktHdr( pkthdr, oCapInf->head.order );
     if( !addSignalData( oCapInf, pkthdr->capLen ) ) {
         CAUSEIS( COM_CAPERR_GETSIGNAL, COM_ERR_INCORRECT, "signal data NG" );
     }
@@ -824,7 +837,7 @@ static BOOL getSignal( com_capInf_t *oCapInf )
         if( !getLibpcap( oCapInf ) ) {return false;}
     }
     // バイトオーダーのフラグをヘッダ情報からコピー
-    oCapInf->signal.order = oCapInf->head.order;
+    //oCapInf->signal.order = oCapInf->head.order;
     return true;
 }
 
