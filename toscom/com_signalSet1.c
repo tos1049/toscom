@@ -1393,7 +1393,7 @@ static BOOL getChunks( com_sigInf_t *iSctp, com_sigInf_t *oHead )
         com_off  chunkLen = 0;
         if( !getChunkHead( tmpPtr, oHead, &chunkLen ) ) {return false;}
         if( !getDataPayload( tmpPtr, oHead ) ) {return false;}
-        chunkLen += chunkLen % 4;
+        if( chunkLen % 4 ) { chunkLen += 4 - chunkLen % 4; }
         if( !com_advancePtr( &tmpPtr, &tmpLen, chunkLen ) ) {return false;}
     }
     return true;
