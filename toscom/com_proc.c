@@ -592,12 +592,12 @@ static char *makeBufferLabel( COM_SETBUF_t iType, const char *iString )
 }
 
 // com_setBuffer～()と com_addBuffer～()の作業用バッファサイズ
-#define COM_TMPBUFF_SIZE  COM_DATABUF_SIZE
+#define TMPBUFF_SIZE  COM_DATABUF_SIZE
 
 static pthread_mutex_t  gMutexBuff = PTHREAD_MUTEX_INITIALIZER;
-static char  gTmpBuff[COM_TMPBUFF_SIZE];
+static char  gTmpBuff[TMPBUFF_SIZE];
 
-// oBufのサイズは必ず COM_TMPBUFF_SIZE であること
+// oBufのサイズは必ず TMPBUFF_SIZE であること
 static size_t setBuffBySize( char *oBuf, size_t iSize )
 {
     if( iSize == 0 ) {return strlen(oBuf); }
@@ -679,7 +679,7 @@ BOOL com_setBufferFunc(
 {
     char*  label = gSetFunc[iType];
     if( !oBuf || !iFormat ) {COM_PRMNGF(label,false);}
-    if( iSize > COM_TMPBUFF_SIZE - 1 ) {COM_PRMNGF(label,false);}
+    if( iSize > TMPBUFF_SIZE - 1 ) {COM_PRMNGF(label,false);}
 
     com_mutexLockCom( &gMutexBuff, __FILE__, __LINE__, label );
     COM_SET_FORMAT( gTmpBuff );
@@ -687,7 +687,7 @@ BOOL com_setBufferFunc(
     return com_mutexUnlockCom( &gMutexBuff, __FILE__, __LINE__, label, result );
 }
 
-static char gTmpAddBuff[COM_TMPBUFF_SIZE];
+static char gTmpAddBuff[TMPBUFF_SIZE];
 
 BOOL com_addBufferFunc(
         com_buf_t *oBuf, size_t iSize, COM_SETBUF_t iType, COM_FILEPRM,
@@ -696,7 +696,7 @@ BOOL com_addBufferFunc(
     char*  label = gSetFunc[iType];
     if( !oBuf || !iFormat ) {COM_PRMNGF(label,false);}
     if( !(oBuf->data) ) {COM_PRMNGF(label,false);}
-    if( iSize > COM_TMPBUFF_SIZE - 1 ) {COM_PRMNGF(label,false);}
+    if( iSize > TMPBUFF_SIZE - 1 ) {COM_PRMNGF(label,false);}
 
     com_mutexLockCom( &gMutexBuff, __FILE__, __LINE__, label );
     COM_SET_FORMAT( gTmpAddBuff );
@@ -3613,7 +3613,7 @@ static BOOL checkFileName(
 static pthread_mutex_t  gMutexPack = PTHREAD_MUTEX_INITIALIZER;
 static char  gPackBuff[COM_TEXTBUF_SIZE];
 
-#define catCmd( ... ) \
+#define CATCMD( ... ) \
     com_connectString( gPackBuff, sizeof(gPackBuff), __VA_ARGS__ )
 
 static BOOL setZipCommand(
@@ -3621,10 +3621,10 @@ static BOOL setZipCommand(
 {
     COM_CLEAR_BUF( gPackBuff );
     (void)com_strcpy( gPackBuff, "zip " );
-    if( iKey ) {if( !catCmd( "-P %s ", iKey ) ) {return false;}}
-    if( iArchive ) {if( !catCmd( "%s ", iArchive ) ) {return false;}}
-    else {if( !catCmd( "%s.zip ", iSource ) ) {return false;}}
-    return catCmd( "%s >& /dev/null", iSource );
+    if( iKey ) {if( !CATCMD( "-P %s ", iKey ) ) {return false;}}
+    if( iArchive ) {if( !CATCMD( "%s ", iArchive ) ) {return false;}}
+    else {if( !CATCMD( "%s.zip ", iSource ) ) {return false;}}
+    return CATCMD( "%s >& /dev/null", iSource );
 }
 
 static BOOL trimZip( const char *iArchive )
@@ -3668,10 +3668,10 @@ static BOOL setUnzipCommand(
 {
     COM_CLEAR_BUF( gPackBuff );
     (void)com_strcpy( gPackBuff, "unzip " );
-    if( iKey ) {if( !catCmd( "-P %s ", iKey ) ) {return false;}}
-    if( !catCmd( "%s ", iArchive ) ) {return false;}
-    if( iPath ) {if( !catCmd( "-d %s ", iPath ) ) {return false;}}
-    return catCmd( ">& /dev/null" );
+    if( iKey ) {if( !CATCMD( "-P %s ", iKey ) ) {return false;}}
+    if( !CATCMD( "%s ", iArchive ) ) {return false;}
+    if( iPath ) {if( !CATCMD( "-d %s ", iPath ) ) {return false;}}
+    return CATCMD( ">& /dev/null" );
 }
 
 BOOL com_unzipFile(
