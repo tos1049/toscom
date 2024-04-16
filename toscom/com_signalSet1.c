@@ -1416,6 +1416,7 @@ static void dispChunkData( void *iTop )
     DISPBIN( "tsn",          dataHdr->tsn,         COM_32BIT_SIZE );
     DISPBIN( "stream ID",    dataHdr->streamId,    COM_16BIT_SIZE );
     DISPBIN( "stream seqno", dataHdr->streamSeqno, COM_16BIT_SIZE );
+    DISPBIN( "payload protocol ID", dataHdr->protocol, COM_32BIT_SIZE );
 }
 
 static void dispChunkInit( void *iTop )
