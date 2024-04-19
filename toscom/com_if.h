@@ -197,6 +197,7 @@ enum {
     COM_ERR_ARCHIVENG  = 907,    // アーカイブ操作NG
     COM_ERR_RING       = 908,    // リングバッファ処理NG
     COM_ERR_CONFIG     = 909,    // コンフィグ処理NG
+    COM_ERR_BUFFOVER   = 910,    // 使用可能なバッファサイズを超えている
     COM_ERR_THREADNG   = 915,    // スレッド関連NG
     COM_ERR_MLOCKNG    = 916,    // mutexロックNG
     COM_ERR_MUNLOCKNG  = 917,    // mutexアンロックNG
@@ -561,6 +562,7 @@ void com_exitFunc( long iType, COM_FILEPRM );
  * システムコマンド実行  com_system()
  *   system()の返り値をそのまま返す。
  * ---------------------------------------------------------------------------
+ *   COM_ERR_BUFFOVER: コマンドライン長がバッファサイズを超過
  *   COM_ERR_DEBUGNG: [com_prmNG] !iFormat
  * ===========================================================================
  *   マルチスレッドの影響は受けない。
@@ -568,10 +570,11 @@ void com_exitFunc( long iType, COM_FILEPRM );
  * iFormat以降で示した文字列を 標準関数 system()でコマンド実行し、
  * その返り値をそのまま返す。
  *
- * コマンドラインの最終的な長さが COM_LINEBUF_SIZE - 1 だった場合、警告を出す。
- * これはバッファサイズを超えたものが切り捨てられている可能性があるため。
- * COM_LINEBUF_SIZE - 1 = 255文字までのコマンドラインにすること。
- * 警告は出すが、コマンド自体は実行を試みる。
+ * 書式文字列を使ったコマンド指定を可能とするが、その文字列展開用バッファは
+ * サイズが COM_LINEBUF_SIZE となっている。このため、生成されたコマンド内容が
+ * COM_LINEBUF_SIZE - 1 だったら、エラーとし、コマンド実行は行わない。
+ * (途中で切れたコマンドの投入になる可能性があり、危険と判断するため)
+ * COM_LINEBUF_SIZE - 1 = 255文字未満のコマンドラインにすること。
  *
  * make checkf と打つことで、iFormatとそれ以降の記述の正当性をチェック可能。
  * この詳細は com_printf()の説明記述を参照。

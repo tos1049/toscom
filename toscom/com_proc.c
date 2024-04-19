@@ -299,8 +299,10 @@ int com_system( const char *iFormat, ... )
     if( !iFormat ) {COM_PRMNG(0);}
     COM_SET_FORMAT( sysBuf );
     if( strlen( sysBuf ) == sizeof(sysBuf) -1 ) {
-        com_printf( "maybe... com_system() get too long command line"
-                    "(%-10s...)\n", sysBuf );
+        com_error( COM_ERR_BUFFOVER, 
+                   "maybe... com_system() get too long command line"
+                   "(%-10s...)\n", sysBuf );
+        return -1;
     }
     return system( sysBuf );
 }
@@ -3713,11 +3715,12 @@ static com_dbgErrName_t  gErrorNameCom[] = {
     { COM_ERR_HASHNG,        "COM_ERR_HASHNG" },
     { COM_ERR_TIMENG,        "COM_ERR_TIMENG" },
     { COM_ERR_ARCHIVENG,     "COM_ERR_ARCHIVENG" },
+    { COM_ERR_RING,          "COM_ERR_RING" },
+    { COM_ERR_CONFIG,        "COM_ERR_CONFIG" },
+    { COM_ERR_BUFFOVER,      "COM_ERR_BUFFOVER" },
     { COM_ERR_THREADNG,      "COM_ERR_THREADNG" },
     { COM_ERR_MLOCKNG,       "COM_ERR_MLOCKNG" },
     { COM_ERR_MUNLOCKNG,     "COM_ERR_MUNLOCKNG" },
-    { COM_ERR_RING,          "COM_ERR_RING" },
-    { COM_ERR_CONFIG,        "COM_ERR_CONFIG" },
     /**** システムエラー(デバッグ) ****/
     { COM_ERR_DEBUGNG,       "COM_ERR_DEBUGNG" },
     { COM_ERR_END,           "" } // 最後は必ずこれで
