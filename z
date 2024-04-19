@@ -220,6 +220,7 @@ cd ..
 
 # リリースファイルのアーカイブ
 echo "--- ${relfile} を作成 ---"
+cp ${CDIR}/README.md .README.md
 cp README.md ${CDIR}/README.md
 
 docfiles="${CDIR}/README.md ${CDIR}/about*.txt"
@@ -255,6 +256,7 @@ chmod 755 ${romexes}
 
 echo "--- 不要なファイルを削除 ---"
 rm -f ${CDIR}/README.md ${tarfiles}
+mv .README.md ${CDIR}/README.md
 
 cd ${CDIR} || exit
 rm -f ${TESTC}
