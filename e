@@ -9,7 +9,7 @@ chmod 755 p z c w
 
 echo "--- toscom ---"
 cd toscom
-chmod 755 xconv xname xt rt
+chmod 755 xnameconf xconv xname xt rt TEST/_test
 cd NEWENV
 chmod 755 mpu newenv
 cd ../BUILD/.lib

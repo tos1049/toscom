@@ -17,22 +17,14 @@ jobs:
       run: sudo apt install exuberant-ctags
     - name: "check gcc version"
       run: gcc -v
-    - name: "prepare com_test.c"
-      run: cp toscom/TEST/com_test.c toscom/
+    - name: "prepare to build"
+      run: chmod 755 i
+    - name: "prepare to build"
+      run: ./i
     - name: "toscom make"
       run: cd toscom/BUILD; make
     - name: "toscom make checkf"
       run: cd toscom/BUILD; make checkf
-    - name: "change permission e"
-      run: chmod 755 e
-    - name: "execute e to change permission of others"
-      run: ./e
-    - name: "execute smplComm/newenv"
-      run: cd smplComm; ./newenv
-    - name: "execute analyzer/newenv"
-      run: cd analyzer; ./newenv
-    - name: "execute resetTxt/newenv"
-      run: cd resetTxt; ./newenv
     - name: "resetTxt make"
       run: cd resetTxt/BUILD; make
     - name: "resetTxt make checkf"
