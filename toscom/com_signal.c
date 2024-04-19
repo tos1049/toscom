@@ -632,7 +632,7 @@ static BOOL checkMagicNumber( com_bin *iMagNum, com_bin *iSig )
     uint*  orgVal = (uint*)iSig;
     DEBUGSIG( "#magic number = %08x\n", *uintVal );
     DEBUGSIG( "#header magic = %08x\n", *orgVal );
-    return (*uintVal != *orgVal);
+    return (*uintVal == *orgVal);
 }
 
 static void getPcapngOrder( com_capInf_t *oCapInf )
@@ -804,7 +804,7 @@ static BOOL getPcapng( com_capInf_t *oCapInf )
 
 static void convertOrder32( uint32_t *ioValue, BOOL iOrder )
 {
-    if( !iOrder ) { *ioValue = ntohl( *ioValue ); }
+    if( iOrder ) { *ioValue = ntohl( *ioValue ); }
 }
 
 static void procOrderPktHdr( com_pcapPkthdr_t *ioPktHdr, BOOL iOrder )
