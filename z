@@ -17,13 +17,13 @@ APLVER=$1
 ISBETA=$2
 
 ##### バージョン指定
+SELFMOD="self modify line"
 if [ -z "${APLVER}" ] || [ "${APLVER}" = "-" ]; then
-  APLVER="3.1"
+  APLVER="3.1"     # self modify line
 else
   # 上のデフォルト設定の変数定義を、引数指定された版数に書き換える
-  # (最初に見つかるのが上の行のはずなので、gは付けずにその行のみ書き換え
-  #  ...のつもりなのだが、そうならなかった)
-  sed -i "s/APLVER=\".*\"/APLVER=\"${APLVER}\"/" $0
+  # 特定のコメント(self modify line)がある行を変更対象として認識する。
+  sed -i "/\# ${SELFMOD}/c\ \ APLVER=\"${APLVER}\"\ \ \ \ \ \# ${SELFMOD}" $0
 fi
 echo -n "バージョン:${APLVER}"
 if [ "${ISBETA^^}" = "REL" ]
