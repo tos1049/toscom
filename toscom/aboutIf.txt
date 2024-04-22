@@ -26,10 +26,12 @@ toscom grimoire Ver3.00
 
    COM_UNUSED()                未使用引数の明示マクロ
   -COM_CLEAR_BUF()             バッファクリアマクロ
+     com_debugMacro.h にマクロ宣言を移動。(今後も使用は可能)
    COM_SET_IF_EXIST()          ポインタ設定ありで値設定するマクロ
    COM_ELMCNT()                配列の要素数計算マクロ
    COM_CHECKBIT()              ビットパターン判定マクロ
   -COM_RELAY()                 3つのデータ受け渡しマクロ
+     com_debugMacro.h にマクロ宣言を移動。(今後も使用は可能)
    COM_LIKELY()                条件式がほぼ真になることを明示するマクロ
    COM_UNLIKELY()              条件式がほぼ偽になることを明示するマクロ
 

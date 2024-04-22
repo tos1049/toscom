@@ -142,7 +142,7 @@
 /* toscomの挙動でカスタマイズできるものについては、以下に宣言する */
 #include "com_custom.h"
 
-/* toscomの内部定義マクロ宣言 */
+/* toscomの内部向けマクロ宣言 */
 #include "com_debugMacro.h"
 
 /* com_spec.h は本ヘッダの末尾にインクルードしている */
