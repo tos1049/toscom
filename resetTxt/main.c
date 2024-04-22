@@ -31,12 +31,11 @@ typedef enum {
 } tmpMark_t;
 
 typedef struct {
-    FILE*  ofp;
-    long   lineCount;
-    long   rstCount[MARK_MAX];
-    BOOL   startList;
-    BOOL   foundMark;
-    intptr_t   seekPos;
+    FILE*  ofp;                   // 結果出力先ファイルポインタ
+    long   lineCount;             // 対象の総ライン数
+    long   rstCount[MARK_MAX];    // 各マークごとの数
+    BOOL   startList;             // リスト開始フラグ
+    intptr_t   seekPos;           // マークのあったインデント位置
 } tmpData_t;
 
 static void outResult( FILE *iFp, const char *iLine, const char *iPrefix )
@@ -127,8 +126,9 @@ static BOOL resetTextProc( com_seekFileResult_t *iInf )
     tmpData_t* ud = iInf->userData;
     (ud->lineCount)++;
 
+    // リスト開始前だったら、マークのチェックはしない
     if( ud->startList ) { return checkList( iInf ); }
-    
+    // 開始行の内容は今後変わるかもしれない
     if( com_compareString(iInf->line, gStartLine, strlen(gStartLine), false) ) {
         ud->startList = true;
     }
@@ -140,8 +140,7 @@ static void makeOutFile( void )
 {
     tmpData_t userData = {0};
 
-    userData.ofp = com_fopen( gOut.data, "w" );
-    if( !(userData.ofp) ) {
+    if( !(userData.ofp = com_fopen( gOut.data, "w" )) ) {
         com_errorExit( COM_ERR_FILEDIRNG, "fail to open output file" );
     }
 
@@ -173,7 +172,6 @@ static void resetText( int iArgc, char **iArgv )
     if( !com_initBuffer( &gOut, 0, "%s.out", gPath.data ) ) {
         com_exit( COM_ERR_NOMEMORY );
     }
-
     makeOutFile();
 }
 
