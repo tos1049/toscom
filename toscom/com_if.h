@@ -339,7 +339,7 @@ void com_initialize( int iArgc, char **iArgv );
  */
 #define COM_INITIALIZE( ARGC, ARGV ) \
     do { \
-        com_initialize( ARGC, ARGV ); \
+        com_initialize( (ARGC), (ARGV) ); \
         COM_INIT_EXTRA; \
         COM_INIT_SELECT; \
         COM_INIT_WINDOW; \
@@ -808,7 +808,7 @@ BOOL com_realloctFunc(
  * アドレスを返す。
  */
 
-#define  COM_TABLEEND  -1   // テーブル末尾を変動させるための iPos指定値
+#define  COM_TABLEEND  (-1)   // テーブル末尾を変動させるための iPos指定値
 
 /*
  * プロトタイプ形式 (この形で使用すること)
@@ -1674,7 +1674,7 @@ typedef long   com_hashId_t;    // ハッシュテーブルID型
 typedef ulong  com_hash_t;      // ハッシュ値計算結果型
 
 #define COM_HASHID_MAX  LONG_MAX
-#define COM_HASHID_NOTREG  -1  // ハッシュテーブル登録なしの状態(初期状態)
+#define COM_HASHID_NOTREG  (-1)  // ハッシュテーブル登録なしの状態(初期状態)
 
 // ハッシュ値計算個別関数プロトタイプ
 typedef com_hash_t (*com_calcHashKey)(
@@ -2733,7 +2733,7 @@ typedef struct {
 } com_valCondUDigit_t;
 
 // min・maxで値を指定しない場合に使用するマクロ
-#define  COM_VAL_NO_UMIN   0           // [minに指定] 最小値はチェックしない
+#define  COM_VAL_NO_UMIN   (0)         // [minに指定] 最小値はチェックしない
 #define  COM_VAL_NO_UMAX   ULONG_MAX   // [maxに指定] 最大値はチェックしない
 
 BOOL com_valUDigit( char *ioData, void *iCond );
@@ -3368,7 +3368,7 @@ BOOL com_connectString(
  * iNoCaseを trueにした場合、英字は大文字・小文字を区別せずに検索する。
  */
 
-#define  COM_SEARCH_LAST  -1   // 最後に見つかった文字列を返して欲しい時の指定
+#define  COM_SEARCH_LAST  (-1)   // 最後に見つかった文字列を返して欲しい時の指定
 
 char *com_searchString(
         const char *iSource, const char *iTarget, long *ioIndex,
@@ -3547,7 +3547,7 @@ char *com_getString( const char *iFormat, ... );
  * 返す。この際 iNoCaseが trueなら英文字の大文字小文字を区別しない比較をする。
  */
 
-#define  COM_NO_DATA  -1    // 指定文字列が見つからない時に返す
+#define  COM_NO_DATA  (-1)    // 指定文字列が見つからない時に返す
 
 long com_searchStrList(
         const char **iList, const char *iTarget, BOOL iNoCase );
@@ -5496,7 +5496,7 @@ void com_noComDebugLog( BOOL iMode );
  * シーケンス番号は long型のため、64bitだと int型以上の数値も使える。
  * ただ列挙体で宣言できるのは int型の範囲に留まるため、マクロ宣言とした。
  */
-#define COM_DEBUG_SEQNO_MAX  99999999
+#define COM_DEBUG_SEQNO_MAX  (99999999)
 
 /*
  * メモリ監視設定  com_setWatchMemInfo()
@@ -5848,8 +5848,7 @@ void com_registerErrorCode( const com_dbgErrName_t *iList );
     com_errorFunc( (CODE), (RETURN), COM_FILELOC, __VA_ARGS__ )
 #else  // make checkfを打った時に設定されるマクロ
 #define com_errorSelect( CODE, RETURN, ... ) \
-    COM_UNUSED( CODE ); \
-    COM_UNUSED( RETURN ); \
+    COM_UNUSED( CODE ); COM_UNUSED( RETURN ); \
     printf( __VA_ARGS__ )
 #endif
 
