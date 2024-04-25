@@ -278,6 +278,7 @@ toscom grimoire Ver3.00
    com_error()                 エラーメッセージ出力
    com_errorExit()             エラーメッセージ出力後 強制終了
    com_errorSelect()           エラーメッセージ出力後 条件付き強制終了
+  +com_notifyError()           エラーメッセージ出力ON/OFF
    com_useStdErr()             エラー出力先切り替え
    com_getLastError()          最新エラーコード取得
    com_resetLastError()        最新エラーコード初期化

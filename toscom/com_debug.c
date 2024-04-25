@@ -181,6 +181,7 @@ static void dispTimeStamp( FILE *ioFp, stamp_t *iStamp )
 static void writeFile(
         FILE *ioFp, BOOL iLineTop, stamp_t *iStamp, char *iPrefixLabel )
 {
+    if( !ioFp ) {return;}    // 念の為 NULLチェックを入れておく
     if( iLineTop ) {
         dispTimeStamp( ioFp, iStamp );
         if( iPrefixLabel ) {fprintf( ioFp, "[%s] ", iPrefixLabel );}
@@ -736,6 +737,15 @@ void com_resetLastError( void )
     gLastErrorCode = COM_NO_ERROR;
 }
 
+static __thread BOOL  gErrDisp = true;
+static __thread BOOL  gErrLog  = true;
+
+void com_notifyError( BOOL iDisp, BOOL iLog )
+{
+    gErrDisp = iDisp;
+    gErrLog  = iLog;
+}
+
 static __thread BOOL  gUseStderr = false;
 
 void com_useStderr( BOOL iUse )
@@ -784,6 +794,31 @@ static void countError( long iCode )
 
 static char  gErrorLogBuf[COM_LINEBUF_SIZE];
 
+static void branchErrorOutput( char *iBuf, COM_DEBUG_MODE_t iDispMode )
+{
+    FILE* logTarget = gErrLog ? gDebugLog : NULL;
+    // 画面出力なし＆ログ出力なし…なら、無駄なので何もせずにリターン
+    if( iDispMode != COM_DEBUG_ON && !logTarget ) {return;}
+    printProc( iDispMode, NO_PREFIX, logTarget, iBuf );
+}
+
+static void outputErrorMessage( COM_FILEPRM )
+{
+    // まず生成したエラーメッセージの出力
+    COM_DEBUG_MODE_t dispMode = gErrDisp ? COM_DEBUG_ON : COM_DEBUG_SILENT;
+    // エラー出力は gPrintDebugModeの内容に関わらず出力していたが
+    // gErrDispを falseにした場合は、それすらも抑制することとする。
+    branchErrorOutput( gErrorLogBuf, dispMode );
+    // 続いてエラー発生箇所の出力(元々 gPrintDebugMode で出力可否が決まる）
+    dispMode = gPrintDebugMode;
+    if( dispMode == COM_DEBUG_OFF ) {return;}
+    COM_CLEAR_BUF( gLogBuff );
+    COM_MAKELOG( " in %s:line %ld %s()\n", COM_FILEVAR );
+    if( !gErrDisp ) {dispMode = COM_DEBUG_SILENT;}
+    // gPrintDebugModeが COM_DEBUG_SILENT なら gErrDispが trueでも そのまま
+    branchErrorOutput( gLogBuff, dispMode );
+}
+
 void com_errorFunc(
         long iCode, BOOL iReturn, COM_FILEPRM, const char *iFormat, ... )
 {
@@ -795,13 +830,8 @@ void com_errorFunc(
         COM_DEBUG_UNLOCKON( &gMutexError, __func__ );
         return;
     }
-    if( hookAct != COM_HOOKERR_SILENT ) {
-        if( gUseStderr ) {gOutput = stderr;}
-        PRINT( gErrorLogBuf );
-        COM_CLEAR_BUF( gLogBuff );
-        COM_MAKELOG( " in %s:line %ld %s()\n", COM_FILEVAR );
-        printProc( gPrintDebugMode, NO_PREFIX, gDebugLog, gLogBuff );
-    }
+    if( gUseStderr ) {gOutput = stderr;}
+    if( hookAct != COM_HOOKERR_SILENT ) { outputErrorMessage( COM_FILEVAR ); }
     gLastErrorCode = iCode;
     countError( iCode );
     gOutput = stdout;
