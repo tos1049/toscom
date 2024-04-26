@@ -61,7 +61,7 @@ function convSrc() {
   fileconv0 BUILD/makefile BUILD/.lib/gcc_sample
   #fileconv1 HISTORY/*.txt
   fileconv1 ${NEWMODULE}_if.h ${NEWMODULE}_proc*.c ${NEWMODULE}_debug*.*
-  fileconv1 ${NEWMODULE}_extra.* ${NEWMODULE}_select.* ${NEWMODULE}_window.*
+  fileconv1 ${NEWMODULE}_extra*.* ${NEWMODULE}_select*.* ${NEWMODULE}_window*.*
   fileconv1 ${NEWMODULE}_signal*.*
   fileconv0 ${NEWMODULE}_custom.h ${NEWMODULE}_spec.*
   fileconv0 ${NEWMODULE}_test*.c main.c
