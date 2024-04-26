@@ -21,3 +21,20 @@ function linkFile() {
   fi
 }
 
+function addSpecFile() {
+  if [[ -e ".$1" ]]; then
+    echo "rename .$1 to $1"
+    mv .$1 $1
+  elif [ ! -e $1 ]; then
+    echo "copy $1"
+    cp ../toscom/$1 .
+  fi
+}
+
+function delSpecFile() {
+  if [ -e $1 ]; then
+    echo "rename $1 to .$1 (not delete)"
+    mv $1 .$1
+  fi
+}
+

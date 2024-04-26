@@ -45,7 +45,7 @@ static void dbgWin( const char *iFormat, ... )
 static com_winpos_t *getCurPos( com_cwin_t *iWin )
 {
     static com_winpos_t  cur;
-    if( !iWin ) {return NULL;}
+    if( COM_UNLIKELY(!iWin) ) {return NULL;}
     getyx( iWin->window, cur.y, cur.x );
     return &cur;
 }
@@ -53,7 +53,7 @@ static com_winpos_t *getCurPos( com_cwin_t *iWin )
 static com_winpos_t *getMaxPos( com_cwin_t *iWin )
 {
     static com_winpos_t  max;
-    if( !iWin ) {return NULL;}
+    if( COM_UNLIKELY(!iWin) ) {return NULL;}
     getmaxyx( iWin->window, max.y, max.x );
     return &max;
 }
@@ -61,7 +61,7 @@ static com_winpos_t *getMaxPos( com_cwin_t *iWin )
 static void getWindowPos(
         com_cwin_t *iWin, com_winpos_t *oMax, com_winpos_t *oMin )
 {
-    if( !iWin ) {return;}
+    if( COM_UNLIKELY(!iWin) ) {return;}
     if( oMax ) {
         com_winpos_t max = *(getMaxPos( iWin ));
         oMax->x = max.x - iWin->border;
@@ -91,7 +91,7 @@ static com_winId_t createWindow( WINDOW *iWin, BOOL iBorder )
     com_cwin_t*  tmp =
         com_reallocAddr( &(gWin.inf), sizeof(*gWin.inf), COM_TABLEEND,
                          &(gWin.cnt), 1, "new window (%ld)", gWin.cnt );
-    if( !tmp ) {return COM_NO_WIN;}
+    if( COM_UNLIKELY(!tmp) ) {return COM_NO_WIN;}
     *tmp = (com_cwin_t){
         newId, iBorder, false, iWin, NULL,
         com_registerHash( 127, NULL ), COM_ONLY_OWN_KEYMAP,
@@ -103,11 +103,11 @@ static com_winId_t createWindow( WINDOW *iWin, BOOL iBorder )
 
 static com_cwin_t *checkWinId( com_winId_t *ioId )
 {
-    if( *ioId >= gWin.cnt ) {return NULL;}
+    if( COM_UNLIKELY(*ioId >= gWin.cnt) ) {return NULL;}
     if( *ioId == COM_ACTWIN ) {*ioId = gWin.act;}
-    if( *ioId < 0 ) {return NULL;}
+    if( COM_UNLIKELY(*ioId < 0) ) {return NULL;}
     com_cwin_t*  inf = &(gWin.inf[*ioId]);
-    if( !(inf->window) ) {return NULL;}
+    if( COM_UNLIKELY(!(inf->window)) ) {return NULL;}
     return inf;
 }
 
@@ -144,7 +144,7 @@ static void showPanels( void )
 }
 
 #define NOWINDOW( RETURN ) \
-    if( !gWin.cnt ) {return (RETURN);} \
+    if( COM_UNLIKELY(!gWin.cnt) ) {return (RETURN);} \
     do{} while(0)
 
 com_winId_t com_createWindow(
@@ -152,14 +152,14 @@ com_winId_t com_createWindow(
 {
     NOWINDOW( COM_NO_WIN );
     WINDOW*  win = newwin( iSize->y, iSize->x, iPos->y, iPos->x );
-    if( !win ) {forceExit( "fail to create new window..." );}
+    if( COM_UNLIKELY(!win) ) {forceExit( "fail to create new window..." );}
     keypad( win, gWin.keypad );
     com_skipMemInfo( true );
     int  newId = createWindow( win, iBorder );
     com_skipMemInfo( false );
-    if( newId == COM_NO_WIN ) {forceExit( "no memory..." );}
+    if( COM_UNLIKELY(newId == COM_NO_WIN) ) {forceExit( "no memory..." );}
     PANEL*  pan = new_panel( win );
-    if( !pan ) {forceExit( "fail to set panel..." );}
+    if( COM_UNLIKELY(!pan) ) {forceExit( "fail to set panel..." );}
     com_cwin_t*  inf = &(gWin.inf[newId]);
     inf->panel = pan;
     showBorder( inf );
@@ -177,11 +177,11 @@ BOOL com_existWindow( com_winId_t iId )
 
 #define GET_WIN( RET ) \
     com_cwin_t*  win = checkWinId( &iId ); \
-    if( !win ) {COM_PRMNG(RET);} \
+    if( COM_UNLIKELY(!win) ) {COM_PRMNG(RET);} \
     do {} while(0)
 
 #define NO_ROOTWIN( RET ) \
-    if( iId == 0 ) {COM_PRMNG(RET);} \
+    if( COM_UNLIKELY(iId == 0) ) {COM_PRMNG(RET);} \
     do {} while(0)
 
 BOOL com_setBackgroundWindow( com_winId_t iId, chtype iCh )
@@ -232,8 +232,8 @@ BOOL com_deleteWindow( com_winId_t iId )
 
 int com_getWindowInf( com_winId_t iId, const com_cwin_t **oInf )
 {
-    COM_SET_IF_EXIST( oInf, NULL );
-    if( !oInf ) {COM_PRMNG(COM_NO_WIN);}
+    if( COM_UNLIKELY(!oInf) ) {COM_PRMNG(COM_NO_WIN);}
+    *oInf = NULL;
     const GET_WIN( COM_NO_WIN );
     *oInf = win;
     return iId;
@@ -241,7 +241,7 @@ int com_getWindowInf( com_winId_t iId, const com_cwin_t **oInf )
 
 BOOL com_getWindowPos( com_winId_t iId, com_winpos_t *oPos )
 {
-    if( !oPos ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oPos) ) {COM_PRMNG(false);}
     GET_WIN( false );
     getbegyx( win->window, oPos->y, oPos->x );
     dbgWin( ">> window[%ld] pos(%d,%d)", iId, oPos->x, oPos->y );
@@ -250,7 +250,7 @@ BOOL com_getWindowPos( com_winId_t iId, com_winpos_t *oPos )
 
 BOOL com_getWindowMax( com_winId_t iId, com_winpos_t *oSize )
 {
-    if( !oSize ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oSize) ) {COM_PRMNG(false);}
     GET_WIN( false );
     *oSize = *(getMaxPos( win ));
     dbgWin( ">> window[%ld] size %dx%d", iId, oSize->x, oSize->y );
@@ -259,7 +259,7 @@ BOOL com_getWindowMax( com_winId_t iId, com_winpos_t *oSize )
 
 BOOL com_getWindowCur( com_winId_t iId, com_winpos_t *oCur )
 {
-    if( !oCur ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oCur) ) {COM_PRMNG(false);}
     GET_WIN( false );
     *oCur = *(getCurPos( win ));
     dbgWin( ">> window[%ld] cur(%d,%d)", iId, oCur->x, oCur->y );
@@ -287,7 +287,7 @@ BOOL com_refreshWindow( void )
 
 BOOL com_moveWindow( com_winId_t iId, const com_winpos_t *iPos )
 {
-    if( !iPos ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iPos) ) {COM_PRMNG(false);}
     NO_ROOTWIN( false );
     GET_WIN( false );
     if( ERR == move_panel( win->panel, iPos->y, iPos->x ) ) {return false;}
@@ -375,7 +375,7 @@ static void checkWinPos( com_cwin_t *iWin, com_winpos_t *iPos )
 
 BOOL com_moveCursor( com_winId_t iId, const com_winpos_t *iPos )
 {
-    if( !iPos ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iPos) ) {COM_PRMNG(false);}
     GET_WIN( false );
     com_winpos_t  pos = *iPos;
     checkWinPos( win, &pos );
@@ -387,7 +387,7 @@ BOOL com_moveCursor( com_winId_t iId, const com_winpos_t *iPos )
 BOOL com_shiftCursor(
         com_winId_t iId, const com_winpos_t *iShift, BOOL *oBlocked )
 {
-    if( !iShift ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iShift) ) {COM_PRMNG(false);}
     GET_WIN( false );
     GETWINPOS( win );
     com_winpos_t  pos = *(getCurPos( win ));
@@ -540,16 +540,14 @@ static size_t    gInputSize[COM_WINTEXT_BUF_COUNT];
 // このマクロは定数マクロではないようで、静的変数定義にはつかえなかった。
 static char      gInputText[COM_WINTEXT_BUF_SIZE * 6];
 
-enum {
-    KEYLF  = 0x0a,   // Enter
-    KEYEOT = 0x04,   // Ctrl + D
-    KEYBS  = 0x08,   // Backspace
-    KEYESC = 0x1B    // ESC
-};
+// 入力用に使用する特殊キーコードについては
+// com_windowSpec.h にて COM_KEY～ で宣言する。
+// システムによってキーコードは変わる可能性があるため、
+// うまく動作しない時はその宣言値を修正すること。
 
 static workInput_t *setWork( com_winTextId_t iId, workInput_t *iWork )
 {
-    if( iId == COM_NO_WIN ) {return NULL;}
+    if( COM_UNLIKELY(iId == COM_NO_WIN) ) {return NULL;}
     if( iWork ) {gWorkUser[iId] = *iWork;}
     gWorkWstr = gInputWstr[iId];
     gWorkSize = &(gInputSize[iId]);
@@ -595,7 +593,7 @@ static void clearText( workInput_t *iWork, BOOL iBackSpace )
     WINDOW*  win = iWork->win->window;
     size_t  i = 0;   // for文外でも使うため、ここで定義
     for( ;  i < wcslen( gWorkWstr ) - 1;  i++ ) {
-        if( gWorkWstr[i] == KEYLF ) {wprintw( win, "\n" );  continue;}
+        if( gWorkWstr[i] == COM_KEYLF ) {wprintw( win, "\n" );  continue;}
         if( iBackSpace ) {wprintw( win, "%lc", gWorkWstr[i] );}
         else {deleteInput( iWork, gWorkWstr[i] );}
     }
@@ -605,8 +603,8 @@ static void clearText( workInput_t *iWork, BOOL iBackSpace )
 
 static BOOL isEnter( COM_IN_TYPE_t iType, wint_t iWch )
 {
-    if( iType == COM_IN_1LINE && iWch == KEYLF ) {return true;}
-    if( iType == COM_IN_MULTILINE && iWch == KEYEOT ) {return true;}
+    if( iType == COM_IN_1LINE && iWch == COM_KEYLF ) {return true;}
+    if( iType == COM_IN_MULTILINE && iWch == COM_KEYEOT ) {return true;}
     return false;
 }
 
@@ -689,7 +687,7 @@ static int isOverSize( workInput_t *iWork, wint_t iInput )
 
 static BOOL addText( workInput_t *iWork, wint_t *iInput )
 {
-    if( *iInput != KEYLF && !iswprint( *iInput ) ) {return false;}
+    if( *iInput != COM_KEYLF && !iswprint( *iInput ) ) {return false;}
     int  size = isOverSize( iWork, *iInput );
     if( !size ) {return false;}
     wcscat( gWorkWstr, (wchar_t*)iInput );
@@ -764,8 +762,8 @@ static BOOL inputStringLine(
         workInput_t *iWork, wint_t *iWch, com_wininopt_t *iOpt )
 {
     if( isEnter( iOpt->type, *iWch ) ) {return confirmText( iWork );}
-    else if( *iWch == KEYBS ) {return backText( iWork );}
-    else if( *iWch == KEYESC ) {return cancelText( iWork );}
+    else if( *iWch == COM_KEYBS ) {return backText( iWork );}
+    else if( *iWch == COM_KEYESC ) {return cancelText( iWork );}
     else {
         BOOL  result = false;
         if( detectInterrupt( iWork, *iWch, &result ) ) {return result;}
@@ -945,16 +943,18 @@ static void configColors( const com_colorPair_t *iColors )
 
 BOOL com_readyWindow( com_winopt_t *iOpt, com_winpos_t *oSize )
 {
-    if( gWin.cnt ) { return false; }   // 既に起動中なら NGを返す
+    if( COM_UNLIKELY(gWin.cnt) ) { return false; }   // 既に起動中なら NGを返す
     com_setFuncTrace( false );
     com_dbgCom( ">> window mode start <<" );
     setlocale( LC_ALL, "" );  // マルチバイト文字使用時のおまじない
     WINDOW*  win = initscr();
-    if( !win ) {com_errorExit( COM_ERR_WINDOWNG, "fail to start stdscr" );}
+    if( COM_UNLIKELY(!win) ) {
+        com_errorExit( COM_ERR_WINDOWNG, "fail to start stdscr" );
+    }
     com_skipMemInfo( true );
     int  result = createWindow( win, false );
     com_skipMemInfo( false );
-    if( result == COM_NO_WIN ) {forceExit( "no memory..." );}
+    if( COM_UNLIKELY(result == COM_NO_WIN) ) {forceExit( "no memory..." );}
     com_suspendStdout( true );
     if( iOpt->noEnter ) {cbreak();}    // 原則 true
     if( iOpt->noEcho) {noecho();}      // 原則 true

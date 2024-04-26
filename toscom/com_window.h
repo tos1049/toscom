@@ -42,6 +42,8 @@
 #include <wchar.h>
 #include <wctype.h>
 
+#include "com_windowSpec.h"
+
 /*
  *****************************************************************************
  * COMWINBASE:ウィンドウ機能基本I/F
@@ -730,7 +732,7 @@ enum {
  * com_mprintWindow()/com_mprintw()では iPosで表示開始位置を指定可能。
  * NULL指定が可能で、その場合は 現在のカーソル位置が表示開始位置になる。
  *
- * com_printWinodw()/com_print()は 現在のカーソル位置が表示開始位置になる。
+ * com_printWinodw()/com_printw()は 現在のカーソル位置が表示開始位置になる。
  * (さらに具体的には com_printWindow() は iPosが引数に含まれておらず、
  *  com_mprintWinodw() で、iPosを NULL 指定するマクロ関数となっている。
  *  com_printw()は com_mprintw() に対して、同様の指定をするマクロ関数である)
