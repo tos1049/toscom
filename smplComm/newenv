@@ -208,28 +208,28 @@ function setText() {
 
 # 特定機能の個別ファイルを実ファイルとして配置/リネームする
 # ・ファイル追加が必要で そのファイルがない時は ../toscom/からコピー
-# ・ファイル追加が必要で .bakを付けたファイルが存在する時は .bakを外すリネーム
+# ・ファイル追加が必要で .bakを付けたファイルが存在する時は .を外すリネーム
 # ・ファイル削除が必要で そのファイルがない時は何もしない
-# ・ファイル削除が必要で そのファイルがある時は .bakを付与するリネーム
-# (.bak は BAKSUF で定義した文字列)
+# ・ファイル削除が必要で そのファイルがある時は .を付与するリネーム
+# (BAKSUFに文字列を定義すると、リネームファイル名の末尾に付与する)
 #
-BAKSUF=".bak"
+BAKSUF=""
 function setSpecFiles() {
   local _FLAG="$(judgeFlag $1)"
   local _FILES=($2)
 
   for file in "${_FILES[@]}"; do
     if [[ ${_FLAG} == "1" ]]; then
-      if [ -e "${file}${BAKSUF}" ]; then
-        mv "${file}${BAKSUF}" "${file}"
-        echo "${file}${BAKSUF} -> ${file} renamed"
+      if [ -e ".${file}${BAKSUF}" ]; then
+        mv ".${file}${BAKSUF}" "${file}"
+        echo ".${file}${BAKSUF} -> ${file} renamed"
       else
         cp ../toscom/${file} .
       fi
     else
       if [[ -e "${file}" ]]; then
-        mv "${file}" "${file}${BAKSUF}"
-        echo "${file} -> ${file}${BAKSUF} renamed (not deleted)"
+        mv "${file}" ".${file}${BAKSUF}"
+        echo "${file} -> .${file}${BAKSUF} renamed (not deleted)"
       fi
     fi
   done
