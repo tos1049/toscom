@@ -224,7 +224,7 @@ static COM_SIG_FRG_t judgeTotalSize( com_sigFrg_t *iFrg )
         totalSize += iFrg->inf[i].bin.len;
     }
     if( totalSize < iFrg->segMax ) {return COM_FRG_SEG;}  // まだ断片揃わず
-    if( totalSize > iFrg->segMax ) {
+    if( COM_UNLIKELY(totalSize > iFrg->segMax) ) {
         com_error( COM_ERR_ILLSIZE, "IPv4 reassemble size is too big" );
         return COM_FRG_ERROR;
     }
@@ -292,7 +292,7 @@ static COM_SIG_FRG_t procIpv4Fragment(
     com_sigFrgCond_t  cond;
     setIpv4FragCond( &cond, iIpv4 );
     com_sigFrg_t*  frg = com_stockFragments( &cond, fragOff, &ipBody );
-    if( !frg ) {return COM_FRG_ERROR;}
+    if( COM_UNLIKELY(!frg) ) {return COM_FRG_ERROR;}
     if( !mf ) {
         if( !fragOff ) {com_freeFragments( &cond );  return COM_FRG_OK;}
         if( existRas( ioHead,oRas,&cond,COM_SIG_IPV4 ) ) {return COM_FRG_REASM;}
@@ -312,8 +312,8 @@ static void getPrtOptions(
         com_bin  opType = *ptr;
         com_bin*  opVal = NULL;
         long  opLen = com_getPrtclType( iType, opType );
-        long  opValLen = opLen;  // 01(Nop) と レングス2で値無しを区別する為
         if( opLen == OPT_VARLEN ) {opLen = *(ptr + 1);}
+        long  opValLen = opLen;  // 01(Nop) と レングス2で値無しを区別する為
         if( opLen ) {opValLen -= 2;  opVal = ptr + 2;}
         com_addPrmDirect( COM_APRM, opType, opValLen, opVal );
         if( !opLen ) {if( !com_advancePtr( &ptr,&iHdrLen,1 ) ) {return;}}
@@ -501,7 +501,7 @@ static COM_SIG_FRG_t procIpv6Fragment(
     com_sigFrgCond_t  cond;
     setIpv6FragCond( &cond, ipv6, fragId );
     com_sigFrg_t*  frg = com_stockFragments( &cond, fragOff, &ipBody );
-    if( !frg ) {return COM_FRG_ERROR;}
+    if( COM_UNLIKELY(!frg) ) {return COM_FRG_ERROR;}
     if( !mf ) {
         if( existRas( ioHead,oRas,&cond,COM_SIG_IPV6 ) ) {return COM_FRG_REASM;}
         frg->segMax = fragOff + ipBody.len;
@@ -836,8 +836,8 @@ static com_decodeName_t  gArpOpName[] = {
 char *com_getArpOpName( void *iSigTop, BOOL iOrder )
 {
     struct arphdr*  arp = iSigTop;
-    return com_searchDecodeName( gArpOpName,
-                                 com_getVal16( arp->ar_op, iOrder ), true );
+    return com_searchDecodeName(
+            gArpOpName, com_getVal16( arp->ar_op, iOrder ), true );
 }
 
 
@@ -1042,7 +1042,7 @@ static BOOL makeTcpInf( com_sigInf_t *ioHead, com_off iDataSize )
     com_sigTcpInf_t*  prmSpec = ioHead->prm.spec;
     if( !prmSpec ) {
         prmSpec = com_malloc( sizeof(com_sigTcpInf_t), "TCP seq/ack inf" );
-        if( !prmSpec ) {return false;}
+        if( COM_UNLIKELY(!prmSpec) ) {return false;}
         ioHead->prm.spec = prmSpec;
     }
     inf.isReverse = node.isReverse;
@@ -1206,18 +1206,18 @@ static BOOL makeSegCond(
 com_sigFrg_t *com_stockTcpSeg(
         com_sigInf_t *ioTarget, com_sigInf_t *iTcp, com_off iTotalSize )
 {
-    if( !ioTarget || !iTcp ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!ioTarget || !iTcp) ) {COM_PRMNG(NULL);}
     com_sigTcpNode_t  node;
     com_sigFrgCond_t  cond;
     if( !makeSegCond( &node, &cond, ioTarget, iTcp ) ) {return NULL;}
     COM_CAST_HEAD( struct tcphdr, tcp, iTcp->sig.top );
     ulong  seq = com_getVal32( tcp->th_seq, iTcp->order );
     com_sigFrg_t*  frg = com_stockFragments( &cond, seq, &ioTarget->sig );
-    if( !frg ) {return NULL;}
+    if( COM_UNLIKELY(!frg) ) {return NULL;}
     if( iTotalSize ) {
         frg->segMax = iTotalSize;
         ulong*  seq1st = com_malloc( sizeof(ulong), "TCP segment 1st seqno" );
-        if( !seq1st ) {return NULL;}
+        if( COM_UNLIKELY(!seq1st) ) {return NULL;}
         *seq1st = seq;
         frg->ext = seq1st;
     }
@@ -1277,7 +1277,7 @@ static void combineTcpSeg( com_bin *oRas, com_sigFrg_t *iFrg, com_off iCut )
 COM_SIG_FRG_t com_reassembleTcpSeg(
         com_sigFrg_t *iFrg, com_sigInf_t *ioTarget, com_sigInf_t *iTcp )
 {
-    if( !iFrg || !ioTarget || !iTcp ) {COM_PRMNG(COM_FRG_ERROR);}
+    if( COM_UNLIKELY(!iFrg || !ioTarget || !iTcp) ) {COM_PRMNG(COM_FRG_ERROR);}
     if( !iFrg->segMax ) {return COM_FRG_SEG;}
     com_sigTcpNode_t  node;
     com_sigFrgCond_t  cond;
@@ -1288,7 +1288,7 @@ COM_SIG_FRG_t com_reassembleTcpSeg(
     if( total > iFrg->segMax ) {cutSize = total - iFrg->segMax;}
     total = iFrg->segMax;
     com_bin*  ras = com_malloc( total, "TCP reassemble" );
-    if( !ras ) {return freeTcpSeg( &cond, COM_FRG_ERROR );}
+    if( COM_UNLIKELY(!ras) ) {return freeTcpSeg( &cond, COM_FRG_ERROR );}
     combineTcpSeg( ras, iFrg, cutSize );
     ioTarget->ras = (com_sigBin_t){ ras, total, 0 };
     ioTarget->sig = ioTarget->ras;
@@ -1298,7 +1298,7 @@ COM_SIG_FRG_t com_reassembleTcpSeg(
 
 BOOL com_continueTcpSeg( com_sigInf_t *ioTarget, com_sigInf_t *iTcp )
 {
-    if( !ioTarget ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioTarget) ) {COM_PRMNG(false);}
     if( !iTcp ) {return false;}
     com_sigTcpNode_t  node;
     com_sigFrgCond_t  cond;
@@ -1636,7 +1636,7 @@ static sdpSessionInf_t *getSdpSesInf(
         tmp = com_reallocAddr( &gSdpSesInf, sizeof(*gSdpSesInf), COM_TABLEEND,
                                &gSdpSesCnt, 1, "new sdp session inf" );
     }
-    if( tmp ) {
+    if( COM_LIKELY(tmp) ) {
         if( !setSdpSesInf( tmp, iInf, iCallId ) ) {return NULL;}
         *oId = gSdpSesCnt - 1;
     }
@@ -2342,7 +2342,7 @@ static BOOL getDnsMessage( com_sigInf_t *ioHead )
 {
     com_freeSigInfExt( ioHead );  // 念のため一旦解放
     ioHead->ext = com_malloc( sizeof( com_sigDnsData_t ), "DNS data" );
-    if( !(ioHead->ext) ) {return false;}
+    if( COM_UNLIKELY(!(ioHead->ext)) ) {return false;}
     com_sigDnsData_t*  tmpDns = ioHead->ext;
     *tmpDns = (com_sigDnsData_t){
         .qrbit  = com_getDnsFlagsField( ioHead, COM_CAP_DNSBIT_QR ),
