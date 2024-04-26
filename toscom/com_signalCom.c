@@ -142,7 +142,7 @@ static BOOL registHead(
         com_sigInf_t**  inf =
             com_reallocAddr( oResult, sizeof(*oResult), COM_TABLEEND, &cnt, 1,
                              "com_detectProtocol data" );
-        if( !inf ) {return false;}
+        if( COM_UNLIKELY(!inf) ) {return false;}
         *inf = iHead;
     }
     return true;
@@ -174,7 +174,7 @@ static pthread_mutex_t  gMutexDetectProtocol = PTHREAD_MUTEX_INITIALIZER;
 long com_detectProtocol(
         com_sigInf_t ***oResult, com_sigInf_t *iHead, long iProtocol )
 {
-    if( !iHead ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!iHead) ) {COM_PRMNG(0);}
     COM_SET_IF_EXIST( oResult, NULL );
     long  cnt = 0;
     com_mutexLock( &gMutexDetectProtocol, __func__ );
@@ -188,7 +188,7 @@ long com_detectProtocol(
 
 com_sigInf_t *com_getProtocol( com_sigInf_t *iHead, long iProtocol )
 {
-    if( !iHead ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!iHead) ) {COM_PRMNG(NULL);}
     com_skipMemInfo( true );
     com_sigInf_t*  result = NULL;
     long  cnt = 0;
@@ -206,7 +206,7 @@ com_sigInf_t *com_getProtocol( com_sigInf_t *iHead, long iProtocol )
 
 void com_decodeSignal( COM_DECODER_PRM )
 {
-    if( !iHead ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!iHead) ) {COM_PRMNG();}
     if( COM_ISGTYPE == COM_SIG_ALLZERO ) {
         com_decodeData( iHead, "DATA" );
         return;
@@ -229,7 +229,7 @@ void com_decodeSignal( COM_DECODER_PRM )
 
 BOOL com_checkAnalyzerPrm( COM_FILEPRM, com_sigInf_t *ioHead )
 {
-    if( !ioHead ) {PRMNG;}
+    if( COM_UNLIKELY(!ioHead) ) {PRMNG;}
     if( !COM_SGTOP ) {PRMNG;}
     if( COM_NEXTCNT == COM_SIG_STATIC && !COM_NEXTSTK ) {PRMNG;}
     return true;
@@ -289,12 +289,12 @@ static com_sigInf_t *getStack( com_sigStk_t *oNext )
     if( tmp ) {
         tmp = com_reallocAddr( &oNext->stack, sizeSig, COM_TABLEEND,
                                count, 1, "add next[%ld]", *count );
-        if( !tmp ) {return NULL;}
+        if( COM_UNLIKELY(!tmp) ) {return NULL;}
     }
     else {
         *count += 1;
         tmp = com_malloc( sizeSig * *count, "get next[%ld]", *count + 1 );
-        if( !tmp ) {return NULL;}
+        if( COM_UNLIKELY(!tmp) ) {return NULL;}
         oNext->stack = tmp;
     }
     return tmp;
@@ -311,7 +311,7 @@ static void setSigInf(
 BOOL com_setHeadInf(
         com_sigInf_t *ioHead, com_off iLen, long iType, long iNextType )
 {
-    if( !ioHead ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioHead) ) {COM_PRMNG(false);}
     com_off  orgLen = COM_SGLEN;
     if( orgLen < iLen ) {
         com_error( COM_ERR_ILLSIZE, "header length illegal" );
@@ -331,7 +331,7 @@ BOOL com_setHeadInf(
 
 BOOL com_advancePtr( com_bin **oTarget, com_off *oLen, com_off iAdd )
 {
-    if( !oTarget ) {return false;}
+    if( COM_UNLIKELY(!oTarget) ) {return false;}
     if( oLen ) {  // oLenが NULLのときは、単純に *oTargetを進めるのみ
         if( *oLen < iAdd ) {return false;}
         *oLen -= iAdd;
@@ -366,7 +366,7 @@ uint32_t com_setVal32( uint32_t iSource, BOOL iOrder )
 
 uint32_t com_calcValue( const void *iTop, com_off iSize )
 {
-    if( !iTop ) {return 0;}
+    if( COM_UNLIKELY(!iTop) ) {return 0;}
     if( iSize > COM_32BIT_SIZE ) {iSize = COM_32BIT_SIZE;}
     uint32_t  result = 0;
     for( com_off i = 0;  i < iSize;  i++ ) {
@@ -408,7 +408,7 @@ static com_sigInf_t *stackSigInf(
     com_sigInf_t*  newStack =
         com_reallocAddr( &(oTarget->stack), sizeof(*iSource), COM_TABLEEND,
                          &(oTarget->cnt), 1, "%s[%ld]", iLabel, oTarget->cnt );
-    if( !newStack ) {return NULL;}
+    if( COM_UNLIKELY(!newStack) ) {return NULL;}
     *newStack = *iSource;
     newStack->prev = iHead;
     return newStack;
@@ -416,13 +416,13 @@ static com_sigInf_t *stackSigInf(
 
 com_sigInf_t *com_stackSigNext( com_sigInf_t *ioHead, com_sigInf_t *iSource )
 {
-    if( !ioHead || !iSource ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!ioHead || !iSource) ) {COM_PRMNG(NULL);}
     return stackSigInf( &(ioHead->next), ioHead, "add sig", iSource );
 }
 
 com_sigInf_t *com_getRecentStack( com_sigStk_t *iStk )
 {
-    if( !iStk ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!iStk) ) {COM_PRMNG(NULL);}
     if( iStk->cnt == 0 ) {return NULL;}
     return &(iStk->stack[iStk->cnt - 1]);
 }
@@ -430,7 +430,7 @@ com_sigInf_t *com_getRecentStack( com_sigStk_t *iStk )
 BOOL com_stackSigMulti(
         com_sigInf_t *ioHead, const char *iLabel, com_sigBin_t *iData )
 {
-    if( !ioHead || !iLabel || !iData ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioHead || !iLabel || !iData) ) {COM_PRMNG(false);}
     com_sigInf_t  newSigStack;
     com_initSigInf( &newSigStack, ioHead );
     newSigStack.sig = *iData;
@@ -442,11 +442,11 @@ BOOL com_stackSigMulti(
 
 BOOL com_addPrmTlv( com_sigPrm_t *oTarget, com_sigTlv_t *oPrm )
 {
-    if( !oTarget || !oPrm ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oTarget || !oPrm) ) {COM_PRMNG(false);}
     com_sigTlv_t*  newTlv =
         com_reallocAddr( &oTarget->list, sizeof(*oTarget->list), COM_TABLEEND,
                          &oTarget->cnt, 1, "add prm[%ld]", oTarget->cnt );
-    if( !newTlv ) {return false;}
+    if( COM_UNLIKELY(!newTlv) ) {return false;}
     *newTlv = *oPrm;
     return true;
 }
@@ -455,7 +455,7 @@ BOOL com_addPrm(
         com_sigPrm_t *oTarget, void *iTag, com_off iTagSize,
         void *iLen, com_off iLenSize, void *iValue )
 {
-    if( !oTarget ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oTarget) ) {COM_PRMNG(false);}
     com_sigTlv_t  newPrm = {
         .tagBin = (com_sigBin_t){ iTag, iTagSize, 0 },
         .tag = com_calcValue( iTag, iTagSize ),
@@ -469,7 +469,7 @@ BOOL com_addPrm(
 BOOL com_addPrmDirect(
         com_sigPrm_t *oTarget, com_off iTag, com_off iLen, void *iValue )
 {
-    if( !oTarget ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oTarget) ) {COM_PRMNG(false);}
     com_sigTlv_t  newPrm = {
         .tagBin = (com_sigBin_t){ .top = NULL },
         .tag = iTag,
@@ -482,14 +482,14 @@ BOOL com_addPrmDirect(
 
 com_sigTlv_t *com_getRecentPrm( com_sigPrm_t *iPrm )
 {
-    if( !iPrm ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!iPrm) ) {COM_PRMNG(NULL);}
     if( iPrm->cnt == 0 ) {return NULL;}
     return &(iPrm->list[iPrm->cnt - 1]);
 }
 
 com_sigTlv_t *com_searchPrm( com_sigPrm_t *iTarget, com_off iTag )
 {
-    if( !iTarget ) {return NULL;}
+    if( COM_UNLIKELY(!iTarget) ) {return NULL;}
     for( long i = 0;  i < iTarget->cnt;  i++ ) {
         com_sigTlv_t*  prm = &(iTarget->list[i]);
         if( prm->tag == iTag ) {return prm;}
@@ -523,7 +523,7 @@ static BOOL dupBinData( com_bin **oTarget, com_off iSize, const char *iLabel )
 
 BOOL com_dupPrm( com_sigTlv_t *oTarget, const com_sigTlv_t *iSource )
 {
-    if( !oTarget || !iSource ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oTarget || !iSource) ) {COM_PRMNG(false);}
     *oTarget = *iSource;
     if( dupBinData( &oTarget->tagBin.top, iSource->tagBin.len, "tagBin" ) &&
         dupBinData( &oTarget->lenBin.top, iSource->lenBin.len, "lenBin" ) &&
@@ -603,7 +603,7 @@ static void setAddrInf( com_nodeInf_t *oInf, com_sigInf_t *iHead )
 
 BOOL com_getNodeInf( com_sigInf_t *iHead, com_nodeInf_t *oInf )
 {
-    if( !iHead || !oInf ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iHead || !oInf) ) {COM_PRMNG(false);}
     memset( oInf, 0, sizeof(*oInf) );
     while( com_getLayerType( COM_ISGTYPE ) != COM_SIG_TRANSPORT_LAYER ) {
         iHead = iHead->prev;
@@ -624,7 +624,7 @@ BOOL com_getNodeInf( com_sigInf_t *iHead, com_nodeInf_t *oInf )
 
 BOOL com_matchNodeInf( com_nodeInf_t *iInf1, com_nodeInf_t *iInf2 )
 {
-    if( !iInf1 || !iInf2 ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iInf1 || !iInf2) ) {COM_PRMNG(false);}
     COMPARE_NODEINF( srcAddr, COM_NODEADDR_SIZE );
     COMPARE_NODEINF( dstAddr, COM_NODEADDR_SIZE );
     COMPARE_NODEINF( srcPort, COM_NODEPORT_SIZE );
@@ -642,7 +642,7 @@ static void reverseBin( com_bin *ioBin1, com_bin *ioBin2, size_t iSize )
 
 void com_reverseNodeInf( com_nodeInf_t *oInf )
 {
-    if( !oInf ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oInf) ) {COM_PRMNG();}
     reverseBin( oInf->srcAddr, oInf->dstAddr, COM_NODEADDR_SIZE );
     reverseBin( oInf->srcPort, oInf->dstPort, COM_NODEPORT_SIZE );
 }
@@ -663,7 +663,7 @@ static BOOL getStatusCode( char *iSig, long *oType )
     char*  ptr = com_topString( iSig, false );
     char  code[STATUSCODE_DIGITS + 1] = {0};
     memcpy( code, ptr, STATUSCODE_DIGITS );
-    if( !com_valDigit( code, NULL ) ) {return false;}
+    if( COM_UNLIKELY(!com_valDigit( code, NULL )) ) {return false;}
     ptr += STATUSCODE_DIGITS;
     if( *ptr != ' ' ) {return false;}
     COM_SET_IF_EXIST( oType, com_atol( code ) );
@@ -673,7 +673,7 @@ static BOOL getStatusCode( char *iSig, long *oType )
 BOOL com_getMethodName(
         com_sigMethod_t *iTable, void *iSig, const char **oLabel, long *oType )
 {
-    if( !iTable || !iSig ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iTable || !iSig) ) {COM_PRMNG(false);}
     char*  ptr = iSig;
     for( long i = 0;  iTable[i].token;  i++ ) {
         const char*  token = iTable[i].token;
@@ -692,7 +692,7 @@ BOOL com_getMethodName(
 
 com_off com_getHeaderRest( char *iHdr, int iSep )
 {
-    if( !iHdr ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!iHdr) ) {COM_PRMNG(0);}
     com_off  result = 0;
     for( ; *iHdr && *iHdr != '\r' && *iHdr != '\n';  iHdr++ ) {
         if( iSep ) {if( *iHdr == iSep ) {break;}}
@@ -732,7 +732,7 @@ com_off com_matchToken(
 
 void com_setTxtHeaderVal( com_sigTlv_t *oTlv, char *iHdr, int iSep )
 {
-    if( !oTlv || !iHdr ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oTlv || !iHdr) ) {COM_PRMNG();}
     memset( oTlv, 0, sizeof(*oTlv) );
     oTlv->tagBin = (com_sigBin_t){
         (com_bin*)iHdr, com_getHeaderRest( iHdr, iSep ), 0
@@ -759,7 +759,7 @@ static void procMultiLine( char *ioVal )
 
 char *com_getTxtHeaderVal( com_sigPrm_t *iPrm, const char *iHeader )
 {
-    if( !iPrm || !iHeader ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!iPrm || !iHeader) ) {COM_PRMNG(NULL);}
     static char  value[COM_TEXTBUF_SIZE];
     COM_CLEAR_BUF( value );
     for( long i = 0;  i < iPrm->cnt;  i++ ) {
@@ -826,7 +826,7 @@ static char  gTxtBuf[COM_TEXTBUF_SIZE];
 
 char *com_getTxtHeader( com_sigInf_t *ioHead, com_off *oHdrSize )
 {
-    if( !ioHead || !oHdrSize ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!ioHead || !oHdrSize) ) {COM_PRMNG(NULL);}
     *oHdrSize = 0;
     com_sigTextSeek_t  inf = { ioHead, oHdrSize };
     if( !com_seekTextLine( COM_SGTOP, COM_SGLEN, true, getTxtHeadVal, &inf,
@@ -839,7 +839,7 @@ char *com_getTxtHeader( com_sigInf_t *ioHead, com_off *oHdrSize )
 
 BOOL com_seekTxtHeaderPrm( char *iHdr, char *iPrm, char **oTop, com_off *oLen )
 {
-    if( !iHdr || !iPrm || !oTop || !oLen ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iHdr || !iPrm || !oTop || !oLen) ) {COM_PRMNG(false);}
     char*  bndr = com_searchString( iHdr, iPrm, NULL, 0, true );
     if( !bndr ) {return false;}
     bndr += strlen( iPrm );
@@ -871,7 +871,7 @@ static BOOL getBoundary( com_sigPrm_t *oHdr, char *iConType )
     }
     if( *boundary == '\"' || *boundary == '\'' ) {boundary++; bSize -= 2;}
     oHdr->spec = com_malloc( bSize + 1, "SIP multibody boundary" );
-    if( !oHdr->spec ) {return false;}
+    if( COM_UNLIKELY(!oHdr->spec) ) {return false;}
     return com_strncpy( (char*)(oHdr->spec), bSize + 1, boundary, bSize );
 }
 
@@ -985,7 +985,9 @@ BOOL com_getTxtBody(
         com_sigInf_t *ioHead, COM_PRTCLTYPE_t iNext, com_off iHdrSize,
         const char *iConLen, const char *iConType, const char *iMulti )
 {
-    if( !ioHead || !iConLen || !iConType || !iMulti ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioHead || !iConLen || !iConType || !iMulti) ) {
+        COM_PRMNG(false);
+    }
     com_off  bodyLen = 0;
     com_sigPrm_t*  hdr = COM_APRM;
     char  *cLen = com_getTxtHeaderVal( hdr, iConLen );
@@ -1008,7 +1010,9 @@ BOOL com_analyzeTxtBase(
         com_sigInf_t *ioHead, long iType, COM_PRTCLTYPE_t iNext,
         const char *iConLen, const char *iConType, const char *iMulti )
 {
-    if( !ioHead || !iConLen || !iConType || !iMulti ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioHead || !iConLen || !iConType || !iMulti) ) {
+        COM_PRMNG(false);
+    }
     BOOL  result = false;
     com_off  hdrSize = 0;
     if( com_getTxtHeader( ioHead, &hdrSize ) ) {
@@ -1057,7 +1061,7 @@ static BOOL addIndefinite( com_sigPrm_t *oPrm )
         return true;
     }
     long*  newIndef = com_malloc( sizeof(long), "indefinite count" );
-    if( !newIndef ) {return false;}
+    if( COM_UNLIKELY(!newIndef) ) {return false;}
     *newIndef = 1;
     oPrm->spec = newIndef;
     return true;
@@ -1084,8 +1088,8 @@ BOOL com_getAsnTlv( com_bin **ioSignal, com_sigPrm_t *oPrm )
     }
     com_off  lenSize = com_getTagLength( ++(*ioSignal), &tlv.len );
     if( lenSize == 1 && tlv.len == 0 ) {
-        if( !addIndefinite( oPrm ) ) {return false;}
-        if( !COM_ASN_ISCONST( tlv.tag ) ) {
+        if( COM_UNLIKELY(!addIndefinite( oPrm )) ) {return false;}
+        if( COM_UNLIKELY(!COM_ASN_ISCONST( tlv.tag )) ) {
             com_error( COM_ERR_INCORRECT,
                        "length is indefinite, but tag isn't constructor" );
         }
@@ -1096,7 +1100,7 @@ BOOL com_getAsnTlv( com_bin **ioSignal, com_sigPrm_t *oPrm )
         return **ioSignal;
     }
     tlv.value = (*ioSignal += lenSize);
-    if( !com_addPrmTlv( oPrm, &tlv ) ) {return false;}
+    if( COM_UNLIKELY(!com_addPrmTlv( oPrm, &tlv )) ) {return false;}
     if( !COM_ASN_ISCONST( tlv.tag ) ) {*ioSignal += tlv.len;}
     return true;
 }
@@ -1138,7 +1142,7 @@ BOOL com_searchAsnTlv(
         com_sigPrm_t *iPrm, uint32_t *iTags, size_t iTagSize,
         com_sigBin_t *oValue )
 {
-    if( !iPrm || !iTags || !oValue ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iPrm || !iTags || !oValue) ) {COM_PRMNG(false);}
     com_off  nestCnt = 0;
     com_strChain_t*  restStack = NULL;
     com_off  rest = 0;
@@ -1203,7 +1207,7 @@ void com_dispDec( const char *iFormat, ... )
 
 void com_dispSig( const char *iName, long iCode, const com_sigBin_t *iSig )
 {
-    if( !iSig->top || !iSig->len ) {return;}
+    if( COM_UNLIKELY(!iSig->top || !iSig->len) ) {return;}
     if( iCode > COM_NO_PTYPE ) {
         com_dispDec( " %s[%ld]  <length=%zu>", iName, iCode, iSig->len );
     }
@@ -1421,7 +1425,7 @@ void com_decodeTxtBase(
         com_sigInf_t *iHead, const char **iHdrList,
         const char *iSigLabel, long iSigType, const char *iConType )
 {
-    if( !iHead || !iSigLabel || !iConType ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!iHead || !iSigLabel || !iConType) ) {COM_PRMNG();}
     com_printf( "# %s HEADER [%ld]  <length=%zu>\n",
                 com_searchSigProtocol( COM_ISGTYPE ), COM_ISGTYPE, COM_ISGLEN );
     if( iSigType < COM_SIG_METHOD_END ) {com_dispPrm( "Method", iSigLabel, 0 );}
@@ -1450,7 +1454,7 @@ static void dispTagLen(
 
 void com_dispAsnPrm( const com_sigPrm_t *iPrm, const char *iLabel, long iStart )
 {
-    if( !iPrm || !iLabel ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!iPrm || !iLabel) ) {COM_PRMNG();}
     com_off  nestCnt = 0;
     com_strChain_t*  restStack = NULL;
     com_off  rest = 0;
@@ -1491,7 +1495,7 @@ static void freeFragMng( com_sigFrgManage_t *oTarget )
 
 void com_freeFragments( const com_sigFrgCond_t *iCond )
 {
-    if( !iCond ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!iCond) ) {COM_PRMNG();}
     com_sigFrgManage_t*  target = com_searchFragment( iCond );
     if( target ) {freeFragMng( target );}
 }
@@ -1515,7 +1519,7 @@ static BOOL matchFrgCond(
 
 com_sigFrgManage_t *com_searchFragment( const com_sigFrgCond_t *iCond )
 {
-    if( !iCond ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!iCond) ) {COM_PRMNG(NULL);}
     for( long i = 0;  i < gFrgInfCnt;  i++ ) {
         if( !gFrgInf[i].isUse ) {continue;}
         if( matchFrgCond( &gFrgInf[i].cond, iCond ) ) {return &(gFrgInf[i]);}
@@ -1585,7 +1589,7 @@ static com_sigFrg_t *stockNG( const com_sigFrgCond_t *iCond )
 com_sigFrg_t *com_stockFragments(
         const com_sigFrgCond_t *iCond, long iSeg, com_sigBin_t *iFrag )
 {
-    if( !iCond || !iFrag ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!iCond || !iFrag) ) {COM_PRMNG(NULL);}
     com_sigFrgManage_t*  mng = getFrgInf( iCond );
     if( !mng ) {return NULL;}
     com_sigFrg_t*  frg = &(mng->data);
@@ -1594,7 +1598,7 @@ com_sigFrg_t *com_stockFragments(
                          COM_TABLEEND, &(frg->cnt), 1,
                          "Fragment segment[%ld] type=%ld id=%ld seg=%ld",
                          frg->cnt, iCond->type, iCond->id, iSeg );
-    if( !inf ) {return stockNG( iCond );}
+    if( COM_UNLIKELY(!inf) ) {return stockNG( iCond );}
     if( !com_copySigBin( &inf->bin, iFrag ) ) {return stockNG( iCond );}
     inf->seg = iSeg;
     return frg;

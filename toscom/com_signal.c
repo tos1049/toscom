@@ -17,7 +17,7 @@
 
 void com_initSigBin( com_sigBin_t *oTarget )
 {
-    if( !oTarget ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oTarget) ) {COM_PRMNG();}
     *oTarget = (com_sigBin_t){ .top = NULL };
 }
 
@@ -32,7 +32,7 @@ void com_freeSigBin( com_sigBin_t *oTarget )
 
 BOOL com_copySigBin( com_sigBin_t *oTarget, const com_sigBin_t *iSource )
 {
-    if( !oTarget || !iSource ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oTarget || !iSource) ) {COM_PRMNG(false);}
     com_off  copySize = iSource->len;
     if( !oTarget->top ) {
         oTarget->top =
@@ -48,7 +48,7 @@ BOOL com_copySigBin( com_sigBin_t *oTarget, const com_sigBin_t *iSource )
 
 void com_initSigFrg( com_sigFrg_t *oTarget )
 {
-    if( !oTarget ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oTarget) ) {COM_PRMNG();}
     *oTarget = (com_sigFrg_t){ .ext = NULL, .inf = NULL };
 }
 
@@ -67,7 +67,7 @@ void com_freeSigFrg( com_sigFrg_t *oTarget )
 
 void com_initSigPrm( com_sigPrm_t *oTarget )
 {
-    if( !oTarget ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oTarget) ) {COM_PRMNG();}
     *oTarget = (com_sigPrm_t){ .list = NULL, .spec = NULL };
 }
 
@@ -83,7 +83,7 @@ void com_freeSigPrm( com_sigPrm_t *oTarget )
 
 void com_initSigStk( com_sigStk_t *oTarget )
 {
-    if( !oTarget ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oTarget) ) {COM_PRMNG();}
     *oTarget = (com_sigStk_t){ .stack = NULL };
 }
 
@@ -103,13 +103,13 @@ void com_freeSigStk( com_sigStk_t *oTarget, BOOL iBin )
 
 void com_setStaticStk( com_sigStk_t *oTarget, com_sigInf_t *iSource )
 {
-    if( !oTarget || !iSource ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oTarget || !iSource) ) {COM_PRMNG();}
     *oTarget = (com_sigStk_t){ .cnt = COM_SIG_STATIC, .stack = iSource };
 }
 
 void com_initSigInf( com_sigInf_t *oTarget, com_sigInf_t *iOrg )
 {
-    if( !oTarget ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oTarget) ) {COM_PRMNG();}
     com_initSigBin( &oTarget->sig );
     oTarget->isFragment = false;
     com_initSigBin( &oTarget->ras );
@@ -123,7 +123,7 @@ void com_initSigInf( com_sigInf_t *oTarget, com_sigInf_t *iOrg )
 
 void com_makeSigInf( com_sigInf_t *oTarget, void *iData, com_off iSize )
 {
-    if( !oTarget ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oTarget) ) {COM_PRMNG();}
     com_initSigInf( oTarget, NULL );
     oTarget->sig = (com_sigBin_t){ iData, iSize, COM_SIG_UNKNOWN };
 }
@@ -178,7 +178,7 @@ BOOL com_setSigInf(
         com_sigInf_t *oTarget, com_sigInf_t *oStaticNext,
         const uchar *iSignal, size_t iSize, BOOL iOrder )
 {
-    if( !oTarget || !iSignal ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oTarget || !iSignal) ) {COM_PRMNG(false);}
     com_initSigInf( oTarget, NULL );
     com_skipMemInfo( true );
     BOOL  result = setSigInf( oTarget, oStaticNext, iSignal, iSize, iOrder );
@@ -189,11 +189,11 @@ BOOL com_setSigInf(
 
 BOOL com_addSigInf( com_sigBin_t *oTarget, const uchar *iSignal, size_t iSize )
 {
-    if( !oTarget || iSignal ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oTarget || iSignal) ) {COM_PRMNG(false);}
     com_skipMemInfo( true );
     com_bin*  tmp = com_realloc( oTarget->top, oTarget->len + iSize, __func__ );
     com_skipMemInfo( false );
-    if( !tmp ) {return false;}
+    if( COM_UNLIKELY(!tmp) ) {return false;}
     oTarget->top = tmp;
     memcpy( oTarget->top + oTarget->len, iSignal, iSize );
     oTarget->len += iSize;
@@ -220,13 +220,13 @@ static void registerPort(
 BOOL com_registerAnalyzer(
         com_analyzeFuncList_t *iList, COM_PRTCLTYPE_t iNumSys )
 {
-    if( !iList ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iList) ) {COM_PRMNG(false);}
     com_mutexLock( &gMutexAnalyzer, __func__ );
     for( ; iList->type != COM_SIG_END;  iList++ ) {
         BOOL  collision = false;
         BOOL  result = com_addSortTableByKey( &gAnalyzeList, iList->type,
                                         iList, sizeof(*iList), &collision );
-        if( !result ) {com_exit( COM_ERR_NOMEMORY );}
+        if( COM_UNLIKELY(!result) ) {com_exit( COM_ERR_NOMEMORY );}
         if( collision ) {
             com_printf( "protocol type(%ld) already exist\n", iList->type );
         }
@@ -277,7 +277,7 @@ com_freeSig_t com_searchSigFreer( long iType )
 
 long com_searchPrtclByLabel( const char *iLabel )
 {
-    if( !iLabel ) {COM_PRMNG(COM_SIG_UNKNOWN);}
+    if( COM_UNLIKELY(!iLabel) ) {COM_PRMNG(COM_SIG_UNKNOWN);}
     long  result = COM_SIG_UNKNOWN;
     com_mutexLock( &gMutexAnalyzer, __func__ );
     for( long i = 0;  i < gAnalyzeList.count;  i++ ) {
@@ -306,7 +306,7 @@ long com_showAvailProtocols( long **oList )
 
 BOOL com_setCustomAnalyzer( long iType, com_analyzeSig_t iAnalyzer )
 {
-    if( !iAnalyzer ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iAnalyzer) ) {COM_PRMNG(false);}
     com_analyzeFuncList_t*  anlz = searchAnalyzeList( iType );
     if( !anlz ) {COM_PRMNG(false);}
     anlz->func = iAnalyzer;
@@ -315,7 +315,7 @@ BOOL com_setCustomAnalyzer( long iType, com_analyzeSig_t iAnalyzer )
 
 BOOL com_setCustomDecoder( long iType, com_decodeSig_t iDecoder )
 {
-    if( !iDecoder ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iDecoder) ) {COM_PRMNG(false);}
     com_analyzeFuncList_t*  anlz = searchAnalyzeList( iType );
     if( !anlz ) {COM_PRMNG(false);}
     anlz->decoFunc = iDecoder;
@@ -324,7 +324,7 @@ BOOL com_setCustomDecoder( long iType, com_decodeSig_t iDecoder )
 
 BOOL com_setCustomFreer( long iType, com_freeSig_t iFreer )
 {
-    if( !iFreer ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iFreer) ) {COM_PRMNG(false);}
     com_analyzeFuncList_t*  anlz = searchAnalyzeList( iType );
     if( !anlz ) {COM_PRMNG(false);}
     anlz->freeFunc = iFreer;
@@ -356,22 +356,22 @@ static mngProtocolType_t *getPrtclTypeInf( long iBase, BOOL iMakeNew )
         com_reallocAddr( &gPrtclTypeInf, sizeof(*gPrtclTypeInf),
                          COM_TABLEEND, &gPrtclTypeCnt, 1,
                          "add protocol type inf" );
-    if( !tmp ) {com_exit( COM_ERR_NOMEMORY );}
+    if( COM_UNLIKELY(!tmp) ) {com_exit( COM_ERR_NOMEMORY );}
     tmp->base = iBase;
     return tmp;
 }
 
 void com_setPrtclType( COM_PRTCLTYPE_t iBase, com_sigPrtclType_t *iList )
 {
-    if( iBase == COM_NOT_USE ) {return;}
-    if( !iList ) {COM_PRMNG();}
+    if( COM_UNLIKELY(iBase == COM_NOT_USE) ) {return;}
+    if( COM_UNLIKELY(!iList) ) {COM_PRMNG();}
     com_skipMemInfo( true );
     mngProtocolType_t*  mngInf = getPrtclTypeInf( iBase, true );
     for( ;  iList->target.type != COM_PRTCLTYPE_END;  iList++ ) {
         com_sigPrtclType_t*  newList =
             com_reallocAddr( &(mngInf->list), sizeof(*(mngInf->list)),
                     COM_TABLEEND, &(mngInf->cnt), 1, "add protocol type" );
-        if( !newList ) {com_exit( COM_ERR_NOMEMORY );}
+        if( COM_UNLIKELY(!newList) ) {com_exit( COM_ERR_NOMEMORY );}
         *newList = *iList;
     }
     // 終端データの codeを、その種別のデフォルト値として設定する
@@ -384,7 +384,7 @@ void com_setPrtclType( COM_PRTCLTYPE_t iBase, com_sigPrtclType_t *iList )
 
 long com_getPrtclType( COM_PRTCLTYPE_t iBase, long iType )
 {
-    if( iBase == COM_NOT_USE ) {return 0;}
+    if( COM_UNLIKELY(iBase == COM_NOT_USE) ) {return 0;}
     mngProtocolType_t*  mngInf = getPrtclTypeInf( iBase, false );
     if( !mngInf ) {COM_PRMNG(COM_SIG_UNKNOWN);}
     for( long i = 0;  i < mngInf->cnt;  i++ ) {
@@ -396,7 +396,7 @@ long com_getPrtclType( COM_PRTCLTYPE_t iBase, long iType )
 
 long com_getPrtclLabel( COM_PRTCLTYPE_t iBase, char *iLabel )
 {
-    if( iBase == COM_NOT_USE ) {return 0;}
+    if( COM_UNLIKELY(iBase == COM_NOT_USE) ) {return 0;}
     mngProtocolType_t*  mngInf = getPrtclTypeInf( iBase, false );
     if( !mngInf ) {COM_PRMNG(COM_SIG_UNKNOWN);}
     for( long i = 0;  i < mngInf->cnt;  i++ ) {
@@ -410,12 +410,12 @@ long com_getPrtclLabel( COM_PRTCLTYPE_t iBase, char *iLabel )
 
 void com_setBoolTable( COM_PRTCLTYPE_t iBase, long *iTypes, long iTypeCnt )
 {
-    if( !iTypes ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!iTypes) ) {COM_PRMNG();}
     com_skipMemInfo( true );
     com_sigPrtclType_t*  list =
         com_malloc( sizeof(com_sigPrtclType_t) * (iTypeCnt + 1),
                     "create list data (cnt=%ld)", iTypeCnt );
-    if( !list ) {com_exit( COM_ERR_NOMEMORY );}
+    if( COM_UNLIKELY(!list) ) {com_exit( COM_ERR_NOMEMORY );}
     long  i = 0;
     for( ;  i < iTypeCnt;  i++ ) {
         list[i] = (com_sigPrtclType_t){ {iTypes[i]}, true };
@@ -441,7 +441,7 @@ void com_freePrtclType( void )
 
 void com_initCapInf( com_capInf_t *oTarget )
 {
-    if( !oTarget ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oTarget) ) {COM_PRMNG();}
     *oTarget = (com_capInf_t){ .fileName = NULL, .fp = NULL };
     com_initSigInf( &oTarget->head, NULL );
     com_initSigStk( &oTarget->ifs );
@@ -804,7 +804,7 @@ static BOOL getPcapng( com_capInf_t *oCapInf )
 
 static void convertOrder32( uint32_t *ioValue, BOOL iOrder )
 {
-    if( iOrder ) { *ioValue = ntohl( *ioValue ); }
+    *ioValue = com_getVal32( *ioValue, iOrder );
 }
 
 static void procOrderPktHdr( com_pcapPkthdr_t *ioPktHdr, BOOL iOrder )
