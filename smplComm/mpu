@@ -11,3 +11,5 @@ rm -fr BUILD/makefile.orig BUILD/makefile.rej
 cp ../toscom/BUILD/makefile BUILD/
 patch BUILD/makefile BUILD/makefile.diff
 
+rm -fr .com_windowSpec.h
+
