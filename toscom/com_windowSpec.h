@@ -7,6 +7,8 @@
  *
  */
 
+#pragma once
+
 /*
  * com_inoutWindow()で使用される特殊キーのキーコード宣言
  * Linux/Windows(Cygwin)でほぼ同じ値だったが、BSだけは差分があったため、
