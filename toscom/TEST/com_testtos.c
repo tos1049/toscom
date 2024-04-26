@@ -1378,7 +1378,7 @@ void test_config( void )
     com_addCfgValidator( KEY_TEST5, NULL, COM_VAL_YESNO );
     setCfgTest( KEY_TEST5, "On" );     // エラーになる
     setCfgTest( KEY_TEST5, "YeS" );
-    com_printf( "%s:%d\n\n", KEY_TEST5, com_getCfgBool( KEY_TEST5 ) );
+    com_printf( "%s:%ld\n\n", KEY_TEST5, com_getCfgBool( KEY_TEST5 ) );
 
     (void)com_getCfg( "DUMMY" );    // エラーになる
 
