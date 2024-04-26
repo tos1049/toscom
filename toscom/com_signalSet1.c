@@ -2666,7 +2666,7 @@ static BOOL dispRd_V4ADDR( DISP_RDATA_PRM )
     COM_UNUSED( iHead );
     char  tmpAddr[16] = {0};
     snprintf( tmpAddr, sizeof(tmpAddr), "%d.%d.%d.%d",
-              *ioPtr[0], *ioPtr[1], *ioPtr[2], *ioPtr[3] );
+              (*ioPtr)[0], (*ioPtr)[1], (*ioPtr)[2], (*ioPtr)[3] );
     if( !com_advancePtr( ioPtr, ioRest, COM_32BIT_SIZE ) ) {return false;}
     com_dispDec( "       (%s = %s)", iUnit->label, tmpAddr );
     return true;
