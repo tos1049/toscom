@@ -181,7 +181,7 @@ static void dispTimeStamp( FILE *ioFp, stamp_t *iStamp )
 static void writeFile(
         FILE *ioFp, BOOL iLineTop, stamp_t *iStamp, char *iPrefixLabel )
 {
-    if( !ioFp ) {return;}    // 念の為 NULLチェックを入れておく
+    if( COM_UNLIKELY(!ioFp) ) {return;}    // 念の為 NULLチェックを入れておく
     if( iLineTop ) {
         dispTimeStamp( ioFp, iStamp );
         if( iPrefixLabel ) {fprintf( ioFp, "[%s] ", iPrefixLabel );}
@@ -287,7 +287,7 @@ void com_printf( const char *iFormat, ... )
 
 void com_repeat( const char *iSource, long iCount, BOOL iUseLf )
 {
-    if( !iSource ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!iSource) ) {COM_PRMNG();}
     DBGOUT_HEAD;
     for( long i = 0;  i < iCount;  i++ ) {PRINT( iSource );}
     if( iUseLf ) {PRINT( "\n" );}
@@ -373,7 +373,7 @@ void com_printTag(
         const char *iFormat, ... )
 {
     char  label[COM_LINEBUF_SIZE] = {0};
-    if( !iTag || !iFormat ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!iTag || !iFormat) ) {COM_PRMNG();}
     if( iPos < 0 || iPos > COM_PTAG_RIGHT ) {COM_PRMNG();}
     com_setFuncTrace( false );
     COM_SET_FORMAT( label );
@@ -449,7 +449,7 @@ static void dispAscii(
 void com_printBinary(
         const void *iBinary, size_t iLength, com_printBin_t *iFlags )
 {
-    if( !iBinary || !iLength ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!iBinary || !iLength) ) {COM_PRMNG();}
     com_mutexLock( &gMutexOut, __func__ );
     const uchar*  top = iBinary;
     com_printBin_t  flags;
@@ -664,7 +664,7 @@ static BOOL  gOccuredError = false;   // エラー発生有無フラグ
 
 void com_registerErrorCode( const com_dbgErrName_t *iList )
 {
-    if( !iList ) {return;}
+    if( COM_UNLIKELY(!iList) ) {return;}
     com_mutexLockCom( &gMutexError, COM_FILELOC );
     BOOL  collision;
     for( ;  iList->code != COM_ERR_END;  iList++ ) {

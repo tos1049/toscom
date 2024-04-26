@@ -46,7 +46,7 @@ static BOOL addOptHash( void *iKey, BOOL iLong, com_getOpt_t *iOpt )
     size_t  keySize = getKeySize( iKey, iLong );
     COM_HASH_t  result =
         com_addHash( gOptHash, false, iKey, keySize, iOpt, sizeof(*iOpt) );
-    if( result != COM_HASH_OK ) {return false;}
+    if( COM_UNLIKELY(result != COM_HASH_OK) ) {return false;}
     return true;
 }
 
@@ -116,7 +116,9 @@ static void addMandatoryOption( com_getOpt_t *iOpt )
 {
     char  opt[COM_WORDBUF_SIZE] = {0};
     setOptionName( iOpt, opt, sizeof(opt) );
-    if( !com_addChainData( &gOptMan, opt ) ) {com_exit( COM_ERR_NOMEMORY );}
+    if( COM_UNLIKELY(!com_addChainData( &gOptMan, opt )) ) {
+        com_exit( COM_ERR_NOMEMORY );
+    }
 }
 
 static void delMandatoryOption( com_getOpt_t *iOpt )
@@ -230,7 +232,7 @@ static BOOL addRest( char *iPrm, COM_FILEPRM )
     char**  addArgv = com_reallocAddrFunc( &gOptRestList, sizeof(char*),
                                            COM_TABLEEND, &gOptRestCnt, 1,
                                            COM_FILEVAR, "rest opt(%s)", iPrm );
-    if( !addArgv ) {return false;}
+    if( COM_UNLIKELY(!addArgv) ) {return false;}
     *addArgv = iPrm;
     return true;
 }
@@ -264,7 +266,7 @@ BOOL com_getOption(
         int iArgc, char **iArgv, com_getOpt_t *iOpts,
         long *oRestArgc, char ***oRestArgv, void *ioUserData )
 {
-    if( !iOpts ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iOpts) ) {COM_PRMNG(false);}
     COM_DEBUG_AVOID_START( COM_NO_FUNCNAME );
     long  manMax = setOptSetting( iOpts );
     if( manMax < 0 ) {GETOPTNG;}
@@ -296,7 +298,7 @@ void com_exitFunc( long iType, COM_FILEPRM )
 int com_system( const char *iFormat, ... )
 {
     char  sysBuf[COM_LINEBUF_SIZE];
-    if( !iFormat ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!iFormat) ) {COM_PRMNG(0);}
     COM_SET_FORMAT( sysBuf );
     if( strlen( sysBuf ) == sizeof(sysBuf) -1 ) {
         com_error( COM_ERR_BUFFOVER, 
@@ -320,7 +322,7 @@ static void checkAllocation(
         COM_FILEPRM )
 {
     // メモリ捕捉できていたら、デバッグ情報を追加
-    if( iPtr ) {
+    if( COM_LIKELY(iPtr) ) {
         char*  info = iFormat ? gMemLog : NULL;
         com_addMemInfo( COM_FILEVAR, iType, iPtr, iSize, info );
         return;
@@ -337,7 +339,7 @@ static void checkAllocation(
 
 void *com_mallocFunc( size_t iSize, COM_FILEPRM, const char *iFormat, ... )
 {
-    if( !iSize ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!iSize) ) {COM_PRMNG(NULL);}
     com_mutexLock( &gMutexMem, "malloc(%zu)", iSize );
     void*  ptr = NULL;
     if( !com_debugMemoryError() ) {ptr = calloc( iSize, 1 );}
@@ -465,7 +467,7 @@ static BOOL calcTmpSize(
             long  diff = iPos - *ioResize;
             *oTmpSize = (iCount - diff) * iUnit;
             *oTmp = malloc( *oTmpSize );
-            if( !(*oTmp) ) {
+            if( COM_UNLIKELY(!(*oTmp)) ) {
                 com_error( COM_ERR_NOMEMORY, "fail to get tmp area" );
                 return false;
             }
@@ -504,7 +506,7 @@ void *com_reallocAddrFunc(
         return NULL;
     }
     PROC_REALLOCT;
-    if( !result ) {free( tmp );  return NULL;}
+    if( COM_UNLIKELY(!result) ) {free( tmp );  return NULL;}
     dmy = ioAddr; // アドレス変化の可能性があるので再取得
     moveTableData( tmp, tmpSize, dmy, iUnit, iPos, iResize );
     free( tmp );
@@ -530,7 +532,7 @@ char *com_strdupFunc(
         const char *iString, COM_FILEPRM,
         const char *iFormat, ... )
 {
-    if( !iString ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!iString) ) {COM_PRMNG(NULL);}
     com_mutexLock( &gMutexMem, "strdup(%s)", iString );
     COM_SET_FORMAT( gMemLog );
     if( !iFormat ) {(void)com_strcpy( gMemLog, iString );}
@@ -544,7 +546,7 @@ char *com_strndupFunc(
         const char *iString, size_t iSize, COM_FILEPRM,
         const char *iFormat, ... )
 {
-    if( !iString || !iSize ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!iString || !iSize) ) {COM_PRMNG(NULL);}
     com_mutexLock( &gMutexMem, "strndup(%s)", iString );
     COM_SET_FORMAT( gMemLog );
     if( iSize > strlen(iString) ) {iSize = strlen(iString);}
@@ -561,7 +563,7 @@ char *com_strndupFunc(
 // 基本的にマクロ定義した com_free() を通して使うこと
 void com_freeFunc( void *ioAddr, COM_FILEPRM )
 {
-    if( !ioAddr ) {COM_PRMNGF("com_free",);}
+    if( COM_UNLIKELY(!ioAddr) ) {COM_PRMNGF("com_free",);}
     char**  dmy = ioAddr;  // ioAddrはダブルポインタであることを想定
     if( *dmy == NULL ) {return;}
     com_mutexLock( &gMutexMem, "free(%p)", *dmy );
@@ -616,7 +618,7 @@ static BOOL setBuffer(
     if( oBuf->size < len ) {
         oBuf->data = com_reallocfFunc( oBuf->data, len, COM_FILEVAR,
                                        "%s(%s)", label, iData );
-        if( !(oBuf->data) ) {oBuf->size = 0;  return false;}
+        if( COM_UNLIKELY(!(oBuf->data)) ) {oBuf->size = 0;  return false;}
         oBuf->size = len;
     }
     memset( oBuf->data, 0, oBuf->size );
@@ -633,7 +635,7 @@ static BOOL initBuffer(
     if( iSize > 0 ) {
         oBuf->data = com_mallocFunc( iSize, COM_FILEVAR,
                                      makeBufferLabel( iType, iData ) );
-        if( !(oBuf->data) ) {return false;}
+        if( COM_UNLIKELY(!(oBuf->data)) ) {return false;}
     }
     if( iData ) {
         return setBuffer( COM_FILEVAR, iType, oBuf, iData, strlen(iData) );
@@ -644,7 +646,7 @@ static BOOL initBuffer(
 BOOL com_createBufferFunc(
         com_buf_t **oBuf, size_t iSize, COM_FILEPRM, const char *iFormat, ... )
 {
-    if( !oBuf ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oBuf) ) {COM_PRMNG(false);}
 
     (void)com_mutexLockCom( &gMutexBuff, COM_FILELOC );
     COM_SET_FORMAT( gTmpBuff );
@@ -656,7 +658,7 @@ BOOL com_createBufferFunc(
         result = initBuffer( COM_FILEVAR, COM_CREBUFF,
                              *oBuf, initString, iSize );
         // 初期化が失敗した場合は、バッファ生成自体を中断する
-        if( !result ) {com_free( *oBuf );}
+        if( COM_UNLIKELY(!result) ) {com_free( *oBuf );}
     }
     return com_mutexUnlockCom( &gMutexBuff, COM_FILELOC, result );
 }
@@ -664,7 +666,7 @@ BOOL com_createBufferFunc(
 BOOL com_initBufferFunc(
         com_buf_t *oBuf, size_t iSize, COM_FILEPRM, const char *iFormat, ... )
 {
-    if( !oBuf ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oBuf) ) {COM_PRMNG(false);}
 
     com_mutexLockCom( &gMutexBuff, COM_FILELOC );
     COM_SET_FORMAT( gTmpBuff );
@@ -680,8 +682,8 @@ BOOL com_setBufferFunc(
         const char *iFormat, ... )
 {
     char*  label = gSetFunc[iType];
-    if( !oBuf || !iFormat ) {COM_PRMNGF(label,false);}
-    if( iSize > TMPBUFF_SIZE - 1 ) {COM_PRMNGF(label,false);}
+    if( COM_UNLIKELY(!oBuf || !iFormat) ) {COM_PRMNGF(label,false);}
+    if( COM_UNLIKELY(iSize > TMPBUFF_SIZE - 1) ) {COM_PRMNGF(label,false);}
 
     com_mutexLockCom( &gMutexBuff, __FILE__, __LINE__, label );
     COM_SET_FORMAT( gTmpBuff );
@@ -696,9 +698,9 @@ BOOL com_addBufferFunc(
         const char *iFormat, ... )
 {
     char*  label = gSetFunc[iType];
-    if( !oBuf || !iFormat ) {COM_PRMNGF(label,false);}
-    if( !(oBuf->data) ) {COM_PRMNGF(label,false);}
-    if( iSize > TMPBUFF_SIZE - 1 ) {COM_PRMNGF(label,false);}
+    if( COM_UNLIKELY(!oBuf || !iFormat) ) {COM_PRMNGF(label,false);}
+    if( COM_UNLIKELY(!(oBuf->data)) ) {COM_PRMNGF(label,false);}
+    if( COM_UNLIKELY(iSize > TMPBUFF_SIZE - 1) ) {COM_PRMNGF(label,false);}
 
     com_mutexLockCom( &gMutexBuff, __FILE__, __LINE__, label );
     COM_SET_FORMAT( gTmpAddBuff );
@@ -711,7 +713,7 @@ BOOL com_addBufferFunc(
 BOOL com_copyBufferFunc(
         com_buf_t *oTarget, const com_buf_t *iSource, COM_FILEPRM )
 {
-    if( !oTarget || !iSource ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oTarget || !iSource) ) {COM_PRMNG(false);}
 
     com_skipMemInfo( true );
     BOOL  result =
@@ -722,7 +724,7 @@ BOOL com_copyBufferFunc(
 
 void com_clearBuffer( com_buf_t *oBuf )
 {
-    if( !oBuf ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oBuf) ) {COM_PRMNG();}
 
     memset( oBuf->data, 0, oBuf->size );
     // oBuf->size は変動なし
@@ -736,7 +738,7 @@ static void resetBuffer( com_buf_t *oBuf, COM_FILEPRM )
 
 void com_resetBufferFunc( com_buf_t *oBuf, COM_FILEPRM )
 {
-    if( !oBuf ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oBuf) ) {COM_PRMNG();}
 
     com_skipMemInfo( true );
     resetBuffer( oBuf, COM_FILEVAR );
@@ -745,7 +747,7 @@ void com_resetBufferFunc( com_buf_t *oBuf, COM_FILEPRM )
 
 void com_freeBufferFunc( com_buf_t **oBuf, COM_FILEPRM )
 {
-    if( !oBuf ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oBuf) ) {COM_PRMNG();}
 
     if( !(*oBuf) ) {return;}
     com_skipMemInfo( true );
@@ -768,13 +770,13 @@ static void convertString( char *ioString, BOOL iIsUpper )
 
 void com_convertUpper( char *ioString )
 {
-    if( !ioString ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!ioString) ) {COM_PRMNG();}
     convertString( ioString, true );
 }
 
 void com_convertLower( char *ioString )
 {
-    if( !ioString ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!ioString) ) {COM_PRMNG();}
     convertString( ioString, false );
 }
 
@@ -899,7 +901,7 @@ static void convertOct(
 BOOL com_strtooctFunc(
         const char *iString, uchar **oOct, size_t *oLength, COM_FILEPRM )
 {
-    if( !iString || !oOct || !oLength ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iString || !oOct || !oLength) ) {COM_PRMNG(false);}
 
     size_t  bufSize = (*oOct) ? *oLength : 0;
     *oLength = 0;
@@ -941,7 +943,7 @@ BOOL com_octtostrFunc(
         char **oBuf, size_t iBufSize, void *iOct, size_t iLength, BOOL iCase,
         COM_FILEPRM )
 {
-    if( !oBuf || !iOct ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oBuf || !iOct) ) {COM_PRMNG(false);}
 
     if( !iLength ) {return true;}
     if( !(*oBuf) ) {
@@ -950,7 +952,7 @@ BOOL com_octtostrFunc(
                                 "com_octtostr(%zu)", iBufSize );
     }
     else {memset( *oBuf, 0, iBufSize );}
-    if( !iBufSize || !(*oBuf) ) {return false;}
+    if( COM_UNLIKELY(!iBufSize || !(*oBuf)) ) {return false;}
     uchar*  oct = iOct;
     for( size_t i = 0;  i < iLength;  i++ ) {
         COM_BINTOHEX( bin, oct[i], iCase );
@@ -969,7 +971,9 @@ BOOL com_strncpy(
         char *oTarget, size_t iTargetSize,
         const char *iSource, size_t iCopyLen )
 {
-    if( !oTarget || !iSource || iTargetSize <= 1 ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oTarget || !iSource || iTargetSize <= 1) ) {
+        COM_PRMNG(false);
+    }
 
     BOOL  result = true;
     memset( oTarget, 0, iTargetSize );
@@ -989,7 +993,9 @@ BOOL com_strncat(
         char *oTarget, size_t iTargetSize,
         const char *iSource, size_t iCatLen )
 {
-    if(!oTarget || !iSource || iTargetSize <= 1 ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oTarget || !iSource || iTargetSize <= 1) ) {
+        COM_PRMNG(false);
+    }
     size_t  targetLen = strlen(oTarget);
     if( targetLen > iTargetSize - 1 ) {COM_PRMNG(false);}
 
@@ -1012,7 +1018,7 @@ static char  gConnBuff[COM_TEXTBUF_SIZE];
 
 BOOL com_connectString( char *oBuf, size_t iBufSize, const char *iFormat, ... )
 {
-    if( !oBuf || !iBufSize || !iFormat ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oBuf || !iBufSize || !iFormat) ) {COM_PRMNG(false);}
 
     com_mutexLock( &gMutexConn, __func__ );
     COM_SET_FORMAT( gConnBuff );
@@ -1040,7 +1046,7 @@ char *com_searchString(
         const char *iSource, const char *iTarget, long *ioIndex,
         size_t iSearchEnd, BOOL iNoCase )
 {
-    if( !iSource || !iTarget ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!iSource || !iTarget) ) {COM_PRMNG(NULL);}
     if( iSearchEnd && iSearchEnd < strlen(iTarget) ) {
         COM_SET_IF_EXIST( ioIndex, 0 );  return NULL;
     }
@@ -1067,8 +1073,12 @@ static BOOL checkReplaceArg(
         const char *iFunc, char **oTarget, size_t *oLength,
         const char *iSource, com_replaceCond_t *iCond )
 {
-    if( !oTarget || !oLength || !iSource || !iCond ) {COM_PRMNGF(iFunc,false);}
-    if( !(iCond->replacing) || !(iCond->replaced) )  {COM_PRMNGF(iFunc,false);}
+    if( COM_UNLIKELY(!oTarget || !oLength || !iSource || !iCond) ) {
+        COM_PRMNGF(iFunc,false);
+    }
+    if( COM_UNLIKELY(!(iCond->replacing) || !(iCond->replaced)) )  {
+        COM_PRMNGF(iFunc,false);
+    }
     if( !strcmp(iCond->replacing, iCond->replaced) ) {COM_PRMNGF(iFunc,false);}
     return true;
 }
@@ -1157,7 +1167,7 @@ BOOL com_compareString(
         BOOL iNoCase )
 {
     // NULLでも com_prmNG()によるパラメータNGにはしない
-    if( !iString1 || !iString2 ) {return false;}
+    if( COM_UNLIKELY(!iString1 || !iString2) ) {return false;}
     // iString1・iString2が iCmpLenより短い場合はアンマッチで抜ける
     if( hasNull(iString1,iCmpLen) || hasNull(iString2, iCmpLen) ){return false;}
 
@@ -1178,7 +1188,7 @@ BOOL com_compareString(
 
 char *com_topString( char *iString, BOOL iCrLf )
 {
-    if( !iString ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iString) ) {COM_PRMNG(false);}
 
     for( ;  *iString;  iString++ ) {
         if(*iString == ' ' || *iString == '\t' || *iString == '\v') {continue;}
@@ -1191,7 +1201,7 @@ char *com_topString( char *iString, BOOL iCrLf )
 BOOL com_checkString(
         const char *iString, com_isFunc_t *iCheckFuncs, COM_CHECKOP_t iOp )
 {
-    if( !iString || !iCheckFuncs ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iString || !iCheckFuncs) ) {COM_PRMNG(false);}
 
     int  funcCnt = 0;
     for( com_isFunc_t* tmp = iCheckFuncs;  *tmp;  tmp++ ) {funcCnt++;}
@@ -1237,8 +1247,8 @@ char *com_getString( const char *iFormat, ... )
 
 long com_searchStrList( const char **iList, const char *iTarget, BOOL iNoCase )
 {
-    if( !iList || !iTarget ) {COM_PRMNG( COM_NO_DATA ); }
-    if( !(*iList) ) {COM_PRMNG( COM_NO_DATA ); }
+    if( COM_UNLIKELY(!iList || !iTarget) ) {COM_PRMNG( COM_NO_DATA ); }
+    if( COM_UNLIKELY(!(*iList)) ) {COM_PRMNG( COM_NO_DATA ); }
 
     long  idx = 0;
     for( ;  iList[idx];  idx++ ) {
@@ -1270,7 +1280,7 @@ static void makeTmData(
         COM_TIMEFORM_TYPE_t iType, char *oDate, char *oTime, com_time_t *oVal,
         const char *iFunc )
 {
-    if( iType != COM_FORM_DETAIL && iType != COM_FORM_SIMPLE ) {
+    if( COM_UNLIKELY(iType != COM_FORM_DETAIL && iType != COM_FORM_SIMPLE) ) {
         COM_PRMNGF(iFunc,);
     }
     const char*  DATE_FMT[] = { "%04ld/%02ld/%02ld", "%02ld%02ld%02ld" };
@@ -1310,7 +1320,7 @@ void com_setTime(
         COM_TIMEFORM_TYPE_t iType, char *oDate, char *oTime, com_time_t *oVal,
         const time_t *iTime )
 {
-    if( !iTime ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!iTime) ) {COM_PRMNG();}
     setTime( iType, oDate, oTime, oVal, iTime, true );
 }
 
@@ -1318,7 +1328,7 @@ void com_setTimeGmt(
         COM_TIMEFORM_TYPE_t iType, char *oDate, char *oTime, com_time_t *oVal,
         const time_t *iTime )
 {
-    if( !iTime ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!iTime) ) {COM_PRMNG();}
     setTime( iType, oDate, oTime, oVal, iTime, false );
 }
 
@@ -1340,7 +1350,7 @@ void com_setTimeval(
         COM_TIMEFORM_TYPE_t iType, char *oDate, char *oTime, com_time_t *oVal,
         const struct timeval *iTv )
 {
-    if( !iTv ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!iTv) ) {COM_PRMNG();}
     setTimeVal( iTv, iType, oDate, oTime, oVal, __func__, true );
 }
 
@@ -1348,7 +1358,7 @@ void com_setTimevalGmt(
         COM_TIMEFORM_TYPE_t iType, char *oDate, char *oTime, com_time_t *oVal,
         const struct timeval *iTv )
 {
-    if( !iTv ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!iTv) ) {COM_PRMNG();}
     setTimeVal( iTv, iType, oDate, oTime, oVal, __func__, false );
 }
 
@@ -1372,7 +1382,7 @@ BOOL com_getCurrentTimeGmt(
 
 BOOL com_gettimeofday( struct timeval *oTime, const char *iLabel )
 {
-    if( !oTime ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oTime) ) {COM_PRMNG(false);}
 
     int  result = gettimeofday( oTime, NULL );
     if( 0 > result ) {
@@ -1385,7 +1395,7 @@ BOOL com_gettimeofday( struct timeval *oTime, const char *iLabel )
 
 BOOL com_startStopwatch( com_stopwatch_t *oWatch )
 {
-    if( !oWatch ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oWatch) ) {COM_PRMNG(false);}
 
     if( !com_gettimeofday( &(oWatch->start), "start time" ) ) {return false;}
     return true;
@@ -1393,7 +1403,7 @@ BOOL com_startStopwatch( com_stopwatch_t *oWatch )
 
 BOOL com_checkStopwatch( com_stopwatch_t *ioWatch )
 {
-    if( !ioWatch ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioWatch) ) {COM_PRMNG(false);}
 
     struct timeval  now;
     if( !com_gettimeofday( &now, "check time" ) ) {return false;}
@@ -1460,8 +1470,12 @@ static const char**  gWoDList[] = { gWoDJp1, gWoDJp2, gWoDEn1, gWoDEn2 };
 
 const char *com_strDotw( COM_WD_TYPE_t iDotw, COM_WDSTR_TYPE_t iType )
 {
-    if( iDotw < COM_WD_SUNDAY || iDotw > COM_WD_SATURDAY ) {COM_PRMNG(NULL);}
-    if( iType < COM_WDSTR_JP1 || iType > COM_WDSTR_EN2 ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(iDotw < COM_WD_SUNDAY || iDotw > COM_WD_SATURDAY) ) {
+        COM_PRMNG(NULL);
+    }
+    if( COM_UNLIKELY(iType < COM_WDSTR_JP1 || iType > COM_WDSTR_EN2) ) {
+        COM_PRMNG(NULL);
+    }
     return gWoDList[iType - 1][iDotw];
 }
 // コード上 上記の COM_WDSTR_JP1 を 0 にすると警告が出る。
@@ -1478,10 +1492,10 @@ static com_strChain_t *createNewChainData( COM_FILEPRM, const char *iKey )
 {
     com_strChain_t*  new = com_mallocFunc( sizeof(com_strChain_t), COM_FILEVAR,
                                            "newChainData(%s)", iKey );
-    if( !new ) {return NULL;}
+    if( COM_UNLIKELY(!new) ) {return NULL;}
     new->data =
         com_strdupFunc( iKey, COM_FILEVAR, "newChainData->data(%s)", iKey );
-    if( !(new->data) ) {
+    if( COM_UNLIKELY(!(new->data)) ) {
         com_free( new );
         return NULL;
     }
@@ -1495,13 +1509,13 @@ static char  gKeyBuff[COM_TEXTBUF_SIZE];
 BOOL com_addChainDataFunc(
         com_strChain_t **ioChain, COM_FILEPRM, const char *iFormat, ... )
 {
-    if( !ioChain || !iFormat ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioChain || !iFormat) ) {COM_PRMNG(false);}
 
     com_mutexLockCom( &gMutexKey, COM_FILELOC );
     COM_SET_FORMAT( gKeyBuff );
     com_strChain_t*  new = createNewChainData( COM_FILEVAR, gKeyBuff );
     (void)com_mutexUnlockCom( &gMutexKey, COM_FILELOC, true );
-    if( !new ) {return false;}
+    if( COM_UNLIKELY(!new) ) {return false;}
     // 何もないときはそれが先頭データ
     if( !(*ioChain) ) {
         *ioChain = new;
@@ -1535,13 +1549,18 @@ static BOOL compareResult( char *iNew, char *iExist, COM_ADDCHAIN_t iSort )
     return false;
 }
     
+static BOOL checkSortType( COM_ADDCHAIN_t iSort )
+{
+    if( iSort == COM_SORT_ASCEND )  {return true;}
+    if( iSort == COM_SORT_DESCEND ) {return true;}
+    return false;
+}
+
 BOOL com_sortAddChainDataFunc(
         com_strChain_t **ioChain, COM_ADDCHAIN_t iSort, COM_FILEPRM,
         const char *iFormat, ... )
 {
-    if( !ioChain || !iFormat ||
-        (iSort != COM_SORT_ASCEND && iSort != COM_SORT_DESCEND ) )
-    {
+    if( COM_UNLIKELY(!ioChain || !iFormat || !checkSortType( iSort )) ) {
         COM_PRMNG(false);
     }
 
@@ -1549,7 +1568,7 @@ BOOL com_sortAddChainDataFunc(
     COM_SET_FORMAT( gKeyBuff );
     com_strChain_t*  new = createNewChainData( COM_FILEVAR, gKeyBuff );
     (void)com_mutexUnlockCom( &gMutexKey, COM_FILELOC, true );
-    if( !new ) {return false;}
+    if( COM_UNLIKELY(!new) ) {return false;}
 
     com_strChain_t*  last = NULL;
     for( com_strChain_t* tmp = *ioChain;  tmp;  tmp = tmp->next ) {
@@ -1565,7 +1584,7 @@ BOOL com_sortAddChainDataFunc(
 com_strChain_t *com_searchChainData(
         com_strChain_t *iChain, const char *iFormat, ... )
 {
-    if( !iFormat ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!iFormat) ) {COM_PRMNG(NULL);}
 
     com_mutexLock( &gMutexKey, __func__ );
     COM_SET_FORMAT( gKeyBuff );
@@ -1595,7 +1614,7 @@ long com_deleteChainDataFunc(
         com_strChain_t **ioChain, BOOL iContinue, COM_FILEPRM,
         const char *iFormat, ... )
 {
-    if( !ioChain || !iFormat ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!ioChain || !iFormat) ) {COM_PRMNG(0);}
 
     com_mutexLockCom( &gMutexKey, COM_FILELOC );
     COM_SET_FORMAT( gKeyBuff );
@@ -1617,13 +1636,13 @@ long com_deleteChainDataFunc(
 BOOL com_pushChainDataFunc(
         com_strChain_t **ioChain, COM_FILEPRM, const char *iFormat, ... )
 {
-    if( !ioChain || !iFormat ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioChain || !iFormat) ) {COM_PRMNG(false);}
 
     com_mutexLockCom( &gMutexKey, COM_FILELOC );
     COM_SET_FORMAT( gKeyBuff );
     com_strChain_t* new = createNewChainData( COM_FILEVAR, gKeyBuff );
     (void)com_mutexUnlockCom( &gMutexKey, COM_FILELOC, true );
-    if( !new ) {return false;}
+    if( COM_UNLIKELY(!new) ) {return false;}
     // 無条件で先頭に追加
     COM_RELAY( new->next, *ioChain, new );
     return true;
@@ -1634,7 +1653,7 @@ static com_buf_t  gPopBuff;
 
 char *com_popChainDataFunc( com_strChain_t **ioChain, COM_FILEPRM )
 {
-    if( !ioChain ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!ioChain) ) {COM_PRMNG(NULL);}
 
     // 先頭データ内容を渡して削除
     if( !(*ioChain) ) {return NULL;}
@@ -1667,10 +1686,16 @@ static size_t connectChainData(
     return resultSize;
 }
 
+static BOOL checkBufSize( size_t iSize )
+{
+    if ( (iSize < 2) || (iSize >= COM_SIZE_OVER) ) {return false;}
+    return true;
+}
+
 size_t com_spreadChainData(
         const com_strChain_t *iChain, char *oResult, size_t iSize )
 {
-    if( !oResult || iSize < 2 || iSize >= COM_SIZE_OVER ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!oResult || !checkBufSize(iSize)) ) {COM_PRMNG(0);}
 
     memset( oResult, 0, iSize );
     return connectChainData( iChain, oResult, iSize );
@@ -1678,7 +1703,7 @@ size_t com_spreadChainData(
 
 void com_freeChainDataFunc( com_strChain_t **ioChain, COM_FILEPRM )
 {
-    if( !ioChain ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!ioChain) ) {COM_PRMNG();}
 
     com_skipMemInfo( true );
     com_strChain_t*  next = NULL;
@@ -1704,7 +1729,7 @@ static char *getNumStr( long iNum )
 
 BOOL com_addChainNumFunc( com_strChain_t **ioChain, long iKey, COM_FILEPRM )
 {
-    if( !ioChain ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioChain) ) {COM_PRMNG(false);}
 
     com_mutexLockCom( &gMutexNum, COM_FILELOC );
     BOOL  result =
@@ -1716,9 +1741,7 @@ BOOL com_addChainNumFunc( com_strChain_t **ioChain, long iKey, COM_FILEPRM )
 BOOL com_sortAddChainNumFunc(
         com_strChain_t **ioChain, COM_ADDCHAIN_t iSort, long iKey, COM_FILEPRM )
 {
-    if( !ioChain || (iSort != COM_SORT_ASCEND && iSort != COM_SORT_DESCEND) ) {
-        COM_PRMNG(false);
-    }
+    if( COM_UNLIKELY(!ioChain || !checkSortType(iSort)) ) {COM_PRMNG(false);}
 
     com_mutexLockCom( &gMutexNum, COM_FILELOC );
     gNeedNumSort = true;
@@ -1739,7 +1762,7 @@ com_strChain_t *com_searchChainNum( com_strChain_t *iChain, long iKey )
 long com_deleteChainNumFunc(
         com_strChain_t **ioChain, BOOL iContinue, long iKey, COM_FILEPRM )
 {
-    if( !ioChain ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!ioChain) ) {COM_PRMNG(0);}
 
     com_mutexLockCom( &gMutexNum, COM_FILELOC );
     long  result = com_deleteChainDataFunc( ioChain, iContinue, COM_FILEVAR,
@@ -1750,7 +1773,7 @@ long com_deleteChainNumFunc(
 
 BOOL com_pushChainNumFunc( com_strChain_t **ioChain, long iKey, COM_FILEPRM )
 {
-    if( !ioChain ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioChain) ) {COM_PRMNG(false);}
 
     com_mutexLockCom( &gMutexNum, COM_FILELOC );
     BOOL  result = com_pushChainDataFunc(ioChain, COM_FILEVAR, getNumStr(iKey));
@@ -1760,7 +1783,7 @@ BOOL com_pushChainNumFunc( com_strChain_t **ioChain, long iKey, COM_FILEPRM )
 
 long com_popChainNumFunc( com_strChain_t **ioChain, COM_FILEPRM )
 {
-    if( !ioChain ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!ioChain) ) {COM_PRMNG(0);}
 
     com_mutexLockCom( &gMutexNum, COM_FILELOC );
     char*  tmp = com_popChainDataFunc( ioChain, COM_FILEVAR );
@@ -1772,7 +1795,7 @@ long com_popChainNumFunc( com_strChain_t **ioChain, COM_FILEPRM )
 size_t com_spreadChainNum(
         const com_strChain_t *iChain, char *oResult, size_t iSize )
 {
-    if( !oResult || iSize < 2 || iSize >= COM_SIZE_OVER ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!oResult || !checkBufSize(iSize)) ) {COM_PRMNG(0);}
 
     return com_spreadChainData( iChain, oResult, iSize );
 }
@@ -1812,7 +1835,7 @@ static long  gHashCount = 0;
 
 static BOOL initHash( hashData_t *oTarget, const void *iAddr, size_t iSize )
 {
-    if( !iAddr ) {return false;}
+    if( COM_UNLIKELY(!iAddr) ) {return false;}
     *oTarget = (hashData_t){ iAddr, iSize };
     return true;
 }
@@ -1854,7 +1877,7 @@ com_hashId_t com_registerHashFunc(
     hashUnit_t**  newTable =
         com_mallocFunc( sizeof(hashUnit_t*) * iTableSize, COM_FILEVAR,
                         "newHashTable(%ld)", gHashCount );
-    if( !newTable ) {
+    if( COM_UNLIKELY(!newTable) ) {
         (void)com_mutexUnlockCom( &gMutexHash, COM_FILELOC, true );
         com_errorExit( COM_ERR_HASHNG, "fail to create hash table" );
     }
@@ -1862,7 +1885,7 @@ com_hashId_t com_registerHashFunc(
     gHash = com_reallocfFunc( gHash,
                               sizeof(hashMng_t) * ((size_t)gHashCount + 1),
                               COM_FILEVAR, "newHashMng(%ld)", gHashCount );
-    if( !gHash ) {
+    if( COM_UNLIKELY(!gHash) ) {
         (void)com_mutexUnlockCom( &gMutexHash, COM_FILELOC, true );
         com_errorExit( COM_ERR_HASHNG, "fail to create hash manage data" );
     }
@@ -1887,7 +1910,7 @@ BOOL com_checkHash( com_hashId_t iID )
 
 void com_cancelHashFunc( com_hashId_t iID, COM_FILEPRM )
 {
-    if( !com_checkHash( iID ) ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!com_checkHash( iID )) ) {COM_PRMNG();}
 
     com_skipMemInfo( true );
     for( size_t i = 0;  i < gHash[iID].tableSize;  i++ ) {
@@ -1944,7 +1967,7 @@ static hashUnit_t *getNewUnit( COM_FILEPRM )
 {
     hashUnit_t*  new =
         com_mallocFunc( sizeof(hashUnit_t), COM_FILEVAR, "getNewUnit" );
-    if( !new ) {return NULL;}
+    if( COM_UNLIKELY(!new) ) {return NULL;}
     *new = (hashUnit_t){ {NULL, 0}, {NULL, 0}, NULL };
     return new;
 }
@@ -1955,7 +1978,7 @@ static BOOL initHashData(
 {
     void*  tmp = com_reallocFunc( (void*)oData->data, iData->size, COM_FILEVAR,
                                   iLabel );
-    if( !tmp ) {return false;}
+    if( COM_UNLIKELY(!tmp) ) {return false;}
     memcpy( tmp, iData->data, iData->size );
     *oData = (hashData_t){ tmp, iData->size };
     return true;
@@ -1972,7 +1995,7 @@ static COM_HASH_t addHashData(
         const hashData_t *iData )
 {
     hashUnit_t*  new = getNewUnit( COM_FILEVAR );
-    if( !new ) {return COM_HASH_NG;}
+    if( COM_UNLIKELY(!new) ) {return COM_HASH_NG;}
     if( !initHashData( COM_FILEVAR, iKey, &(new->key), "addKey" ) ) {
         return addNG( &new );
     }
@@ -2001,13 +2024,13 @@ COM_HASH_t com_addHashFunc(
         const void *iData, size_t iDataSize, COM_FILEPRM )
 {
     hashData_t  key, data;
-    if( !com_checkHash( iID ) ) {COM_PRMNG(COM_HASH_NG);}
+    if( COM_UNLIKELY(!com_checkHash( iID )) ) {COM_PRMNG(COM_HASH_NG);}
     if( !initHash( &key, iKey, iKeySize ) ) {COM_PRMNG(COM_HASH_NG);}
     if( !initHash( &data, iData, iDataSize ) ) {COM_PRMNG(COM_HASH_NG);}
 
     com_skipMemInfo( true );
     hashUnit_t**  top = getTop( iID, &key );
-    hashUnit_t*  cur = searchHashData( *top, &key );
+    hashUnit_t*   cur = searchHashData( *top, &key );
     COM_HASH_t  result = COM_HASH_NG;
     if( !cur ) {result = addHashData( COM_FILEVAR, top, &key, &data );}
     else {
@@ -2022,7 +2045,7 @@ BOOL com_searchHash(
         com_hashId_t iID, const void *iKey, size_t iKeySize,
         const void **oData, size_t *oDataSize )
 {
-    if( !com_checkHash( iID ) ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!com_checkHash( iID )) ) {COM_PRMNG(false);}
     hashData_t  key;
     if( !initHash( &key, iKey, iKeySize ) ) {COM_PRMNG(false);}
 
@@ -2036,7 +2059,7 @@ BOOL com_searchHash(
 BOOL com_deleteHashFunc(
         com_hashId_t iID, const void *iKey, size_t iKeySize, COM_FILEPRM )
 {
-    if( !com_checkHash( iID ) ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!com_checkHash( iID )) ) {COM_PRMNG(false);}
     hashData_t  key;
     if( !initHash( &key, iKey, iKeySize ) ) {COM_PRMNG(false);}
 
@@ -2064,7 +2087,7 @@ BOOL com_deleteHashFunc(
 
 void com_initializeSortTable( com_sortTable_t *oTable, COM_SORT_MATCH_t iAct )
 {
-    if( !oTable ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oTable) ) {COM_PRMNG();}
 
     *oTable = (com_sortTable_t){ 0, iAct, 0, NULL, NULL };
 }
@@ -2073,7 +2096,7 @@ static BOOL setSortData( COM_FILEPRM, com_sort_t *oTarget, com_sort_t *iData )
 {
     void*  tmp = com_mallocFunc( iData->size, COM_FILEVAR,
                                  "new sortData(%ld)", iData->key );
-    if( !tmp ) {return false;}
+    if( COM_UNLIKELY(!tmp) ) {return false;}
     *oTarget = *iData;
     oTarget->data = tmp;
     memcpy( oTarget->data, iData->data, iData->size );
@@ -2091,7 +2114,7 @@ static void freeSortData( COM_FILEPRM, com_sort_t *oData )
 
 BOOL com_setSortDataFunc( com_sort_t *oTarget, com_sort_t *iData, COM_FILEPRM )
 {
-    if( !oTarget || !iData ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oTarget || !iData) ) {COM_PRMNG(false);}
 
     com_skipMemInfo( true );
     if( oTarget->data ) {
@@ -2219,7 +2242,7 @@ BOOL com_addSortTableFunc(
         com_sortTable_t *oTable, com_sort_t *iData, BOOL *oCollision,
         COM_FILEPRM )
 {
-    if( !oTable || !iData ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oTable || !iData) ) {COM_PRMNG(false);}
 
     com_sort_t  data = *iData;
     if( data.range < 1 ) {data.range = 1;}
@@ -2243,7 +2266,7 @@ BOOL com_addSortTableByKeyFunc(
         com_sortTable_t *oTable, long iKey, void *iData, size_t iSize,
         BOOL *oCollision, COM_FILEPRM )
 {
-    if( !oTable || !iData ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oTable || !iData) ) {COM_PRMNG(false);}
 
     com_skipMemInfo( true );
     com_sort_t  tmp = { iKey, 1, iData, iSize };
@@ -2286,8 +2309,8 @@ long com_searchSortTable(
         com_sortTable_t *iTable, com_sort_t *iTarget, com_sort_t ***oResult )
 {
     *oResult = NULL;
-    if( !iTable || !iTarget || !oResult ) {COM_PRMNG(0);}
-    if( iTarget->data && !(iTarget->size) ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!iTable || !iTarget || !oResult) ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(iTarget->data && !(iTarget->size)) ) {COM_PRMNG(0);}
 
     if( iTable->count == 0 ) {return 0;}
     com_sort_t  target = *iTarget;
@@ -2302,7 +2325,7 @@ long com_searchSortTable(
 long com_searchSortTableByKey(
         com_sortTable_t *iTable, long iKey, com_sort_t ***oResult )
 {
-    if( !iTable || !oResult ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!iTable || !oResult) ) {COM_PRMNG(0);}
 
     com_sort_t  tmp = { iKey, 1, NULL, 0 };
     return com_searchSortTable( iTable, &tmp, oResult );
@@ -2329,14 +2352,13 @@ long com_deleteSortTableFunc(
         com_sortTable_t *oTable, com_sort_t *iTarget, BOOL iDeleteAll,
         COM_FILEPRM )
 {
-    if( !oTable || !iTarget ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!oTable || !iTarget) ) {COM_PRMNG(0);}
 
     long  count = oTable->count;   // oTable->countは後の処理で再計算する
     if( !count ) {return 0;}
-    long  pos = 0;
-    com_skipMemInfo( true );
-    long  result = 0;
     com_sort_t*  tbl = oTable->table;
+    long  pos = 0, result = 0;
+    com_skipMemInfo( true );
     while( pos < count ) {
         if( !inRangeKey( &tbl[pos], iTarget ) ) {pos++;  continue;}
         if( iTarget->data ) {
@@ -2357,7 +2379,7 @@ long com_deleteSortTableFunc(
 long com_deleteSortTableByKeyFunc(
         com_sortTable_t *oTable, long iKey, COM_FILEPRM )
 {
-    if( !oTable ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!oTable) ) {COM_PRMNG(0);}
 
     com_skipMemInfo( true );
     com_sort_t  tmp = { iKey, 1, NULL, 0 };
@@ -2378,7 +2400,7 @@ static void freeSortList( COM_FILEPRM, long *ioCount, com_sort_t **oList )
 
 void com_freeSortTableFunc( com_sortTable_t *oTable, COM_FILEPRM )
 {
-    if( !oTable ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oTable) ) {COM_PRMNG();}
 
     com_skipMemInfo( true );
     freeSortList( COM_FILEVAR, &(oTable->count), &(oTable->table) );
@@ -2398,10 +2420,10 @@ com_ringBuf_t *com_createRingBufFunc(
     com_ringBuf_t*  ring =
         com_mallocFunc( sizeof(com_ringBuf_t), COM_FILEVAR,
                         "new ring buffer(%zu * %zu)", iUnit, iSize );
-    if( !ring ) {return NULL;}
+    if( COM_UNLIKELY(!ring) ) {return NULL;}
     void*  buf = com_mallocFunc( iUnit * iSize, COM_FILEVAR,
                         "new ring buffer area(%zu + %zu)", iUnit, iSize );
-    if( !buf ) {
+    if( COM_UNLIKELY(!buf) ) {
         com_freeFunc( ring, COM_FILEVAR );
         return NULL;
     }
@@ -2426,7 +2448,7 @@ static void notifyOverwrite( com_ringBuf_t *ioRing )
 
 BOOL com_pushRingBuf( com_ringBuf_t *oRing, void *iData, size_t iDataSize )
 {
-    if( !oRing || !iData ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oRing || !iData) ) {COM_PRMNG(false);}
     if( iDataSize > oRing->unit ) {
         com_error( COM_ERR_RING, "ring buffer unit size over(%zu)", iDataSize );
         return false;
@@ -2452,7 +2474,7 @@ BOOL com_pushRingBuf( com_ringBuf_t *oRing, void *iData, size_t iDataSize )
 
 void *com_pullRingBuf( com_ringBuf_t *oRing )
 {
-    if( !oRing ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(!oRing) ) {COM_PRMNG(NULL);}
 
     if( oRing->used == 0 ) {return NULL;}
     void*  tmp = RINGBUF( oRing, oRing->head );
@@ -2463,14 +2485,14 @@ void *com_pullRingBuf( com_ringBuf_t *oRing )
 
 size_t com_getRestRingBuf( com_ringBuf_t *iRing )
 {
-    if( !iRing ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!iRing) ) {COM_PRMNG(0);}
     return iRing->used;
 }
 
 void com_freeRingBufFunc( com_ringBuf_t **oRing, COM_FILEPRM )
 {
-    if( !oRing ) {COM_PRMNG();}
-    if( !(*oRing) ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oRing) ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!(*oRing)) ) {COM_PRMNG();}
 
     if( (*oRing)->freeFunc ) {
         for( size_t i = 0;  i < (*oRing)->size;  i++ ) {
@@ -2552,7 +2574,7 @@ static cfgData_t *addNewCfgData( char *iKey, char *iData )
 
 BOOL com_registerCfg( char *iKey, char *iData )
 {
-    if( !iKey ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iKey) ) {COM_PRMNG(false);}
     if( searchCfgData( iKey ) ) {
         com_error( COM_ERR_CONFIG, "config already exist (%s)", iKey );
         return false;
@@ -2583,9 +2605,9 @@ BOOL com_registerCfgUDigit( char *iKey, ulong iData )
 }
 
 #define GET_CONFIG_DATA( CFG, NGCAUSE ) \
-    if( !iKey ) {COM_PRMNG(NGCAUSE);} \
+    if( COM_UNLIKELY(!iKey) ) {COM_PRMNG(NGCAUSE);} \
     cfgData_t*  CFG = searchCfgData( iKey ); \
-    if( !(CFG) ) { \
+    if( COM_UNLIKELY(!(CFG)) ) { \
         com_error( COM_ERR_CONFIG, "config not exist (%s)", iKey ); \
         return (NGCAUSE); \
     }
@@ -2607,7 +2629,7 @@ BOOL com_addCfgValidator(
     cfgVald_t*  vald =
         com_reallocAddr( &(cfg->vald), sizeof(*(cfg->vald)), COM_TABLEEND,
                          &(cfg->valdCnt), 1, "addCfgValidator" );
-    if( !vald ) {
+    if( COM_UNLIKELY(!vald) ) {
         COM_DEBUG_AVOID_END( COM_NO_FUNCNAME );
         return false;
     }
@@ -2623,7 +2645,7 @@ BOOL com_addCfgValidator(
 }
 
 #define VAL_NUM( DATA, COND, TYPE, FUNC, BASE, CONDTYPE ) \
-    if( !(DATA) ) {COM_PRMNG(false);} \
+    if( COM_UNLIKELY(!(DATA)) ) {COM_PRMNG(false);} \
     errno = 0; \
     TYPE  value = (FUNC)( (DATA), (BASE), false ); \
     if( errno ) {return false;} \
@@ -2635,7 +2657,7 @@ BOOL com_addCfgValidator(
     if( !iCond ) {*oCond = NULL;  return true;} \
     TYPE*  source = iCond; \
     TYPE*  target = com_malloc( sizeof(TYPE), "copy simple condition" ); \
-    if( !target ) {return false;} \
+    if( COM_UNLIKELY(!target) ) {return false;} \
     *target = *source; \
     *oCond = target;
 
@@ -2665,7 +2687,7 @@ BOOL com_valHex( char *ioData, void *iCond )
 }
 
 #define VAL_NUM_LIST( DATA, COND, TYPE, FUNC, BASE, CONDTYPE ) \
-    if( !(DATA) ) {COM_PRMNG(false);} \
+    if( COM_UNLIKELY(!(DATA)) ) {COM_PRMNG(false);} \
     errno = 0; \
     TYPE  value = (FUNC)( (DATA), (BASE), false ); \
     if( errno ) {return false;} \
@@ -2683,7 +2705,7 @@ BOOL com_valHex( char *ioData, void *iCond )
     } \
     target->list = com_malloc( sizeof(TYPE) * target->count, \
                                "copy condition num list" ); \
-    if( !target->list ) {return false;} \
+    if( COM_UNLIKELY(!target->list) ) {return false;} \
     for( long i = 0;  i < target->count;  i++ ) { \
         target->list[i] = source->list[i]; \
     }
@@ -2736,7 +2758,7 @@ BOOL com_valHexList( char *ioData, void *iCond )
 
 BOOL com_valString( char *ioData, void *iCond )
 {
-    if( !ioData ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioData) ) {COM_PRMNG(false);}
     if( !iCond ) {return true;}
     com_valCondString_t* cond = iCond;
     if( cond->minLen) {if( strlen(ioData) < cond->minLen ) {return false;}}
@@ -2749,7 +2771,7 @@ BOOL com_valStringCondCopy( void **oCond, void *iCond )
     return true;
 }
 
-static BOOL checkList( const char **iList, char *ioData, BOOL iNoCase )
+static BOOL searchStrList( const char **iList, char *ioData, BOOL iNoCase )
 {
     if( COM_NO_DATA == com_searchStrList( iList, ioData, iNoCase ) ) {
         return false;
@@ -2766,10 +2788,10 @@ static long getListCount( char **iList )
 
 BOOL com_valStrList( char *ioData, void *iCond )
 {
-    if( !ioData ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioData) ) {COM_PRMNG(false);}
     if( !iCond ) {return true;}
     com_valCondStrList_t*  cond = iCond;
-    return checkList( (const char **)cond->list, ioData, cond->noCase );
+    return searchStrList( (const char **)cond->list, ioData, cond->noCase );
 }
 BOOL com_valStrListCondCopy( void **oCond, void *iCond )
 {
@@ -2796,7 +2818,7 @@ void com_valStrListCondFree( void **oCond )
 #define VAL_STRLIST \
     COM_UNUSED( iCond ); \
     if( !ioData ) {COM_PRMNG(false);} \
-    return checkList( list, ioData, true );
+    return searchStrList( list, ioData, true );
 
 BOOL com_valBool( char *ioData, void *iCond )
 {
@@ -2832,13 +2854,13 @@ static BOOL checkCfgData( cfgData_t *iCfg, char *iData )
 
 long com_setCfg( char *iKey, char *iData )
 {
-    if( !iData ) {COM_PRMNG(-1);}  // iKeyは GET_CONFIG_DATAでチェック
-    GET_CONFIG_DATA( cfg, -1 );
+    if( COM_UNLIKELY(!iData) ) {COM_PRMNG(-1);}
+    GET_CONFIG_DATA( cfg, -1 );  // iKeyは GET_CONFIG_DATAでチェック
     long  checkResult = checkCfgData( cfg, iData );
     if( checkResult ) {return checkResult;}
     COM_DEBUG_AVOID_START( COM_NO_FUNCNAME );
     char*  tmp = com_strdup( iData, "setCdf (%s)", iData );
-    if( tmp ) {
+    if( COM_LIKELY(tmp) ) {
         com_free( cfg->data );
         cfg->data = tmp;
     }
@@ -2893,21 +2915,17 @@ ulong com_getCfgHex( char *iKey )
     GET_NUM( ulong, com_strtoul, 16 );
 }
 
-#define CFGIS( STR )  com_compareString( STR, cfg->data, 0, true )
-
 BOOL com_getCfgBool( char *iKey )
 {
     GET_CONFIG_DATA( cfg, false );
     if( !cfg->data ) {return false;}
-    if( CFGIS("TRUE") || CFGIS("YES") || CFGIS("Y") || CFGIS("ON") ) {
-        return true;
-    }
-    return false;
+    const char *trueList[] = { "TRUE", "YES", "Y", "ON" };
+    return searchStrList( trueList, cfg->data, true );
 }
 
 BOOL com_getCfgAll( long *ioCount, const char **oKey, const char **oData )
 {
-    if( !ioCount || !oKey || !oData ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioCount || !oKey || !oData) ) {COM_PRMNG(false);}
     if( *ioCount < 0 || *ioCount >= gCfgDataCnt ) {return false;}
     cfgData_t*  tmp = &(gCfgData[*ioCount]);
     *oKey  = tmp->key;
@@ -2924,12 +2942,12 @@ static pthread_mutex_t gMutexFile = PTHREAD_MUTEX_INITIALIZER;
 
 FILE *com_fopenFunc( const char *iPath, const char *iMode, COM_FILEPRM )
 {
-    if( !iPath || !iMode ) {COM_PRMNGF("com_fopen",NULL);}
+    if( COM_UNLIKELY(!iPath || !iMode) ) {COM_PRMNGF("com_fopen",NULL);}
 
     com_mutexLock( &gMutexFile, __func__ );
     FILE*  fp = NULL;
     if( !com_debugFopenError() ) {fp = fopen( iPath, iMode );}
-    if( fp ) {com_addFileInfo( COM_FILEVAR, COM_FOPEN, fp, iPath );}
+    if( COM_LIKELY(fp) ) {com_addFileInfo( COM_FILEVAR, COM_FOPEN, fp, iPath );}
     else {com_error( COM_ERR_FILEDIRNG, "com_fopen NG (%s)", iPath );}
     com_mutexUnlock( &gMutexFile, __func__ );
     return fp;
@@ -2937,7 +2955,7 @@ FILE *com_fopenFunc( const char *iPath, const char *iMode, COM_FILEPRM )
 
 int com_fcloseFunc( FILE **ioFp, COM_FILEPRM )
 {
-    if( !ioFp ) {COM_PRMNGF("com_fclose", -1);}
+    if( COM_UNLIKELY(!ioFp) ) {COM_PRMNGF("com_fclose", -1);}
 
     if( !(*ioFp) ) {return 0;}
     com_mutexLock( &gMutexFile, __func__ );
@@ -2956,7 +2974,7 @@ int com_fcloseFunc( FILE **ioFp, COM_FILEPRM )
 
 BOOL com_checkExistFile( const char *iPath )
 {
-    if( !iPath ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iPath) ) {COM_PRMNG(false);}
 
     struct  stat status;
     int  result = stat( iPath, &status );
@@ -2966,11 +2984,11 @@ BOOL com_checkExistFile( const char *iPath )
 
 BOOL com_checkExistFiles( const char *iSource, const char *iDelim )
 {
-    if( !iSource || !iDelim ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iSource || !iDelim) ) {COM_PRMNG(false);}
 
     com_skipMemInfo( true );
     char*  src = com_strdup( iSource, "checkExist(%s)", iSource );
-    if( !src ) {com_skipMemInfo( false );  return false;}
+    if( COM_UNLIKELY(!src) ) {com_skipMemInfo( false );  return false;}
 
     BOOL  result = true;
     char*  saveptr;
@@ -2988,7 +3006,7 @@ enum { DMY = 0 };
 
 BOOL com_getFileInfo( com_fileInfo_t *oInfo, const char *iPath, BOOL iLink )
 {
-    if( !iPath ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iPath) ) {COM_PRMNG(false);}
 
     struct stat  st;
     memset( &st, 0, sizeof(st) );
@@ -3019,7 +3037,7 @@ static char *getLastMark( const char *iPath, const char *iMark )
 
 BOOL com_getFileName( char *oBuf, size_t iBufSize, const char *iPath )
 {
-    if( !oBuf || !iBufSize || !iPath ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oBuf || !iBufSize || !iPath) ) {COM_PRMNG(false);}
 
     memset( oBuf, 0, iBufSize );
     char*  lastSlash = getLastMark( iPath, "/" );
@@ -3029,7 +3047,7 @@ BOOL com_getFileName( char *oBuf, size_t iBufSize, const char *iPath )
 
 BOOL com_getFilePath( char *oBuf, size_t iBufSize, const char *iPath )
 {
-    if( !oBuf || !iBufSize || !iPath ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oBuf || !iBufSize || !iPath) ) {COM_PRMNG(false);}
 
     memset( oBuf, 0, iBufSize );
     char*  lastSlash = getLastMark( iPath, "/" );
@@ -3039,7 +3057,7 @@ BOOL com_getFilePath( char *oBuf, size_t iBufSize, const char *iPath )
 
 BOOL com_getFileExt( char *oBuf, size_t iBufSize, const char *iPath )
 {
-    if( !oBuf || !iBufSize || !iPath ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oBuf || !iBufSize || !iPath) ) {COM_PRMNG(false);}
 
     memset( oBuf, 0, iBufSize );
     char*  lastSlash = getLastMark( iPath, "/" );
@@ -3071,7 +3089,7 @@ BOOL com_seekFile(
         const char *iPath, com_seekFileCB_t iFunc, void *ioUserData,
         char *oBuf, size_t iBufSize )
 {
-    if( !iPath || !iFunc ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iPath || !iFunc) ) {COM_PRMNG(false);}
     if( !oBuf ) {oBuf = gSeekFileBuff;  iBufSize = sizeof(gSeekFileBuff);}
     if( !com_checkExistFile( iPath ) ) {
         com_error( COM_ERR_FILEDIRNG, "%s not found", iPath );
@@ -3123,7 +3141,7 @@ BOOL com_seekBinary(
         const char *iPath, size_t iNextSize, com_seekBinCB_t iFunc,
         void *ioUserData, uchar *oBuf, size_t iBufSize )
 {
-    if( !iPath || !iNextSize || !iFunc ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iPath || !iNextSize || !iFunc) ) {COM_PRMNG(false);}
     if( !oBuf ) {oBuf = gSeekBinBuf;  iBufSize = sizeof(gSeekBinBuf);}
     if( iNextSize > iBufSize ) {
         com_error( COM_ERR_FILEDIRNG, "next size is larger than buffer size" );
@@ -3146,7 +3164,7 @@ BOOL com_pipeCommand(
         const char *iCommand, com_seekFileCB_t iFunc, void *ioUserData,
         char *oBuf, size_t iBufSize )
 {
-    if( !iCommand || !iFunc ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iCommand || !iFunc) ) {COM_PRMNG(false);}
     if( !oBuf ) {oBuf = gPipeCmdBuff;  iBufSize = sizeof(gPipeCmdBuff);}
     FILE*  fp = popen( iCommand, "r" );
     if( !fp ) {
@@ -3198,7 +3216,7 @@ BOOL com_seekTextLine(
         const void *iText, size_t iTextSize, BOOL iNeedLf,
         com_seekFileCB_t iFunc, void *ioUserData, char *oBuf, size_t iBufSize )
 {
-    if( !iText || !iFunc ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iText || !iFunc) ) {COM_PRMNG(false);}
     if( !oBuf ) {oBuf = gLineCmdBuff;  iBufSize = sizeof(gLineCmdBuff);}
     const char*  ptr = iText;
     if( !iTextSize ) {iTextSize = strlen( ptr );}
@@ -3216,7 +3234,7 @@ static char  gPathBuf2[COM_TEXTBUF_SIZE];
 
 BOOL com_checkIsDir( const char *iPath )
 {
-    if( !iPath ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iPath) ) {COM_PRMNG(false);}
     DIR*  check_dir = opendir( iPath );
     if( !check_dir ) {return false;}
     closedir( check_dir );
@@ -3243,7 +3261,7 @@ static BOOL unlockDir( BOOL iResult )
 
 BOOL com_makeDir( const char *iPath )
 {
-    if( !iPath ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iPath) ) {COM_PRMNG(false);}
 
     // 既に指定ディレクトリがある場合は何もしない
     if( com_checkIsDir( iPath ) ) {return true;}
@@ -3282,7 +3300,7 @@ static BOOL deleteFiles( const com_seekDirResult_t *iInf )
 static BOOL deleteSubDirs( const com_seekDirResult_t *iInf )
 {
     char*  path = com_strdup( iInf->path, "remove sub(%s)", iInf->path );
-    if( !path ) {return false;}
+    if( COM_UNLIKELY(!path) ) {return false;}
     int  result = com_removeDir( path );
     com_free( path );
     if( result < 0 ) {return false;}
@@ -3294,7 +3312,7 @@ static BOOL deleteSubDirs( const com_seekDirResult_t *iInf )
 
 long com_removeDir( const char *iPath )
 {
-    if( !iPath ) {COM_PRMNG(COM_RMDIR_PRMNG);}
+    if( COM_UNLIKELY(!iPath) ) {COM_PRMNG(COM_RMDIR_PRMNG);}
 
     if( !com_checkExistFile( iPath ) ) {return 0;}
     BOOL  result = false;
@@ -3456,7 +3474,7 @@ int com_scanDirFunc(
         const char *iPath, com_seekFilter_t iFilter, struct dirent ***oList,
         COM_FILEPRM )
 {
-    if( !iPath || !oList ) {COM_PRMNG(-1);}
+    if( COM_UNLIKELY(!iPath || !oList) ) {COM_PRMNG(-1);}
 
     com_mutexLockCom( &gMutexMem, COM_FILELOC );
     int  result = scanDir( iPath, oList, iFilter );
@@ -3477,7 +3495,7 @@ int com_scanDirFunc(
     
 void com_freeScanDirFunc( int iCount, struct dirent ***oList, COM_FILEPRM )
 {
-    if( !oList ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oList) ) {COM_PRMNG();}
     if( !(*oList) ) {return;}
     com_skipMemInfo( true );
     for( int n = 0;  n < iCount;  n++ ) {
@@ -3532,7 +3550,7 @@ BOOL com_countFiles(
         long *oFileCount, long *oDirCount, off_t *oTotalSize,
         const char *iPath, BOOL iCheckChild )
 {
-    if( !iPath ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iPath) ) {COM_PRMNG(false);}
 
     countFile_t  data = { oFileCount, oDirCount, oTotalSize };
     initCountInf( &data );
@@ -3567,7 +3585,9 @@ BOOL com_seekDir2(
         const char *iPath, com_seekFilter_t iFilter, COM_SEEK_TYPE_t iType,
         com_seekDirCB_t iFunc, void *ioUserData )
 {
-    if( !iPath || !(iType & COM_SEEK_BOTH) || !iFunc ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iPath || !(iType & COM_SEEK_BOTH) || !iFunc) ) {
+        COM_PRMNG(false);
+    }
 
     DIR*  dir = opendir( iPath );
     if( !dir ) {
@@ -3594,7 +3614,7 @@ static BOOL checkFileName(
         const char *iSource, const char *iArchive, BOOL iNoZip,
         BOOL iOverwrite )
 {
-    if( !iSource ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iSource) ) {COM_PRMNG(false);}
     if( !iArchive ) {
         if( iNoZip ) {COM_PRMNG(false);}
         if( strchr( iSource, '*' ) || strchr( iSource, '?' ) ||
@@ -3680,7 +3700,7 @@ BOOL com_unzipFile(
         const char *iArchive, const char *iTargetPath, const char *iKey,
         BOOL iDelete )
 {
-    if( !iArchive ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iArchive) ) {COM_PRMNG(false);}
     else {
         if( !com_checkExistFile( iArchive ) ) {
             com_error( COM_ERR_FILEDIRNG, "file not exist (%s)", iArchive );

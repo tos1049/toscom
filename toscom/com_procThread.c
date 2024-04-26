@@ -51,11 +51,11 @@ static threadManage_t *makeNewThreadInf(
     com_threadId_t  newId = searchEmpty();
     if( newId == COM_NO_THREAD ) {return NULL;}
     char*  label = com_strdup( iLabel, NULL );
-    if( !label ) {return NULL;}
+    if( COM_UNLIKELY(!label) ) {return NULL;}
     char*  userdata = NULL;
     if( iData ) {
         userdata = com_malloc( iSize, "thread(%s) userdata", label );
-        if( !userdata ) {com_free( label );  return NULL;}
+        if( COM_UNLIKELY(!userdata) ) {com_free( label );  return NULL;}
         memcpy( userdata, iData, iSize );
     }
     gThreadList[newId] = (threadManage_t){
@@ -139,7 +139,7 @@ BOOL com_createThread(
         const void *iUserData, size_t iSize, com_thNotifyCB_t iFunc,
         const char *iFormat, ... )
 {
-    if( !iFunc ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iFunc) ) {COM_PRMNG(false);}
 
     char  buff[COM_LINEBUF_SIZE];
     COM_SET_FORMAT( buff );
@@ -156,7 +156,7 @@ BOOL com_createThread(
         }
     }
     com_mutexUnlock( &gMutex, CREATE, buff );
-    if( !newInf ) {return false;}
+    if( COM_UNLIKELY(!newInf) ) {return false;}
     COM_SET_IF_EXIST( oPtid, newInf->ptid );
     return true;
 }
@@ -179,7 +179,9 @@ static com_threadId_t getThreadId( pthread_t iPtid )
 static threadManage_t *getThreadInf(
         com_threadId_t iThId, const char *iFuncName )
 {
-    if( iThId < 0 || iThId > COM_THREAD_MAX ) {COM_PRMNGF(iFuncName,NULL);}
+    if( COM_UNLIKELY(iThId < 0 || iThId > COM_THREAD_MAX) ) {
+        COM_PRMNGF(iFuncName,NULL);
+    }
     threadManage_t*  result = &(gThreadList[iThId]);
     if( !(result->isUse) ) {return NULL;}
     return result;

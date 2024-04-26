@@ -543,7 +543,7 @@ static BOOL checkCreatePrm(
         COM_SOCK_TYPE_t iType, const void *iSrcInf, const void *iDstInf )
 {
 #ifdef __CYGWIN__
-    if( iType <= COM_SOCK_NETLINK ) {return false;}
+    if( COM_UNLIKELY(iType <= COM_SOCK_NETLINK) ) {return false;}
 #endif
     if( !iSrcInf && iType != COM_SOCK_NETLINK ) {return false;}
     if( !iDstInf && iType == COM_SOCK_TCP_CLIENT ) {return false;}
@@ -578,7 +578,7 @@ static eventInf_t *checkSocketInf( com_selectId_t iId, BOOL iLock )
 {
     // returnSocketInf()で排他アンロックする想定
     if( iLock ) {com_mutexLock( &gMutexEvent, __func__ );}
-    if( iId < 0 || iId > gEventId ) {return NULL;}
+    if( COM_UNLIKELY(iId < 0 || iId > gEventId) ) {return NULL;}
     eventInf_t*  tmp = &(gEventInf[iId]);
     if( !tmp->isUse || tmp->sockId == COM_NO_SOCK ) {return NULL;}
     return tmp;
@@ -686,7 +686,7 @@ COM_RECV_RESULT_t com_receiveSocket(
 {
     COM_SET_IF_EXIST( oLen, 0 );
     eventInf_t*  tmp = checkSocketInf( iId, false );
-    if( !tmp || !oData || !oLen ) {COM_PRMNG(COM_RECV_NG);}
+    if( COM_UNLIKELY(!tmp || !oData || !oLen) ) {COM_PRMNG(COM_RECV_NG);}
     struct sockaddr*  srcAddr = NULL;
     socklen_t*  addrLen = NULL;
     if( oFrom ) {
@@ -750,7 +750,7 @@ com_sockaddr_t *com_getDstInf( com_selectId_t iId )
 com_selectId_t com_registerTimer(
         long iTimer, com_expireTimerCB_t iExpireFunc )
 {
-    if( iTimer < 0  || !iExpireFunc ) {COM_PRMNG(COM_NO_SOCK);}
+    if( COM_UNLIKELY(iTimer < 0  || !iExpireFunc) ) {COM_PRMNG(COM_NO_SOCK);}
     com_skipMemInfo( true );
     com_selectId_t  id = getEventId( true );
     com_skipMemInfo( false );
@@ -770,7 +770,7 @@ com_selectId_t com_registerTimer(
 
 static eventInf_t *checkTimerInf( com_selectId_t iId, BOOL iLock )
 {
-    if( iId < 0 || iId > gEventId ) { return NULL; }
+    if( COM_UNLIKELY(iId < 0 || iId > gEventId) ) { return NULL; }
     if( iLock ) { com_mutexLock( &gMutexEvent, __func__ ); }
     eventInf_t*  tmp = &(gEventInf[iId]);
     if( tmp->timer == COM_NO_SOCK ) {return NULL;}
@@ -1142,7 +1142,7 @@ static com_selectId_t  gStdinId = COM_NO_SOCK;
 com_selectId_t com_registerStdin( com_getStdinCB_t iRecvFunc )
 {
     if( gStdinId != COM_NO_SOCK ) {return gStdinId;}  // 複数登録は不可
-    if( !iRecvFunc ) {COM_PRMNG(COM_NO_SOCK);}
+    if( COM_UNLIKELY(!iRecvFunc) ) {COM_PRMNG(COM_NO_SOCK);}
     com_skipMemInfo( true );
     com_selectId_t  id = getEventId( false );
     com_skipMemInfo( false );
@@ -1187,9 +1187,13 @@ static size_t calcSize( struct addrinfo *oInfo )
 static BOOL checkPrmGetaddrinfo(
         struct addrinfo **oTarget, COM_SOCK_TYPE_t iType, int iFamily )
 {
-    if( !oTarget ) {return false;}
-    if( iType < COM_SOCK_RAWSND || iType > COM_SOCK_TCP_SERVER ) {return false;}
-    if( iFamily != AF_INET && iFamily != AF_INET6 ) {return false;}
+    if( COM_UNLIKELY(!oTarget) ) {return false;}
+    if( COM_UNLIKELY(iType < COM_SOCK_RAWSND || iType > COM_SOCK_TCP_SERVER) ) {
+        return false;
+    }
+    if( COM_UNLIKELY(iFamily != AF_INET && iFamily != AF_INET6) ) {
+        return false;
+    }
     return true;
 }
 
@@ -1220,7 +1224,7 @@ BOOL com_getaddrinfoFunc(
 
 void com_freeaddrinfoFunc( struct addrinfo **oTarget, COM_FILEPRM )
 {
-    if( !oTarget ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oTarget) ) {COM_PRMNG();}
     if( !(*oTarget) ) {return;}
     freeaddrinfo( *oTarget );
     com_deleteMemInfo( COM_FILEVAR, COM_FREEADDRINFO, *oTarget );
@@ -1229,7 +1233,7 @@ void com_freeaddrinfoFunc( struct addrinfo **oTarget, COM_FILEPRM )
 
 void com_copyAddr( com_sockaddr_t *oTarget, const void *iSource )
 {
-    if( !iSource || !oTarget ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!iSource || !oTarget) ) {COM_PRMNG();}
     memset( oTarget, 0, sizeof(*oTarget) );
     if( !isUnixSocket( iSource ) ) {
         const struct addrinfo* ai = iSource;
@@ -1318,7 +1322,7 @@ static socklen_t getAddrLen( void *iSockAddr, void **oAddr )
 
 BOOL com_compareAddr( void *iTarget, void *iSockAddr )
 {
-    if( !iTarget || !iSockAddr ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iTarget || !iSockAddr) ) {COM_PRMNG(false);}
     void*  addr = NULL;
     socklen_t len = getAddrLen( iSockAddr, &addr );
     if( !len ) {return false;}
@@ -1345,7 +1349,7 @@ static BOOL compareSockAddr( void *iTarget, void *iSource )
 
 BOOL com_compareSock( void *iTargetSock, void *iSockAddr )
 {
-    if( !iTargetSock || !iSockAddr ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iTargetSock || !iSockAddr) ) {COM_PRMNG(false);}
     if( !compareSockFamily( iTargetSock, iSockAddr ) ) {return false;}
     return compareSockAddr( iTargetSock, iSockAddr );
 }
@@ -1380,7 +1384,7 @@ static BOOL compareSockPort( void *iTarget, void *iSource )
 
 BOOL com_compareSockWithPort( void *iTargetSock, void *iSockAddr )
 {
-    if( !iTargetSock || !iSockAddr ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iTargetSock || !iSockAddr) ) {COM_PRMNG(false);}
     if( !isIp(iTargetSock) || !isIp(iSockAddr) ) {return false;}
     if( !compareSockFamily( iTargetSock, iSockAddr ) ) {return false;}
     if( !compareSockPort( iTargetSock, iSockAddr ) ) {return false;}
@@ -1499,15 +1503,15 @@ static void *reallocSync(
 static BOOL addIfAddr( struct ifaddrs *iIfa )
 {
     com_ifinfo_t*  inf = getIfInfo( iIfa->ifa_name );
-    if( !inf ) {return false;}
+    if( COM_UNLIKELY(!inf) ) {return false;}
     struct ifaddrs**  ifAddr =
         com_reallocAddr( &inf->ifaddrs, sizeof(struct ifaddrs*), 0,
                          &inf->cntAddrs, ADDRCNT_ADD, "addAddrInf (ifaddr)" );
-    if( !ifAddr ) {return false;}
+    if( COM_UNLIKELY(!ifAddr) ) {return false;}
     *ifAddr = iIfa;
     com_ifaddr_t*  soAddrs = reallocSync( &inf->soAddrs, sizeof(*soAddrs),
                                           inf->cntAddrs, "sockaddr" );
-    if( !soAddrs ) {return false;}
+    if( COM_UNLIKELY(!soAddrs) ) {return false;}
     struct sockaddr*  sa = iIfa->ifa_addr;
     soAddrs->addr = (sa->sa_family == AF_INET || sa->sa_family == AF_INET6)
                     ? sa : NULL;
@@ -1629,13 +1633,13 @@ static void *addSaForNetlink( com_ifinfo_t *oInf, int iFamily )
     else {
         tmp = com_malloc( sizeof(struct sockaddr_in6), "IPv6 by Netlink" );
     }
-    if( !tmp ) {return NULL;}
+    if( COM_UNLIKELY(!tmp) ) {return NULL;}
     tmp->sa_family = iFamily;
 
     com_ifaddr_t*  soAddr =
         com_reallocAddr( &oInf->soAddrs, sizeof(*soAddr), 0,
                          &oInf->cntAddrs, 1, "setIpAddr (sockaddr)" );
-    if( !soAddr ) {com_free( tmp );  return NULL;}
+    if( COM_UNLIKELY(!soAddr) ) {com_free( tmp );  return NULL;}
     soAddr->addr = tmp;
     return tmp;
 }
@@ -1661,7 +1665,7 @@ static BOOL setIpAddr( com_ifinfo_t *oInf, struct ifaddrmsg *iMsg, void *iAddr )
 static BOOL setIfLabel( com_ifinfo_t *oInf, void *iLabel )
 {
     char*  tmp = com_strdup( (char*)iLabel, NULL );
-    if( !tmp ) {return false;}
+    if( COM_UNLIKELY(!tmp) ) {return false;}
     oInf->soAddrs[0].label = tmp;
     return true;
 }
@@ -1712,7 +1716,7 @@ static com_selectId_t createNetlinkSocket( void )
 static BOOL getAddrList( struct linkinfo *ioInf )
 {
     com_selectId_t  id = createNetlinkSocket();
-    if( id == COM_NO_SOCK ) {return false;}
+    if( COM_UNLIKELY(id == COM_NO_SOCK) ) {return false;}
     SETMSGHDR( getAddrReq_t, RTM_GETADDR );
     msg.body.ifa_family = 0;  // AF_INET
     if( !com_sendSocket( id, &msg, msg.hdr.nlmsg_len, NULL ) ) {return false;}
@@ -1769,9 +1773,9 @@ long com_collectIfInfo( com_ifinfo_t **oInf, BOOL iUseNetlink )
 long com_getIfInfo( com_ifinfo_t **oInf, BOOL iUseNetlink )
 {
 #ifdef __CYGWIN__
-    if( iUseNetlink ) {COM_PRMNG(COM_IFINFO_ERR);}
+    if( COM_UNLIKELY(iUseNetlink) ) {COM_PRMNG(COM_IFINFO_ERR);}
 #endif
-    if( !oInf ) {COM_PRMNG(COM_IFINFO_ERR);}
+    if( COM_UNLIKELY(!oInf) ) {COM_PRMNG(COM_IFINFO_ERR);}
     long  cnt = gIfInfoCnt;
     if( !(*oInf = gIfInfo) ) {cnt = com_collectIfInfo( oInf, iUseNetlink );}
     return cnt;
@@ -1816,11 +1820,11 @@ static BOOL makeSearchIfCond(
         struct addrinfo **oTmp, uchar *oTmpMac )
 {
     if( COM_CHECKBIT( iFlags, COM_IF_NAME ) ) {
-        if( !iCond->ifname ) {COM_PRMNG(false);}
+        if( COM_UNLIKELY(!iCond->ifname) ) {COM_PRMNG(false);}
         oCond->ifname = iCond->ifname;
     }
     if( COM_CHECKBIT( iFlags, COM_IF_INDEX ) ) {
-        if( iCond->ifindex < 0 ) {COM_PRMNG(false);}
+        if( COM_UNLIKELY(iCond->ifindex < 0) ) {COM_PRMNG(false);}
         oCond->ifindex = iCond->ifindex;
     }
     BOTHEXIST( COM_IF_IPTXT, COM_IF_IPSA );
@@ -1831,7 +1835,7 @@ static BOOL makeSearchIfCond(
     BOTHEXIST( COM_IF_HWTXT, COM_IF_HWBIN );
     MAKEADDRS( COM_IF_HWBIN, hwaddr );
     if( COM_CHECKBIT( iFlags, COM_IF_HWTXT ) ) {
-        if( !iCond->hwaddr ) {COM_PRMNG(false);}
+        if( COM_UNLIKELY(!iCond->hwaddr) ) {COM_PRMNG(false);}
         oCond->hwaddr = oTmpMac;
         if( !setIfMac( oCond->hwaddr, iCond->hwaddr ) ) {COM_PRMNG(false);}
     }
@@ -1909,9 +1913,11 @@ com_ifinfo_t *com_seekIfInfo(
         int iFlags, com_seekIf_t *iCond, BOOL iUseNetlink )
 {
 #ifdef __CYGWIN__
-    if( iUseNetlink ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(iUseNetlink) ) {COM_PRMNG(NULL);}
 #endif
-    if( iFlags <= 0 || iFlags > COM_IF_CONDMAX || !iCond ) {COM_PRMNG(NULL);}
+    if( COM_UNLIKELY(iFlags <= 0 || iFlags > COM_IF_CONDMAX || !iCond) ) {
+        COM_PRMNG(NULL);
+    }
     com_seekIf_t  cond = {NULL, -1, NULL, NULL};
     struct addrinfo*  tmp = NULL;
     uchar  tmpMac[ETH_ALEN];
@@ -1948,9 +1954,9 @@ static socklen_t getSockLen( const void *iAddr )
 BOOL com_getnameinfo(
         char **oAddr, char **oPort, const void *iAddr, socklen_t iLen )
 {
-    if( !iAddr ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iAddr) ) {COM_PRMNG(false);}
     if( !iLen ) {iLen = getSockLen( iAddr );}
-    if( !iLen ) {return false;}
+    if( COM_UNLIKELY(!iLen) ) {return false;}
 
     static char  hbuf[COM_LINEBUF_SIZE];
     static char  sbuf[COM_WORDBUF_SIZE];

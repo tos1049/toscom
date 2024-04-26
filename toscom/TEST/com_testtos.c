@@ -1312,10 +1312,13 @@ void test_ringBuffer( void )
 #define KEY_TEST2  "TEST2"
 #define KEY_TEST3  "TEST3"
 #define KEY_TEST4  "TEST4"
+#define KEY_TEST5  "TEST5"
 
 static void setCfgTest( char *iKey, char *iData )
 {
+    com_notifyError( false, true );  // エラー出力抑制(ログには残す)
     long result = com_setCfg( iKey, iData );
+    com_notifyError( true, true );   // エラー出力抑制を解除
     if( !result ) { com_printf( "%s -> %s\n", iKey, iData ); }
     else {
         com_printf( "%s not changed (%s)", iKey, iData );
@@ -1330,7 +1333,7 @@ void test_config( void )
     startFunc( __func__ );
 
     com_registerCfg( KEY_TEST1, NULL );
-    if( com_isEmptyCfg( KEY_TEST1 ) ) {com_printf( KEY_TEST1 "is empty!\n" );}
+    if( com_isEmptyCfg( KEY_TEST1 ) ) {com_printf( KEY_TEST1 " is empty!\n" );}
     com_valCondDigit_t cond = { 10, 40 };
     com_addCfgValidator( KEY_TEST1, &cond, COM_VAL_DIGIT );
     setCfgTest( KEY_TEST1, "0" );      // エラーになる
@@ -1370,6 +1373,12 @@ void test_config( void )
     setCfgTest( KEY_TEST4, "10*10" );          // エラーになる
     setCfgTest( KEY_TEST4, "0xFFFFFFFF" );     // エラーになる
     com_printf( "%s: %ld\n\n", KEY_TEST4, com_getCfgDigit( KEY_TEST4 ) );
+
+    com_registerCfg( KEY_TEST5, NULL );
+    com_addCfgValidator( KEY_TEST5, NULL, COM_VAL_YESNO );
+    setCfgTest( KEY_TEST5, "On" );     // エラーになる
+    setCfgTest( KEY_TEST5, "YeS" );
+    com_printf( "%s:%d\n\n", KEY_TEST5, com_getCfgBool( KEY_TEST5 ) );
 
     (void)com_getCfg( "DUMMY" );    // エラーになる
 

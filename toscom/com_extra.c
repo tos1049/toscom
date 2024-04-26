@@ -50,7 +50,7 @@ BOOL com_valSaveFileCondCopy( void **oCond, void *iCond )
     com_valCondSave_t*  source = iCond;
     com_valCondSave_t*  tmp = com_malloc( sizeof( com_valCondSave_t ),
                                           "copy save file condition" );
-    if( !tmp ) {return false;}
+    if( COM_UNLIKELY(!tmp) ) {return false;}
     *tmp = *source;
     if( !(tmp->fileExist = com_strdup( source->fileExist, NULL )) ) {
         com_free( tmp );
@@ -87,7 +87,7 @@ BOOL com_valLoadFileCondCopy( void **oCond, void* iCond )
     com_valCondLoad_t*  source = iCond;
     com_valCondLoad_t*  tmp = com_malloc( sizeof( com_valCondLoad_t),
                                           "copy load file condition" );
-    if( !tmp ) {return false;}
+    if( COM_UNLIKELY(!tmp) ) {return false;}
     *tmp = *source;
     if( !(tmp->cancel = com_strdup( source->cancel, NULL )) ) {
         com_free( tmp );
@@ -147,7 +147,7 @@ static size_t inputProc(
         const com_actFlag_t *iFlag, const char *iFuncName,
         const char *iFormat, va_list iAp )
 {
-    if( !oData ) {COM_PRMNGF(iFuncName, 0);}
+    if( COM_UNLIKELY(!oData) ) {COM_PRMNGF(iFuncName, 0);}
     if( !iFlag ) {iFlag = &(com_actFlag_t){ false, false };}
     if( iFormat ) {vsnprintf( gPromptBuff, sizeof(gPromptBuff), iFormat, iAp );}
     char*  prompt = iFormat ? gPromptBuff : NULL;
@@ -179,7 +179,7 @@ size_t com_inputVar(
         char *oData, size_t iSize, const com_valFunc_t *iVal,
         const com_actFlag_t *iFlag, const char *iFormat, ... )
 {
-    if( !oData ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!oData) ) {COM_PRMNG(0);}
     INPUT( oData, iSize, iVal, iFlag );
     return result;
 }
@@ -191,7 +191,7 @@ size_t com_input(
         char **oData, const com_valFunc_t *iVal,
         const com_actFlag_t *iFlag, const char *iFormat, ... )
 {
-    if( !oData) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!oData) ) {COM_PRMNG(0);}
     COM_CLEAR_BUF( gKeyBuff );
     *oData = gKeyBuff;
     INPUT( gKeyBuff, sizeof(gKeyBuff), iVal, iFlag );
@@ -200,7 +200,7 @@ size_t com_input(
 
 size_t com_inputMultiLine( char *oData, size_t iSize, const char *iFormat, ... )
 {
-    if( !oData ) {COM_PRMNG(0);}
+    if( COM_UNLIKELY(!oData) ) {COM_PRMNG(0);}
     COM_SET_FORMAT( gPromptBuff );
     if( iFormat ) {com_printf( "%s", gPromptBuff );}
     memset( oData, 0, iSize );
@@ -345,7 +345,7 @@ BOOL com_execSelector(
         const com_selector_t *iSelector, const com_selPrompt_t *iPrompt,
         const com_actFlag_t *iFlag )
 {
-    if( !iSelector ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iSelector) ) {COM_PRMNG(false);}
     long  count = 0;
     makeMenu( iSelector, iPrompt, &count );
     com_valCondDgtList_t  cond = { count, gMenuList };
@@ -361,7 +361,7 @@ BOOL com_execSelector(
 
 void com_readyStat( com_calcStat_t *oStat, BOOL iNeedList )
 {
-    if( !oStat ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oStat) ) {COM_PRMNG();}
     *oStat = (com_calcStat_t){
         .needList = iNeedList,  .existNegative = false,  .list = NULL,
         .max = COM_VAL_NO_MIN,  .min = COM_VAL_NO_MAX
@@ -421,7 +421,7 @@ static void calcStat( com_calcStat_t *oStat )
 
 BOOL com_inputStat( com_calcStat_t *oStat, long iData )
 {
-    if( !oStat ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!oStat) ) {COM_PRMNG(false);}
     double  tmp = (double)iData;
     (oStat->count)++;
     if( iData < 0 ) {oStat->existNegative = true;}
@@ -440,7 +440,7 @@ BOOL com_inputStat( com_calcStat_t *oStat, long iData )
 
 void com_finishStat( com_calcStat_t *oStat )
 {
-    if( !oStat ) {COM_PRMNG();}
+    if( COM_UNLIKELY(!oStat) ) {COM_PRMNG();}
     if( oStat->needList ) {com_free( oStat->list );}
 }
 
@@ -627,7 +627,7 @@ BOOL com_setSignalAction( const com_sigact_t *iSigList )
 
 void com_resumeSignalAction( long iSignum )
 {
-    if( iSignum > INT_MAX ) {COM_PRMNG();}
+    if( COM_UNLIKELY(iSignum > INT_MAX) ) {COM_PRMNG();}
     BOOL  resumed = false;
     for( long i = 0;  i < gSigOldAct.count;  i++ ) {
         com_sigact_t*  tmp = gSigOldAct.table[i].data;
@@ -706,7 +706,7 @@ BOOL com_readyPack( com_packInf_t *ioInf, const char *iConfirm )
 
 BOOL com_finishPack( com_packInf_t *ioInf, BOOL iFinal )
 {
-    if( !ioInf ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioInf) ) {COM_PRMNG(false);}
     com_skipMemInfo( false );
     BOOL  result = true;
     com_fclose( ioInf->fp );
@@ -765,8 +765,8 @@ static BOOL writePackData( com_packInf_t *ioInf, com_packElm_t *iElm )
 
 BOOL com_writePack( com_packInf_t *ioInf, com_packElm_t *iElm, long iCount )
 {
-    if( !ioInf || !iElm || !iCount ) {COM_PRMNG(false);}
-    if( !ioInf->writeFile ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioInf || !iElm || !iCount) ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioInf->writeFile) ) {COM_PRMNG(false);}
     for( long i = 0;  i < iCount;  i++ ) {
         if( !writePackData( ioInf, iElm + i ) ) {
             com_error( COM_ERR_FILEDIRNG, "fail to write %s(%ld:%p)",
@@ -780,7 +780,7 @@ BOOL com_writePack( com_packInf_t *ioInf, com_packElm_t *iElm, long iCount )
 BOOL com_writePackDirect(
         com_packInf_t *ioInf, void *iAddr, size_t iSize, BOOL iVarSize )
 {
-    if( !ioInf || !iAddr ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioInf || !iAddr) ) {COM_PRMNG(false);}
     com_packElm_t  tmp = { iAddr, iSize, iVarSize };
     return com_writePack( ioInf, &tmp, 1 );
 }
@@ -833,8 +833,8 @@ static BOOL readPackData( com_packInf_t *ioInf, com_packElm_t *ioElm )
 
 BOOL com_readPack( com_packInf_t *ioInf, com_packElm_t *iElm, long iCount )
 {
-    if( !ioInf || !iElm || !iCount ) {COM_PRMNG(false);}
-    if( ioInf->writeFile ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioInf || !iElm || !iCount) ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(ioInf->writeFile) ) {COM_PRMNG(false);}
     for( long i = 0;  i < iCount;  i++ ) {
         if( !readPackData( ioInf, iElm + i ) ) {
             com_error( COM_ERR_FILEDIRNG, "fail to read %s (%ld:%p)",
@@ -850,7 +850,7 @@ BOOL com_readPack( com_packInf_t *ioInf, com_packElm_t *iElm, long iCount )
 
 BOOL com_readPackFix( com_packInf_t *ioInf, void *iAddr, size_t iSize )
 {
-    if( !ioInf || !iAddr ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioInf || !iAddr) ) {COM_PRMNG(false);}
     com_packElm_t  tmp = { iAddr, iSize, false };
     if( !com_readPack( ioInf, &tmp, 1 ) ) {return false;}
     return true;
@@ -858,7 +858,7 @@ BOOL com_readPackFix( com_packInf_t *ioInf, void *iAddr, size_t iSize )
 
 BOOL com_readPackVar( com_packInf_t *ioInf, void *ioAddr, size_t *ioSize )
 {
-    if( !ioInf || !ioAddr || !ioSize ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioInf || !ioAddr || !ioSize) ) {COM_PRMNG(false);}
     char**  adr = ioAddr;
     com_packElm_t  tmp = { *adr, *ioSize, true };
     if( !com_readPack( ioInf, &tmp, 1 ) ) {return false;}
