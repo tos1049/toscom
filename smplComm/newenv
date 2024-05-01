@@ -225,6 +225,7 @@ function setSpecFiles() {
         echo ".${file}${BAKSUF} -> ${file} renamed"
       else
         cp ../toscom/${file} .
+        echo "${file} -> created"
       fi
     else
       if [[ -e "${file}" ]]; then
