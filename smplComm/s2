@@ -12,7 +12,6 @@ swapFiles spec2
 
 linkFile ${NEWMODULE}_window.h
 linkFile ${NEWMODULE}_window.c
-addSpecFile ${NEWMODULE}_windowSpec.h
 
 sed -i -e "/^#.*FLAGS.*=.*\-lncursesw/s/#//g" BUILD/makefile
 echo "activate ncurses in makefile"

@@ -241,7 +241,6 @@ comfiles+=" ${CDIR}/com_signalSet3.h ${CDIR}/com_signalSet3.c"
 
 specfiles="${CDIR}/com_custom.h ${CDIR}/com_spec.h ${CDIR}/com_spec.c"
 specfiles+=" ${CDIR}/com_test.c ${CDIR}/main.c"
-specfiles+=" ${CDIR}/com_windowSpec.h"
 specfiles+=" ${CDIR}/xconv"
 specfiles+=" ${CDIR}/xname ${CDIR}/xnameconf"
 

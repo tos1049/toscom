@@ -541,7 +541,7 @@ static size_t    gInputSize[COM_WINTEXT_BUF_COUNT];
 static char      gInputText[COM_WINTEXT_BUF_SIZE * 6];
 
 // 入力用に使用する特殊キーコードについては
-// com_windowSpec.h にて COM_KEY～ で宣言する。
+// com_custom.h にて COM_KEY～ で宣言する。
 // システムによってキーコードは変わる可能性があるため、
 // うまく動作しない時はその宣言値を修正すること。
 

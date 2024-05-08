@@ -275,7 +275,6 @@ COMWINDOW=(window.h window.c)
 LIBWINDOW="-lncursesw"
 # makefileで -lncursesw の記述がある行を修正対象とする
 setFiles "$USE_WINDOW" "${COMWINDOW[*]}" "window.h" "$LIBWINDOW"
-setSpecFiles "$USE_WINDOW" "com_windowSpec.h"
 
 ### シグナル機能 (USE_SIGNAL1/USE_SIGNAL2/USE_SIGNAL3) ###
 COMSIG1=(signal.h signal.c signalCom.h signalCom.c signalSet1.h signalSet1.c)

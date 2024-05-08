@@ -12,7 +12,6 @@ swapFiles spec1
 
 delFile ${NEWMODULE}_window.h
 delFile ${NEWMODULE}_window.c
-delSpecFile ${NEWMODULE}_windowSpec.h
 
 sed -i -E "/^[^#].*FLAGS.*=.*\-lncursesw/s/^(.*)/#&/" BUILD/makefile
 echo "deactivate ncurses in makefile"

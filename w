@@ -26,3 +26,4 @@ cd ${WORKDIR} || exit
 
 rm -fr toscom
 tar xvfz ${TARFILE} >& /dev/null
+

@@ -70,3 +70,22 @@ enum {
 //  下記ファイル名を変更した場合、makefileの方の変数 NAMELIST も併せて修正する。
 #define COM_NAMELIST  ".namelist.toscom"
 
+/*
+ * ＜ウィンドウ機能で使用するマクロ宣言＞
+ * com_inoutWindow()で使用される特殊キーのキーコード
+ * Linux/Windows(Cygwin)でほぼ同じ値だったが、BSだけは差分があったため、
+ * それを吸収した宣言としている。
+ * ただそれも環境によって変わる可能性が充分あるため、動作しない場合は
+ * 正しいキーコードを調べて、宣言値を変更する必要がある。
+ */
+enum {
+    COM_KEYLF  = 0x0a,   // Enter
+    COM_KEYEOT = 0x04,   // Ctrl + D
+#ifdef __linux__
+    COM_KEYBS  = 0x08,   // Backspace
+#else
+    COM_KEYBS  = 0x7F,   // Cygwinでは 0x7F で動作することを確認
+#endif
+    COM_KEYESC = 0x1B    // ESC
+};
+
