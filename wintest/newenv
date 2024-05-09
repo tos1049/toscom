@@ -1,0 +1,308 @@
+#!/bin/bash
+
+#####################################################
+### 使用するオプション機能の設定を実施する。      ###
+### 0 を指定して、関係ファイルがある場合削除する。###
+#####################################################
+
+# エキストラ機能を使いたい場合は 非0 を設定
+USE_EXTRA=1
+
+# セレクト機能を使いたい場合は 非0 を設定
+USE_SELECT=0
+
+# ウィンドウ機能を使いたい場合は 非0 を設定
+USE_WINDOW=1
+
+# シグナル機能を使いたい場合は 非0 を設定
+USE_SIGNAL1=0
+
+# シグナル機能セット2(No.7系追加)を使いたい場合は USE_SIGNAL1 と共に 非0を設定
+USE_SIGNAL2=0
+
+# シグナル機能セット3(IP系追加)を使いたい場合は USE_SIGNAL1 と共に 非0を設定
+USE_SIGNAL3=0
+
+#
+# toscomから開発環境を作成するスクリプト
+# (1)toscom/ があるディレクトリで newenv.tar.gz を展開する。
+#       tar xvfz toscom/newenv.tar.gz
+# (2)新たに NEWENV というディレクトリが展開されるので入る。
+#       cd NEWENV
+# (3)本ファイルの内容を適宜更新後、実行する。
+#       ./newenv
+# (4)ディレクトリ名 NEWENV はその後 適宜リネームして問題ない。
+#
+# 本スクリプトを実行すると ../toscom/ からファイルをコピーする。
+# カスタマイズ不可のものはコピーではなくシンボリックリンクを生成する。
+# toscomに更新があった場合、新しい toscom.tar.gz を既存の toscomに
+# 上書き展開するだけで、開発環境下のファイルもアップデートされる想定。
+#
+# カスタマイズ可能なファイル(com_spec.cなど)は上書きされずに残せる。
+# このように独自のコードを壊すことが無いように考慮している。
+# ただし toscom側のバージョンアップで com_custom.h に手動で修正が必要に
+# なる可能性はあるので、アップデート内容を確認はすること。
+#
+# 本スクリプトを修正無しで実行すると、基本機能しか取り込まない。
+# オプション機能を取り込みたい場合、以下の変数を 1 に設定すること。
+#    USE_EXTRA     -> エキストラ機能
+#    USE_SELECT    -> セレクト機能
+#    USE_WINDOW    -> ウィンドウ機能
+#
+# 1 にした状態で newenvを実行すると、以下の処理を実施する。
+#  ・必要なファイルのシンボリックリンクを作成する(既存なら何もしない)。
+#  ・BUILD/makefile で必要な行のコメントアウトを外す。
+#  ・main.c でヘッダファイルのインクルード文を追記する。
+#
+# ちなみに もし 0 にしていると、以下の処理を実施する。
+#  ・その機能のファイルのシンボリックリンクを削除する(無いなら何もしない)。
+#  ・BUILD/makefile でその機能に必要な部分をコメントアウトする。
+#  ・main.c で対応するヘッダファイルのインクルード文を削除する。
+#
+# 複数回実行しても問題ないので、後でオプション機能がなにか必要になったら、
+# その機能のフラグを 1 にして ./newenv を実行すれば簡単に追加出来るし、
+# 不要になった機能を削除することも可能。その後のビルド時は make clean を
+# 先に打つか、make init でビルド実施すること。
+#
+
+
+
+
+
+
+
+########################################
+### 以後の処理は何も手を加えないこと ###
+########################################
+
+# モジュール名について toscom本体の設定を取得する
+. ../toscom/xnameconf
+
+# 文字なし または "0" なら 0を返す。文字あり かつ 非0なら 1を返す
+function judgeFlag() {
+  if [ -z "$1" ];  then echo "0"; return
+  elif [ $1 -eq 0 ]; then echo "0"; return
+  else echo "1"
+  fi
+}
+
+MOD="../toscom/${NEWMODULE}"
+
+# ファイル名の取得 (変数は local宣言しない)
+function makeFileName() {
+  TARGET="${MOD}_$1"
+  BASE=$(basename "${TARGET}")
+}
+
+# 必要なシンボリックリンクを生成する
+function setSymLink() {
+  for FILE; do
+    makeFileName ${FILE}
+    if [ ! -e ${BASE} ] && [ ! -L ${BASE} ]; then
+      ln -s ${TARGET}
+      echo "${BASE}  -> created"
+    fi
+  done
+}
+
+# 不要なシンボリックリンクを削除する
+function delSymLink() {
+  for FILE; do
+    makeFileName ${FILE}
+    if [ -e ${BASE} ] || [ -L ${BASE} ]; then
+      rm -fr ${BASE}
+      echo "${BASE}  -> deleted"
+    fi
+  done
+}
+
+MAKEFILE="BUILD/makefile"
+
+# makefileで必要なライブラリ記述のコメントアウトを外す
+function actLibs() {
+  local _GREP="^#.*FLAGS.*=.*${1}"
+  local _TARGET=$(grep "${_GREP}" ${MAKEFILE})
+  if [ -n "${_TARGET}" ]; then
+    echo "${MAKEFILE}  -> activate: ${_TARGET}"
+    sed -i -e "/${_GREP}/s/#//g" ${MAKEFILE}
+  fi
+}
+
+# makefileで不要なライブラリ記述をコメントアウトする
+function deactLibs() {
+  local _GREP="^[^#].*FLAGS.*=.*${1}"
+  local _TARGET=$(grep "${_GREP}" ${MAKEFILE})
+  if [ -n "${_TARGET}" ]; then
+    echo "${MAKEFILE}  -> deactivate: ${_TARGET}"
+    sed -i -E "/${_GREP}/s/^(.*)/#&/" ${MAKEFILE}
+  fi
+}
+
+MAINC="main.c"
+
+# main.cで必要なヘッダのインクルード文を追記する
+function addHeads() {
+  if [ ! -e "${MAINC}" ]; then return 0; fi
+
+  # 一番最後の toscomヘッダ インクルード文を探し、コメント等は除外して保持
+  local _GREPLAST=$(grep "#include \"${NEWMODULE}_" ${MAINC} | tail -n 1)
+  # インクルード文が見つからないときは何もしない
+  if [ -z "${_GREPLAST}" ]; then return 0; fi
+  local _TARGET="${_GREPLAST%\"*}\""
+  # 「#include "cmo_if.h"」というような部分が $TARGETに入る想定
+
+  for HEAD; do
+    local _ADDHEAD="#include \"${NEWMODULE}_${HEAD}\""
+    if [ ! -n "$(grep "${_ADDHEAD}" ${MAINC})" ]; then
+      sed -i -e "/${_TARGET}/a ${_ADDHEAD}" ${MAINC}
+      echo "${MAINC} -> add: ${_ADDHEAD}"
+    fi
+    # 追加したインクルード文の次に追加できるようにする
+    _TARGET="${_ADDHEAD}"
+  done
+}
+
+# main.cで不要なヘッダのインクルード文を削除する
+function delHeads() {
+  if [ ! -e "${MAINC}" ]; then return 0; fi
+  for HEAD; do
+    local _TARGET="#include \"${NEWMODULE}_${HEAD}\""
+    if [ -n "$(grep "${_TARGET}" ${MAINC})" ]; then
+      sed -i -e "/${_TARGET}/d" ${MAINC}
+      echo "${MAINC} -> delete: ${_TARGET}"
+    fi
+  done
+}
+
+# 各機能の追加/削除に必要な処理を実施する
+function setFiles() {
+  local _FLAG="$(judgeFlag $1)"
+  local _FILES=$2
+  local _HEADS=$3
+  local _LIBS=$4
+
+  if [ ${_FLAG} = 1 ]; then
+    setSymLink ${_FILES}
+    addHeads ${_HEADS}
+    if [ -n "${_LIBS}" ]; then
+      actLibs "${_LIBS}"
+    fi
+  else
+    delSymLink ${_FILES}
+    delHeads ${_HEADS}
+    if [ -n "${_LIBS}" ]; then
+      deactLibs "${_LIBS}"
+    fi
+  fi
+}
+
+# リンクのないテキストファイルのシンボリックリンクを生成する
+function setText() {
+  if [ ! -e "$1" ] && [ ! -L "$1" ]; then
+    ln -s ../toscom/$1
+    echo "$1  -> created"
+  fi
+}
+
+# 特定機能の個別ファイルを実ファイルとして配置/リネームする
+# ・ファイル追加が必要で そのファイルがない時は ../toscom/からコピー
+# ・ファイル追加が必要で .bakを付けたファイルが存在する時は .を外すリネーム
+# ・ファイル削除が必要で そのファイルがない時は何もしない
+# ・ファイル削除が必要で そのファイルがある時は .を付与するリネーム
+# (BAKSUFに文字列を定義すると、リネームファイル名の末尾に付与する)
+#
+BAKSUF=""
+function setSpecFiles() {
+  local _FLAG="$(judgeFlag $1)"
+  local _FILES=($2)
+
+  for file in "${_FILES[@]}"; do
+    if [[ ${_FLAG} == "1" ]]; then
+      if [ -e ".${file}${BAKSUF}" ]; then
+        mv ".${file}${BAKSUF}" "${file}"
+        echo ".${file}${BAKSUF} -> ${file} renamed"
+      else
+        cp ../toscom/${file} .
+        echo "${file} -> created"
+      fi
+    else
+      if [[ -e "${file}" ]]; then
+        mv "${file}" ".${file}${BAKSUF}"
+        echo "${file} -> .${file}${BAKSUF} renamed (not deleted)"
+      fi
+    fi
+  done
+}
+
+##############################################################################
+##############################################################################
+
+# 旧モジュール名のファイルがあると判断したら、削除する
+if [ ${NEWMODULE} != ${OLDMODULE} ] && [ -e ${OLDMODULE}_spec.c ]; then
+  echo "delete ${OLDMODULE}_* links"
+  rm -fr ${OLDMODULE}_if.h ${OLDMODULE}_proc*.c ${OLDMODULE}_debug*.?
+  rm -fr ${OLDMODULE}_extra.?
+  rm -fr ${OLDMODULE}_select.?
+  rm -fr ${OLDMODULE}_window.?
+  rm -fr ${OLDMODULE}_signal*.?
+  echo "convert rest ${OLDMODULE}_* files"
+  cp ../toscom/xname* .
+  ./xname &> /dev/null
+  rm -fr xname*
+fi
+
+# 各機能で必要なファイルやライブラリについて定義し、共通処理に掛ける
+# モジュール名は com から変更される可能性があるので、ファイル名に含めない
+
+### 基本機能 (必須) ###
+COMBASE=(if.h proc.c procThread.c debugMacro.h debug.h debug.c)
+# ライブラリの記述は修正不要
+setFiles 1 "${COMBASE[*]}"
+
+### エキストラ機能 (USE_EXTRA) ###
+COMEXTRA=(extra.h extra.c)
+LIBEXTRA="-lm"
+# makefileで -lm の記述がある行を修正対象とする
+setFiles "$USE_EXTRA" "${COMEXTRA[*]}" "extra.h" "$LIBEXTRA"
+
+### セレクト機能 (USE_SELECT) ###
+COMSELECT=(select.h select.c)
+# ライブラリの記述は修正不要
+setFiles "$USE_SELECT" "${COMSELECT[*]}" "select.h"
+
+### ウィンドウ機能 (USE_WINDOW) ###
+COMWINDOW=(window.h window.c)
+LIBWINDOW="-lncursesw"
+# makefileで -lncursesw の記述がある行を修正対象とする
+setFiles "$USE_WINDOW" "${COMWINDOW[*]}" "window.h" "$LIBWINDOW"
+
+### シグナル機能 (USE_SIGNAL1/USE_SIGNAL2/USE_SIGNAL3) ###
+COMSIG1=(signal.h signal.c signalCom.h signalCom.c signalSet1.h signalSet1.c)
+COMSIG2=(signalSet2.h signalSet2.c)
+COMSIG3=(signalSet3.h signalSet3.c)
+# シグナル機能はセット1がない場合、セット2・セット3も削除する
+flag="$(judgeFlag $USE_SIGNAL1)"
+if [ ${flag} -eq 0 ]; then
+  flag="$(judgeFlag $USE_SIGNAL2)"
+  if [ ${flag} -eq 1 ]; then
+    echo "USE_SIGNAL2 needs USE_SIGNAL1"
+    USE_SIGNAL2=0
+  fi
+  flag="$(judgeFlag $USE_SIGNAL3)"
+  if [ ${flag} -eq 1 ]; then
+    echo "USE_SIGNAL3 needs USE_SIGNAL1"
+    USE_SIGNAL3=0
+  fi
+fi
+# ライブラリの記述は修正不要
+setFiles "$USE_SIGNAL1" "${COMSIG1[*]}" "signal.h"
+setFiles "$USE_SIGNAL2" "${COMSIG2[*]}" "signalSet2.h"
+setFiles "$USE_SIGNAL3" "${COMSIG3[*]}" "signalSet3.h"
+
+### 説明テキストファイル ###
+setText README.md
+setText aboutIf.txt
+setText aboutUpgrade.txt
+
+echo ">>> newenv done"
+

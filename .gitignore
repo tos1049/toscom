@@ -12,7 +12,6 @@ newenv.tar.gz
 NEWENVTMP*
 newtest*
 libtest
-wintest
 LIB_*
 *.a
 chatlog.*

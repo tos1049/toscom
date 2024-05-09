@@ -1,0 +1,8 @@
+9c9
+< USE_EXTRA=0
+---
+> USE_EXTRA=1
+15c15
+< USE_WINDOW=0
+---
+> USE_WINDOW=1
