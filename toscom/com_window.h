@@ -1012,7 +1012,7 @@ int com_getLastKey( void );
  *     com_getWindowCur( id, &pos );
  *     while( !com_inputWindow( id, &string, &opt, &pos ) ) {}
  * といったコードが考えられる。(idは入力するウィンドウのIDが入る想定)
- * ここまでループをさせることは義務というわけではなく
+ * whileによるループが義務というわけではなく
  * ・falseが返ったら、引数の内容は同じで本I/Fを再度呼び出す
  * ・trueが返ってから初めて入力文字列(上記のコードなら string)を参照する
  * ということを考慮してあれば問題ない。
