@@ -98,22 +98,24 @@ static void inputString( com_winId_t iId )
     while ( !com_inputWindow( iId, &string, &opt, &pos ) ) {}
 }
 
+// 全てのウィンドウ(ID=0も含む)で受け付ける操作
 static com_keymap_t  gBaseKeymap[] = {
-    { '\t',        switchWindow },
-    { 0x5a,        revertWindow },      // SHIFT+TAB っぽい
-    { 'k',         cursorUp },
-    { 'j',         cursorDown },
-    { 'l',         cursorRight },
-    { 'h',         cursorLeft },
-    { ' ',         inputString },
+    { '\t',        switchWindow },      // TAB         ウィンドウ切替(順方向)
+    { 0x5a,        revertWindow },      // SHIFT+TAB   ウィンドウ切替(逆方向)
+    { 'k',         cursorUp },          // カーソルを上に移動
+    { 'j',         cursorDown },        // カーソルを下に移動
+    { 'l',         cursorRight },       // カーソルを右に移動
+    { 'h',         cursorLeft },        // カーソルを左に移動
+    { ' ',         inputString },       // 文字列入力
     {   0, NULL }
 };
 
+// 移動可能なウィンドウ(ID=0以外)でのみ受け付ける動作
 static com_keymap_t  gWinKeymap[] = {
-    { 0x41,         moveUpWindow },     // カーソル上
-    { 0x42,         moveDownWindow },   // カーソル下
-    { 0x43,         moveRightWindow },  // カーソル右
-    { 0x44,         moveLeftWindow },   // カーソル左
+    { 0x41,         moveUpWindow },     // カーソル上  ウィンドウを上に移動
+    { 0x42,         moveDownWindow },   // カーソル下  ウィンドウを下に移動
+    { 0x43,         moveRightWindow },  // カーソル右  ウィンドウを右に移動
+    { 0x44,         moveLeftWindow },   // カーソル左  ウィンドウを左に移動
     {   0, NULL }
 };
 
