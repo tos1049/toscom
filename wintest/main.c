@@ -88,6 +88,16 @@ static void moveLeftWindow( com_winId_t iId )
     moveWindow( iId, &(com_winpos_t){ -1, 0 } );
 }
 
+static void inputString( com_winId_t iId )
+{
+    com_wininopt_t opt = { COM_IN_1LINE, -1, 0, true, false };
+    com_winpos_t pos;
+    char* string = NULL;
+
+    com_getWindowCur( iId, &pos );
+    while ( !com_inputWindow( iId, &string, &opt, &pos ) ) {}
+}
+
 static com_keymap_t  gBaseKeymap[] = {
     { '\t',        switchWindow },
     { 0x5a,        revertWindow },      // SHIFT+TAB っぽい
@@ -95,6 +105,7 @@ static com_keymap_t  gBaseKeymap[] = {
     { 'j',         cursorDown },
     { 'l',         cursorRight },
     { 'h',         cursorLeft },
+    { ' ',         inputString },
     {   0, NULL }
 };
 
