@@ -993,7 +993,6 @@ int com_getLastKey( void );
  *
  * iPosは入力位置を指定する。NULL指定不可。
  * 文字入力が完了するまで同じ値を指定し続ける必要がある。
- * (文字入力が完了するまでに、本I/Fは複数回呼ばれる可能性がある)
  *
  *
  * .typeが COM_IN_1KEY で .echo が falseなら、com_setWindowKeymap()を使った
@@ -1004,6 +1003,19 @@ int com_getLastKey( void );
  * また、ESCを押すと一瞬の間があるが、その後 入力をキャンセル可能。
  * (この一瞬の間は getch()の仕様なので、現状改善の余地はない)
  * あとは入力確定の Enter または Ctrl+D 以外の特殊キーは受け付けない。
+ *
+ * この2つのモードでは、文字入力途中は false を返すため、trueが返ってくるまで
+ * 本I/Fを繰り返し呼び出す必要がある。端的なパターンとしては
+ *     com_wininopt_t  opt = { COM_IN_1LINE, -1, 0, true, false };
+ *     com_winpos_t  pos;
+ *     char*  string = NULL;
+ *     com_getWindowCur( id, &pos );
+ *     while( !com_inputWindow( id, &string, &opt, &pos ) ) {}
+ * といったコードが考えられる。(idは入力するウィンドウのIDが入る想定)
+ * ここまでループをさせることは義務というわけではなく
+ * ・falseが返ったら、引数の内容は同じで本I/Fを再度呼び出す
+ * ・trueが返ってから初めて入力文字列(上記のコードなら string)を参照する
+ * ということを考慮してあれば問題ない。
  *
  *
  * 特殊キー
