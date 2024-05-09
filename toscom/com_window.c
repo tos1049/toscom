@@ -777,12 +777,12 @@ BOOL com_inputWindow(
         com_winId_t iId, char **oInput, com_wininopt_t *iOpt,
         const com_winpos_t *iPos )
 {
-    if( !iOpt ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!iOpt) ) {COM_PRMNG(false);}
     workInput_t  work = {
         checkWinId( &iId ), iId, iOpt->size, oInput, iPos,
         iOpt->echo, iOpt->clear
     };
-    if( !work.win || !oInput || !iPos ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!work.win || !oInput || !iPos) ) {COM_PRMNG(false);}
     if( !getWorkBuff( &work ) ) {return true;}
 
     timeout( iOpt->delay );
