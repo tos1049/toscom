@@ -41,7 +41,7 @@
  *   減らせるが、I/F名と実体関数名が変わるということにもなっている。
  *   関数引数のチェックは実体関数で当然行われるため、関数形式マクロとは
  *   引数の数が違うために混亂する可能性は否定できない(申し訳ない)。
- *   エラー発生時はどの引数と対応するのか、マクロ定義をよく見ておくこと。
+ *   エラー発生時はどの引数と対応するのか、マクロ宣言をよく見ておくこと。
  */
 #define COM_FILEPRM  const char *iFILE, long iLINE, const char *iFUNC
 #define COM_FILEVAR  iFILE, iLINE, iFUNC

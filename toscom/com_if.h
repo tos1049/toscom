@@ -657,7 +657,7 @@ void *com_mallocFunc( size_t iSize, COM_FILEPRM, const char *iFormat, ... );
  * NULLをを返すが、この動作は以下に示す幾つかの問題があるため、最初から iSize=0
  * となるような呼び出しはしないように配慮する方が望ましい。下記を意識できるなら
  * そのまま com_realloc()の処理に任せても問題ない。
- * ・com_free()はマクロ定義により指定したポインタ変数を NULLにできるが
+ * ・com_free()はマクロ宣言により指定したポインタ変数を NULLにできるが
  *   com_realloc()で解放したときは、元アドレス自体を NULLにはできない。
  * ・NULLが返ったら処理NGとすることが出来なくなる。iSize > 0 だった場合は
  *   NULLが返ったら NGだが、iSize = 0 なら NULLが返るのが OKとなるので、
@@ -886,7 +886,7 @@ char *com_strndupFunc(
  * ioAddrが元々NULLの場合は何もしない。
  * 特殊な事情がない限り、com_freeFunc()ではなく、com_free()を使用すること。
  *
- * com_free()は関数マクロで、実体が com_freeFunc()になる。マクロ定義で
+ * com_free()は関数マクロで、実体が com_freeFunc()になる。マクロ宣言で
  * com_free()の引数は & を付けたポインタとして com_freeFunc()に渡しており、
  * これによりメモリ解放とともに元のアドレスのポインタへの NULL格納を実現する。
  *
@@ -3899,7 +3899,7 @@ FILE *com_fopenFunc( const char *iPath, const char *iMode, COM_FILEPRM );
  * fclose()と同じ要領で使う。つまり FPの型は FILE *型を期待している。
  * ファイルクローズ後、FPには NULLを格納する。
  *
- * com_fclose()は関数マクロで、実体は com_fcloseFunc()になる。マクロ定義で
+ * com_fclose()は関数マクロで、実体は com_fcloseFunc()になる。マクロ宣言で
  * com_fclose()の引数は & を付けたポインタとして com_fcloseFunc()に渡しており
  * これによりクローズとともに、元のアドレスの変数への NULL格納を実現する。
  *
