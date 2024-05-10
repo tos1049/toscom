@@ -295,7 +295,7 @@ void com_decodeSignal( COM_DECODER_PRM );
  *   (これらの格納には com_setHeadInf()が使える)
  *
  *   ioHead->sig.top など使用頻度の高いものは COM_SGTOP というように
- *   短縮マクロを用意している。(もちろん内部定義を増やしても問題ない)
+ *   短縮マクロを用意している。(もちろん内部宣言を増やしても問題ない)
  *
  *   バイトオーダーを意識した数値の取得/設定には
  *   com_getVal16()・com_getVal32()・com_setVal16()・com_setVal32()が使える。
@@ -363,7 +363,7 @@ void com_decodeSignal( COM_DECODER_PRM );
  *   既存デコードI/Fの動きを見て合わせると良いだろう。
  *
  *   iHead->sig.top など使用頻度の高いものは COM_ISGTOP というように
- *   短縮マクロを用意している。(もちろん内部定義を増やしても問題ない)
+ *   短縮マクロを用意している。(もちろん内部宣言を増やしても問題ない)
  *
  *   バイトオーダーを意識した数値の取得/設定には
  *   com_getVal16()・com_getVal32()・com_setVal16()・com_setVal32()が使える。
