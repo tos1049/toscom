@@ -160,11 +160,12 @@ static void quitLoop( int iSignal )
 {
     // CTRL+C のみ終了の処理とする
     if( iSignal == SIGINT ) { gLoop = false; }
+    // CTRL+Z は現状無視。今後 何か機能を追加出来るように本関数を呼ぶ作りとする
 }
 
 static com_sigact_t gSigHandler[] = {
-    { SIGINT,         { .sa_handler = quitLoop } },
-    { SIGTSTP,        { .sa_handler = quitLoop } },
+    { SIGINT,         { .sa_handler = quitLoop } },    // CTRL+C
+    { SIGTSTP,        { .sa_handler = quitLoop } },    // CTRL+Z
     { COM_SIGACT_END, { .sa_handler = NULL } }
 };
       
