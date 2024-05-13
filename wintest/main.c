@@ -31,12 +31,12 @@ static void revertWindow( com_winId_t iId )
 static void moveCursor( com_winId_t iId, com_winpos_t *iMove )
 {
     com_winpos_t  pos;
-    com_getWindowCur( iId, &pos );
+    (void)com_getWindowCur( iId, &pos );
     pos.x = pos.x + iMove->x;
     if( pos.x < 0 ) { pos.x = 0; }
     pos.y = pos.y + iMove->y;
     if( pos.y < 0 ) { pos.y = 0; }
-    com_moveCursor( iId, &pos );
+    (void)com_moveCursor( iId, &pos );
 }
 
 static void cursorUp( com_winId_t iId )
@@ -62,10 +62,10 @@ static void cursorLeft( com_winId_t iId )
 static void moveWindow( com_winId_t iId, com_winpos_t *iMove )
 {
     com_winpos_t  pos;
-    com_getWindowPos( iId, &pos );
+    (void)com_getWindowPos( iId, &pos );
     pos.x = pos.x + iMove->x;
     pos.y = pos.y + iMove->y;
-    com_moveWindow( iId, &pos );
+    (void)com_moveWindow( iId, &pos );
 }
 
 static void moveUpWindow( com_winId_t iId )
@@ -94,7 +94,7 @@ static void inputString( com_winId_t iId )
     com_winpos_t pos;
     char* string = NULL;
 
-    com_getWindowCur( iId, &pos );
+    (void)com_getWindowCur( iId, &pos );
     while ( !com_inputWindow( iId, &string, &opt, &pos ) ) {}
 }
 
@@ -123,12 +123,13 @@ static com_winId_t setupWin(
         com_winpos_t *iPos, com_winpos_t *iSize, BOOL iBorder )
 {
     com_winId_t id = com_createWindow( iPos, iSize, iBorder );
-    if( !id ) { return 0; }
+    if( id == COM_NO_WIN ) { return 0; }
 
-    com_mprintWindow( id, &(com_winpos_t){0,10}, A_REVERSE, true, "ID%ld", id );
+    (void)com_mprintWindow( id, &(com_winpos_t){0,10},
+                            A_REVERSE, true, "ID%ld", id );
     if( !com_setWindowKeymap( id, gWinKeymap ) ) { return 0; }
     if( !com_mixWindowKeymap( id, 0 ) ) { return 0; }
-    com_activateWindow( id );
+    if( !com_activateWindow( id ) ) { return 0; }
     gCurWin = id;
     return id;
 }
@@ -141,10 +142,10 @@ static void startWindow( void )
     com_winpos_t  winSize;
     if( !com_readyWindow( &winOpt, &winSize ) ) { ABORT; }
     if( !com_setWindowKeymap( 0, gBaseKeymap ) ) { ABORT; }
-    com_mprintWindow( 0, &(com_winpos_t){0,winSize.y-1}, A_REVERSE, true,
-                      "BOTTOM" );
-    com_mprintWindow( 0, &(com_winpos_t){65,winSize.y-1}, A_UNDERLINE, true,
-                      "CTRL+C to quit" );
+    (void)com_mprintWindow( 0, &(com_winpos_t){0,winSize.y-1},
+                            A_REVERSE, true, "BOTTOM" );
+    (void)com_mprintWindow( 0, &(com_winpos_t){65,winSize.y-1},
+                            A_UNDERLINE, true, "CTRL+C to quit" );
 
     com_winpos_t  winPos  = { 10,  0 };
     winSize = (com_winpos_t){ 40, 10 };
@@ -172,11 +173,11 @@ static void loopMain( void )
     if( !com_setSignalAction( gSigHandler ) ) {return;}
     gCurWin = 1;
     while( gLoop ) {
-        com_activateWindow( gCurWin );
-        com_checkWindowKey( gCurWin, 50 );
+        (void)com_activateWindow( gCurWin );
+        (void)com_checkWindowKey( gCurWin, 50 );
         int lastKey = com_getLastKey();
         if( lastKey > 0 ) {
-            com_mprintWindow(
+            (void)com_mprintWindow(
                     0, &(com_winpos_t){0,0}, A_BOLD, true, "%02x", lastKey );
         }
     }
@@ -184,7 +185,7 @@ static void loopMain( void )
 
 static void finishWindow( void )
 {
-    com_finishWindow();
+    (void)com_finishWindow();
 }
 
 /* 初期化処理 ****************************************************************/
