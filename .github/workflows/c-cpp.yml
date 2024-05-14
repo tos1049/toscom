@@ -39,30 +39,30 @@ jobs:
       run: cp toscom.*.tar.gz test/
     - name: "[test] extract archive"
       run: cd test; tar xvfz toscom.*.tar.gz
-    - name: "[test] toscom make rel"
-      run: cd test/toscom/BUILD; make rel
+    - name: "[test] toscom make"
+      run: cd test/toscom/BUILD; make
     - name: "[test] extract smplComm"
       run: cd test; tar xvfz toscom/smplcomm.tar.gz
-    - name: "[test] smplComm ver1 make rel"
-      run: cd test/smplComm/BUILD; make rel
+    - name: "[test] smplComm ver1 make"
+      run: cd test/smplComm/BUILD; make
     - name: "[test] smplComm ver1 make checkf"
       run: cd test/smplComm/BUILD; make checkf
     - name: "[test] convert to smplComm ver2"
       run: cd test/smplComm; ./s2
-    - name: "[test] smplComm ver2 make rel"
-      run: cd test/smplComm/BUILD; make rel
+    - name: "[test] smplComm ver2 make"
+      run: cd test/smplComm/BUILD; make
     - name: "[test] smplComm ver2 make checkf"
       run: cd test/smplComm/BUILD; make checkf
     - name: "[test] extract wintest"
       run: cd test; tar xvfz toscom/wintest.tar.gz
-    - name: "[test] wintest make rel"
-      run: cd test/wintest/BUILD; make rel
+    - name: "[test] wintest make"
+      run: cd test/wintest/BUILD; make
     - name: "[test] wintest make checkf"
       run: cd test/wintest/BUILD; make checkf
     - name: "[test] extract anayzer"
       run: cd test; tar xvfz toscom/analyzer.tar.gz
-    - name: "[test] analyzer make rel"
-      run: cd test/analyzer/BUILD; make rel
+    - name: "[test] analyzer make"
+      run: cd test/analyzer/BUILD; make
     - name: "[test] analyzer make checkf"
       run: cd test/analyzer/BUILD; make checkf
     #- name: try to execute checker
