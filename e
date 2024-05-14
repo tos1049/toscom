@@ -16,14 +16,19 @@ cd ../BUILD/.lib
 chmod 755 collectLibFiles gcc_sample ready
 cd ../../..
 
-echo "--- analyzer ---"
-cd analyzer
-chmod 755 mpu newenv
-cd ..
-
 echo "--- smplComm ---"
 cd smplComm
 chmod 755 mpu newenv s1 s2
+cd ..
+
+echo "--- wintest ---"
+cd wintest
+chmod 755 mpu newenv
+cd ..
+
+echo "--- analyzer ---"
+cd analyzer
+chmod 755 mpu newenv
 cd ..
 
 echo "--- resetTxt ---"
