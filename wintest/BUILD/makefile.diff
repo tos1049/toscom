@@ -16,3 +16,7 @@
 > win.o: $(SRC)/win_*.c $(SRC)/win_*.h $(COMMON_HEAD)
 > 	$(CC) $(OPTION) -c $(wildcard $(SRC)/win_*.c) $(CFLAGS)
 > 	$(LD) $(LDFLAGS) win_*.o -o $@
+353c353
+< 	cd ..; ctags main*.? com_*.?
+---
+> 	cd ..; ctags main*.? com_*.? win_*.?
