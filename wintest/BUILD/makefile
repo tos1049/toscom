@@ -13,7 +13,7 @@
 #
 
 # 実行用ファイル名とバージョン設定
-COMMAND := win
+COMMAND := wintest
 VERSION := 1.0
 
 

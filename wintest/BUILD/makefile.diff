@@ -2,7 +2,7 @@
 < COMMAND := test
 < VERSION := 0.0
 ---
-> COMMAND := win
+> COMMAND := wintest
 > VERSION := 1.0
 154c154
 < OBJS = main.o com.o
