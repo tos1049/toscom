@@ -4,3 +4,15 @@
 ---
 > COMMAND := win
 > VERSION := 1.0
+154c154
+< OBJS = main.o com.o
+---
+> OBJS = main.o com.o win.o
+190,192c190,192
+< smpl.o: $(SRC)/smpl_*.c $(SRC)/smpl_*.h $(COMMON_HEAD)
+< 	$(CC) $(OPTION) -c $(wildcard $(SRC)/smpl_*.c) $(CFLAGS)
+< 	$(LD) $(LDFLAGS) smpl_*.o -o $@
+---
+> win.o: $(SRC)/win_*.c $(SRC)/win_*.h $(COMMON_HEAD)
+> 	$(CC) $(OPTION) -c $(wildcard $(SRC)/win_*.c) $(CFLAGS)
+> 	$(LD) $(LDFLAGS) win_*.o -o $@

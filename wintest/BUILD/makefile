@@ -151,7 +151,7 @@ SRC := ..
 COMMON_HEAD := $(SRC)/com_*.h
 
 # オブジェクトファイル一式
-OBJS = main.o com.o
+OBJS = main.o com.o win.o
 
 # ネームリストファイル名 (com_custom.hの COM_NAMELISTと同じ内容にすること)
 NAMELIST = .namelist.toscom
@@ -187,9 +187,9 @@ com.o: $(SRC)/com_*.c $(SRC)/com_*.h
 # OBJS に オブジェクト名 (モジュール名.o) を追記することも必要。
 # またタグ生成の為、tagsにも モジュール名_*.? を追加するとよいだろう。
 
-smpl.o: $(SRC)/smpl_*.c $(SRC)/smpl_*.h $(COMMON_HEAD)
-	$(CC) $(OPTION) -c $(wildcard $(SRC)/smpl_*.c) $(CFLAGS)
-	$(LD) $(LDFLAGS) smpl_*.o -o $@
+win.o: $(SRC)/win_*.c $(SRC)/win_*.h $(COMMON_HEAD)
+	$(CC) $(OPTION) -c $(wildcard $(SRC)/win_*.c) $(CFLAGS)
+	$(LD) $(LDFLAGS) win_*.o -o $@
 
 
 
@@ -350,5 +350,5 @@ allclean: clean logclean specclean
 
 ########## タグ生成 (make tags) ##############################################
 tags:
-	cd ..; ctags main*.? com_*.?
+	cd ..; ctags main*.? com_*.? win_*.?
 
