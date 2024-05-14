@@ -121,6 +121,8 @@ convArcDir newenv.tar.gz NEWENV \
        "${BUILDFILES} ${BUILDLIBFILES} *.c *.h newenv"
 convArcDir analyzer.tar.gz analyzer \
        "${BUILDFILES} ${COMFILES} anlz_*"
+convArcDir wintest.tar.gz wintest \
+       "${BUILDFILES} ${COMFILES} win_*"
 convArcSmpl smplcomm.tar.gz smplComm \
        "${BUILDFILES} ${COMFILES} smpl_if.h smpl_com.h smpl_main.c"
 

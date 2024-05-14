@@ -5,10 +5,12 @@
 TESTDIR="newtest"
 TESTFILE="test"
 SMPLFILE="sample"
+WINTFILE="wintest"
 ANLZFILE="Analyzer"
 CHECKPRE="_CHECKF_"
 
 STAZ="smplcomm.tar.gz"
+WTAZ="wintest.tar.gz"
 ATAZ="analyzer.tar.gz"
 
 # 一番日付の新しいファイルを処理対象とする
@@ -115,6 +117,15 @@ if [ -e toscom/${STAZ} ]; then
           "${CHECKPRE}${SMPLFILE}" "smplcomm ver2 (checkf)"
 fi
 
+if [ -e toscom/${WTAZ} ]; then
+########## wintest.tar.gz の make rel
+  echo
+  echo
+  tar xvfz toscom/${WTAZ}
+  cd wintest
+  checker "${WTAZ}" "rel" "${WINTFILE}" "wintest"
+fi
+  
 if [ -e toscom/${ATAZ} ]; then
 ########## analyzer.tar.gz の make rel
   echo

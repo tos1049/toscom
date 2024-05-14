@@ -50,6 +50,7 @@ echo "======= アーカイブ作業 開始 ======="
 CDIR="toscom"
 SDIR="smplComm"
 ADIR="analyzer"
+WDIR="wintest"
 FDIR="proto"
 
 ##### 編集中のファイルがあった場合は中断する
@@ -178,6 +179,23 @@ if [ -e ${ADIR} ]; then
   tar cvfz ${CDIR}/${ATAZ} ${anlzNrm}
 fi
 
+##### wintestのアーカイブ
+WTAZ="wintest.tar.gz"
+if [ -e ${WDIR} ]; then
+  echo "--- ${WTAZ} を作成 ---"
+  cd ${WDIR}/BUILD || exit
+  make allclean >& /dev/null
+  cd ..
+  ./mpu
+  cd ..
+  anlzNrm="${WDIR}/${MAKEF}"
+  anlzNrm+=" ${WDIR}/*.h ${WDIR}/*.c"
+  anlzNrm+=" ${WDIR}/*.txt ${WDIR}/README.md ${WDIR}/newenv"
+  tar cvfz ${CDIR}/${WTAZ} ${anlzNrm}
+fi
+
+
+
 ##### toscomのアーカイブ
 cd ${CDIR} || exit
 
@@ -245,7 +263,8 @@ specfiles+=" ${CDIR}/xconv"
 specfiles+=" ${CDIR}/xname ${CDIR}/xnameconf"
 
 buildfiles="${CDIR}/${MAKEF} ${CDIR}/${LIBDIR}"
-tarfiles="${CDIR}/${NTAZ} ${CDIR}/${TTAZ} ${CDIR}/${STAZ} ${CDIR}/${ATAZ}"
+tarfiles="${CDIR}/${NTAZ} ${CDIR}/${TTAZ}"
+tarfiles+=" ${CDIR}/${STAZ} ${CDIR}/${WTAZ} ${CDIR}/${ATAZ}"
 romfiles="${docfiles} ${comfiles} ${tarfiles}"
 romexes="${CDIR}/xname ${CDIR}/${LIBDIR}/${COLLIB}"
 
