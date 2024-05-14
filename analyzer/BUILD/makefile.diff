@@ -26,9 +26,7 @@
 < OBJS = main.o com.o
 ---
 > OBJS = main.o com.o anlz.o
-159,163c161,163
-< 
-< 
+159,161c161,163
 < 
 < 
 < 
@@ -36,7 +34,7 @@
 > OPTION += -DANLZ_DECODE
 > #OPTION += -DANLZ_USE_SEEKFILE
 > #OPTION += -DANLZ_DEBUG
-190,192c190,192
+190,192c192,194
 < smpl.o: $(SRC)/smpl_*.c $(SRC)/smpl_*.h $(COMMON_HEAD)
 < 	$(CC) $(OPTION) -c $(wildcard $(SRC)/smpl_*.c) $(CFLAGS)
 < 	$(LD) $(LDFLAGS) smpl_*.o -o $@
@@ -44,11 +42,11 @@
 > anlz.o: $(SRC)/anlz_*.c $(SRC)/anlz_*.h $(COMMON_HEAD)
 > 	$(CC) $(OPTION) -c $(wildcard $(SRC)/anlz_*.c) $(CFLAGS)
 > 	$(LD) $(LDFLAGS) anlz_*.o -o $@
-271c271
+271c273
 < rel: OPTION := $(RELOPT) -D_FORTIFY_SOURCE=1
 ---
 > rel: OPTION := $(RELOPT) -D_FORTIFY_SOURCE=1 -DUSEDEBUGLOG
-345c345
+353c355
 < 	cd ..; ctags main*.? com_*.?
 ---
 > 	cd ..; ctags main*.? com_*.? anlz_*.?

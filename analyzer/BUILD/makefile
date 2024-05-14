@@ -162,6 +162,8 @@ OPTION += -DANLZ_DECODE
 #OPTION += -DANLZ_USE_SEEKFILE
 #OPTION += -DANLZ_DEBUG
 
+
+
 ########## コンパイル時はタグファイルも自動生成する ##########
 $(COMMAND): tags $(OBJS)
 	$(CC) $(OPTION) $(OBJS) -o $(CHECKF)$@ $(CFLAGS)
