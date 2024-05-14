@@ -19,7 +19,7 @@ ISBETA=$2
 ##### バージョン指定
 SELFMOD="self modify line"
 if [ -z "${APLVER}" ] || [ "${APLVER}" = "-" ]; then
-  APLVER="3.1"    # self modify line
+  APLVER="3.2"    # self modify line
 else
   # 上のデフォルト設定の変数定義を、引数指定された版数に書き換える
   # 特定のコメント(self modify line)がある行を変更対象として認識する。
