@@ -259,14 +259,14 @@ comfiles+=" ${CDIR}/com_signalSet3.h ${CDIR}/com_signalSet3.c"
 
 specfiles="${CDIR}/com_custom.h ${CDIR}/com_spec.h ${CDIR}/com_spec.c"
 specfiles+=" ${CDIR}/com_test.c ${CDIR}/main.c"
-specfiles+=" ${CDIR}/xconv"
+specfiles+=" ${CDIR}/xconv ${CDIR}/xconvconf"
 specfiles+=" ${CDIR}/xname ${CDIR}/xnameconf"
 
 buildfiles="${CDIR}/${MAKEF} ${CDIR}/${LIBDIR}"
 tarfiles="${CDIR}/${NTAZ} ${CDIR}/${TTAZ}"
 tarfiles+=" ${CDIR}/${STAZ} ${CDIR}/${WTAZ} ${CDIR}/${ATAZ}"
 romfiles="${docfiles} ${comfiles} ${tarfiles}"
-romexes="${CDIR}/xname ${CDIR}/${LIBDIR}/${COLLIB}"
+romexes="${CDIR}/xconv ${CDIR}/xname ${CDIR}/${LIBDIR}/${COLLIB}"
 
 chmod 444 ${romfiles}
 chmod 555 ${romexes}

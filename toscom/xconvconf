@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# xconv parameter
+#######################################################################
+# CHANGETO＝character code after change                               #
+#           for example, you can specify EUCJP, SJIS, ISO2022JP, UTF8 #
+#           (ISO2022JP = JIS）                                        #
+#######################################################################
+
+CHANGETO="EUCJP"
+
