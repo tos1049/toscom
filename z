@@ -188,10 +188,10 @@ if [ -e ${WDIR} ]; then
   cd ..
   ./mpu
   cd ..
-  anlzNrm="${WDIR}/${MAKEF}"
-  anlzNrm+=" ${WDIR}/*.h ${WDIR}/*.c"
-  anlzNrm+=" ${WDIR}/*.txt ${WDIR}/README.md ${WDIR}/newenv"
-  tar cvfz ${CDIR}/${WTAZ} ${anlzNrm}
+  wintNrm="${WDIR}/${MAKEF}"
+  wintNrm+=" ${WDIR}/*.h ${WDIR}/*.c"
+  wintNrm+=" ${WDIR}/*.txt ${WDIR}/README.md ${WDIR}/newenv"
+  tar cvfz ${CDIR}/${WTAZ} ${wintNrm}
 fi
 
 
