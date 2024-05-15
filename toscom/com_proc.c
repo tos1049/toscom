@@ -2817,7 +2817,7 @@ void com_valStrListCondFree( void **oCond )
 
 #define VAL_STRLIST \
     COM_UNUSED( iCond ); \
-    if( !ioData ) {COM_PRMNG(false);} \
+    if( COM_UNLIKELY(!ioData) ) {COM_PRMNG(false);} \
     return searchStrList( list, ioData, true );
 
 BOOL com_valBool( char *ioData, void *iCond )
@@ -2919,7 +2919,7 @@ BOOL com_getCfgBool( char *iKey )
 {
     GET_CONFIG_DATA( cfg, false );
     if( !cfg->data ) {return false;}
-    const char *trueList[] = { "TRUE", "YES", "Y", "ON" };
+    const char *trueList[] = { "true", "yes", "y", "on", NULL };
     return searchStrList( trueList, cfg->data, true );
 }
 
