@@ -49,8 +49,8 @@ echo "======= アーカイブ作業 開始 ======="
 
 CDIR="toscom"
 SDIR="smplComm"
-ADIR="analyzer"
 WDIR="wintest"
+ADIR="analyzer"
 FDIR="proto"
 
 ##### 編集中のファイルがあった場合は中断する
@@ -72,6 +72,7 @@ function checkSwp() {
 checkSwp "."
 checkSwp ${CDIR}
 checkSwp ${SDIR}
+checkSwp ${WDIR}
 checkSwp ${ADIR}
 checkSwp ${FDIR}
 echo "--- スワップファイルなし(編集中ファイルは多分なし) ---"
