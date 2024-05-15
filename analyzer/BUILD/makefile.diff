@@ -8,7 +8,9 @@
 < CFLAGS += -lpanel -lncursesw
 ---
 > #CFLAGS += -lpanel -lncursesw
-141,145c141,147
+141,147c141,147
+< 
+< 
 < 
 < 
 < 
@@ -22,11 +24,11 @@
 > #OPTION += -DANLZ_USE_SEEKFILE
 > # Analyzerデバッグモード
 > #OPTION += -DANLZ_DEBUG
-154c156
+156c156
 < OBJS = main.o com.o
 ---
 > OBJS = main.o com.o anlz.o
-159,161c161,163
+161,163c161,163
 < 
 < 
 < 
@@ -34,7 +36,7 @@
 > OPTION += -DANLZ_DECODE
 > #OPTION += -DANLZ_USE_SEEKFILE
 > #OPTION += -DANLZ_DEBUG
-190,192c192,194
+192,194c192,194
 < smpl.o: $(SRC)/smpl_*.c $(SRC)/smpl_*.h $(COMMON_HEAD)
 < 	$(CC) $(OPTION) -c $(wildcard $(SRC)/smpl_*.c) $(CFLAGS)
 < 	$(LD) $(LDFLAGS) smpl_*.o -o $@
@@ -42,11 +44,11 @@
 > anlz.o: $(SRC)/anlz_*.c $(SRC)/anlz_*.h $(COMMON_HEAD)
 > 	$(CC) $(OPTION) -c $(wildcard $(SRC)/anlz_*.c) $(CFLAGS)
 > 	$(LD) $(LDFLAGS) anlz_*.o -o $@
-271c273
-< rel: OPTION := $(RELOPT) -D_FORTIFY_SOURCE=1
+274c274
+< 
 ---
-> rel: OPTION := $(RELOPT) -D_FORTIFY_SOURCE=1 -DUSEDEBUGLOG
-353c355
+> rel: OPTION += -DUSEDEBUGLOG
+352c352
 < 	cd ..; ctags main*.? com_*.?
 ---
 > 	cd ..; ctags main*.? com_*.? anlz_*.?

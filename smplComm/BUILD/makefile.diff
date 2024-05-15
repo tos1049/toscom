@@ -8,15 +8,19 @@
 < CFLAGS += -lpanel -lncursesw
 ---
 > #CFLAGS += -lpanel -lncursesw
-154c154
+156c156
 < OBJS = main.o com.o
 ---
 > OBJS = main.o com.o smpl.o
-332a333,335
+334a335,337
 > 	$(RM) -fr chatlog.*
 > 	$(RM) -fr dst1/.$(COMMAND)* dst1/chatlog.* dst1/core.* dst1/*.stackdump
 > 	$(RM) -fr dst2/.$(COMMAND)* dst2/chatlog.* dst2/core.* dst2/*.stackdump
-353c356
+347,349d349
+< 
+< 
+< 
+352c352
 < 	cd ..; ctags main*.? com_*.?
 ---
 > 	cd ..; ctags main*.? com_*.? smpl_*.?

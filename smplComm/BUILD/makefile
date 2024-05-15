@@ -144,6 +144,8 @@ OPTION += -DWATCHFILE=COM_DEBUG_SILENT
 
 
 
+
+
 # ソース/ヘッダは全て同じディレクトリにある想定
 SRC := ..
 
@@ -230,7 +232,7 @@ checkf: init
 ########## リリース物件生成 (make rel) #######################################
 # リリース時はデバッグオプションを落とし、
 # ・CFLAGS: -Werror -Wmissing-declarations -O2
-# ・OPTIONS: -D_FORTIFY_SOURCE=1
+# ・OPTIONS: -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3
 # を追加する。
 #
 # -Werrorとすることで警告を全てエラーとしてコンパイル中断する。どうしても
@@ -244,7 +246,7 @@ checkf: init
 # -O2は最適化オプションとなる。このオプションが無ければ
 # -Wmissing-declarations や -D_FORTIFY_SOURCE が使えないので注意すること。
 #
-# -D_FORTIFY_SOURCE=1は特定の標準関数使用時にバッファオーバーフローを検出する
+# -D_FORTIFY_SOURCE=3は特定の標準関数使用時にバッファオーバーフローを検出する
 # 軽めのチェックを実施する。コンパイル時のチェックでは警告が出るだけだが、
 # 実行時もチェックが行われているらしく、実行時のチェックに引っかかった場合
 # 実行エラーになる模様。予想外の挙動の原因となり得るが、基本的にバグであり、
@@ -268,15 +270,12 @@ RELDIR := $(RELEASE)_$(COMMAND)_$(VERSION)
 
 rel: CFLAGS += -Werror
 rel: CFLAGS += -Wmissing-declarations -O2
-rel: OPTION := $(RELOPT) -D_FORTIFY_SOURCE=1
+rel: OPTION := $(RELOPT) -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3
+
 rel: init
 	mkdir $(RELDIR)
 	cp $(COMMAND) $(RELDIR)
 	tar cvfz $(COMMAND)_$(VERSION).tar.gz $(RELDIR)
-
-
-
-
 
 
 
@@ -330,12 +329,12 @@ clean:
 	$(RM) -fr $(COMMAND) $(COMMAND).exe $(CHECKF_PRE)$(COMMAND)
 	$(RM) -fr *.o ../tags $(RELEASE)* $(COMMAND)*.tar.gz $(NAMELIST)
 	$(RM) -fr *.a ${LIBDIR}*
-	$(RM) -fr chatlog.*
-	$(RM) -fr dst1/.$(COMMAND)* dst1/chatlog.* dst1/core.* dst1/*.stackdump
-	$(RM) -fr dst2/.$(COMMAND)* dst2/chatlog.* dst2/core.* dst2/*.stackdump
 
 ########## ログファイルやコアファイルを削除 (make logclean) ##################
 logclean: specclean
+	$(RM) -fr chatlog.*
+	$(RM) -fr dst1/.$(COMMAND)* dst1/chatlog.* dst1/core.* dst1/*.stackdump
+	$(RM) -fr dst2/.$(COMMAND)* dst2/chatlog.* dst2/core.* dst2/*.stackdump
 	$(RM) -fr .$(COMMAND)* core.* *.stackdump
 
 ########## プログラム固有のファイルを削除 (make specclean) ###################
@@ -345,9 +344,6 @@ specclean:
 ########## 生成物やログを全て削除 (make allclean) ############################
 allclean: clean logclean specclean
 	$(RM) -fr ../NEWENV/*.tar.gz
-
-
-
 
 
 
