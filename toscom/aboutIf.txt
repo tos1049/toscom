@@ -362,7 +362,7 @@ toscom grimoire Ver3.00
 ===== セレクト機能 (com_select.h) ============================================
 
    ********** COMSELBASE:基本 **********
-   com_initializeExtraSelect() セレクト機能初期化
+   com_initializeSelect()      セレクト機能初期化
 
    ********** COMSELADDR:アドレス関連 **********
    com_getaddrinfo()           アドレス情報取得                   <getaddrinfo>
