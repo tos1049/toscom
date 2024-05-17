@@ -31,6 +31,7 @@ cd ${TESTDIR}
 tar xvfz ${TARFILE} >& /dev/null
 
 function abortProc() {
+  printf "\a"
   cd ${ORGDIR}
   echo "----------"
   echo "  remove ${TESTDIR} ? >"
