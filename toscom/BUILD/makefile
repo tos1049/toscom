@@ -78,9 +78,9 @@ CFLAGS += -Waggregate-return -Wbad-function-cast -Wcast-align -Winline \
 
 
 # 基本機能で使うライブラリ指定
-CFLAGS += -lpthread
-# com_extra.h(エキストラ機能)を使用する場合、このライブラリ使用が必要
-CFLAGS += -lm
+CFLAGS += -lpthread -lm
+
+
 # com_window.h(ウィンドウ機能）を使用する場合、このライブラリ使用が必要
 CFLAGS += -lpanel -lncursesw
 # Electric Fenceを使ったデバッグがしたい時のみ入れるオプション

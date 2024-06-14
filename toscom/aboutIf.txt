@@ -294,6 +294,20 @@ toscom grimoire Ver3.00
    ********** COMTEST:テスト関連 **********
    com_testCode()              テストコードモード
 
+  +com_assertEquals()          アサート関数(long型数値)
+  +com_assertNotEquals()       アサート関数(long型数値)
+  +com_assertEqualsU()         アサート関数(ulong型数値)
+  +com_assertNotEqualsU()      アサート関数(ulong型数値)
+  +com_assertEqualsF()         アサート関数(float型数値)
+  +com_assertNotEqualsF()      アサート関数(float型数値)
+  +com_assertEqualsD()         アサート関数(double型数値)
+  +com_assertNotEqualsD()      アサート関数(double型数値)
+  +com_assertString()          アサート関数(文字列)
+  +com_assertStringLen()       アサート関数(文字列)
+  +com_assertTrue()            アサート関数(BOOL型)
+  +com_assertFalse()           アサート関数(BOOL型)
+  +com_assertNull()            アサート関数(ポインタ型)
+  +com_assertNotNull()         アサート関数(ポインタ型)
 
 
 ===== 基本機能(個別) (com_spec.h) ============================================

@@ -826,6 +826,13 @@ static void outputErrorMessage( COM_FILEPRM )
     branchErrorOutput( gLogBuff, dispMode );
 }
 
+static void setErrorInf( long iCode )
+{
+    gLastErrorCode = iCode;
+    countError( iCode );
+    gOutput = stdout;
+}
+
 void com_errorFunc(
         long iCode, BOOL iReturn, COM_FILEPRM, const char *iFormat, ... )
 {
@@ -834,14 +841,13 @@ void com_errorFunc(
     COM_SET_ERRORLOG;
     COM_HOOKERR_ACTION_t hookAct = hookExec( iCode, gErrorLogBuf, COM_FILEVAR );
     if( hookAct == COM_HOOKERR_SKIP ) {
+        setErrorInf( iCode );
         COM_DEBUG_UNLOCKON( &gMutexError, __func__ );
         return;
     }
     if( gUseStderr ) {gOutput = stderr;}
     if( hookAct != COM_HOOKERR_SILENT ) { outputErrorMessage( COM_FILEVAR ); }
-    gLastErrorCode = iCode;
-    countError( iCode );
-    gOutput = stdout;
+    setErrorInf( iCode );
     COM_DEBUG_UNLOCKON( &gMutexError, __func__ );
     if( !iReturn ) { com_exitFunc( iCode, COM_FILEVAR ); }
 }
@@ -1536,6 +1542,169 @@ void com_dispFuncTrace( void )
 }
 #endif // USE_FUNCTRACE
 
+
+// アサート機能関連 ----------------------------------------------------------
+
+static void dispAssertLine( char *iLabel )
+{
+    com_printf( "* assertion( " );
+    if( iLabel ) { com_printf( "%s: ", iLabel ); }
+}
+
+static void dispAssertLocation( COM_FILEPRM )
+{
+    com_printf( "   in %s:line %ld  %s()\n", iFILE, iLINE, iFUNC );
+}
+
+// 最終的に NDEBUGが宣言されている場合、com_assert*()はマクロ宣言により
+// コードから消える。そのため、ここで記載した NDEBUG宣言時のルートは、
+// 現状は通らず、必ず trueを返す。(処理自体の削除はしないこととした)
+//
+static BOOL checkNDEBUG( void )
+{
+    BOOL  result = true;
+#ifdef NDEBUG
+    result = false;
+    com_printf( "* assertion not executed (NDEBUG is defined)" );
+#endif
+    return result;
+}
+
+void com_assertEqualsFunc(
+        char *iLabel, long iExpected, long iResult, COM_FILEPRM )
+{
+    dispAssertLine( iLabel );
+    com_printf( "%ld == %ld )\n", iExpected, iResult );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( iExpected == iResult );}
+}
+
+void com_assertNotEqualsFunc(
+        char *iLabel, long iExpected, long iResult, COM_FILEPRM )
+{
+    dispAssertLine( iLabel );
+    com_printf( "%ld != %ld )\n", iExpected, iResult );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( iExpected != iResult );}
+}
+
+void com_assertEqualsUFunc(
+        char *iLabel, ulong iExpected, ulong iResult, COM_FILEPRM )
+{
+    dispAssertLine( iLabel );
+    com_printf( "%lu(0x%lx) == %lu(0x%lx) )\n",
+                iExpected, iExpected, iResult, iResult );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( iExpected == iResult );}
+}
+
+void com_assertNotEqualsUFunc(
+        char *iLabel, ulong iExpected, ulong iResult, COM_FILEPRM )
+{
+    dispAssertLine( iLabel );
+    com_printf( "%lu(0x%lx) != %lu(0x%lx) )\n",
+                iExpected, iExpected, iResult, iResult );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( iExpected != iResult );}
+}
+
+void com_assertEqualsFFunc(
+        char *iLabel, float iExpected, float iResult, COM_FILEPRM )
+{
+    dispAssertLine( iLabel );
+    com_printf( "%f == %f )\n", iExpected, iResult );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( fabs( iExpected - iResult ) < FLT_EPSILON );}
+}
+
+void com_assertNotEqualsFFunc(
+        char *iLabel, float iExpected, float iResult, COM_FILEPRM )
+{
+    dispAssertLine( iLabel );
+    com_printf( "%f != %f )\n", iExpected, iResult );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( fabs( iExpected - iResult ) >= FLT_EPSILON );}
+}
+
+void com_assertEqualsDFunc(
+        char *iLabel, double iExpected, double iResult, COM_FILEPRM )
+{
+    dispAssertLine( iLabel );
+    com_printf( "%.16f == %.16f )\n", iExpected, iResult );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( fabs( iExpected - iResult ) < DBL_EPSILON );}
+}
+
+void com_assertNotEqualsDFunc(
+        char *iLabel, double iExpected, double iResult, COM_FILEPRM )
+{
+    dispAssertLine( iLabel );
+    com_printf( "%.16f != %.16f )\n", iExpected, iResult );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( fabs( iExpected - iResult ) >= DBL_EPSILON );}
+}
+
+void com_assertStringFunc(
+        char *iLabel, char *iExpected, char *iResult, COM_FILEPRM )
+{
+    dispAssertLine( iLabel );
+    com_printf( "\"%s\" == \"%s\" )\n", iExpected, iResult );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( !strcmp( iExpected, iResult ) );}
+}
+
+static void dispGuideLine( size_t iLength )
+{
+    com_printf( "   " );
+    com_repeat( "~", (long)iLength, false );
+    if( checkNDEBUG() ) {com_printf( " (check length = %zu)\n", iLength );}
+}
+
+void com_assertStringLenFunc(
+        char *iLabel, char *iExpected, char *iResult, size_t iLength,
+        COM_FILEPRM )
+{
+    dispAssertLine( iLabel );
+    com_printf( "\n  \"%s\"\n", iExpected );
+    dispGuideLine( iLength );
+    com_printf( "  \"%s\"\n", iResult );
+    dispGuideLine( iLength );
+    com_printf( "  )\n" );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( !strncmp(iExpected, iResult, iLength) );}
+}
+
+void com_assertTrueFunc( char *iLabel, BOOL iResult, COM_FILEPRM )
+{
+    dispAssertLine( iLabel );
+    com_printf( "%ld is true)\n", iResult );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( iResult );}
+}
+
+void com_assertFalseFunc( char *iLabel, BOOL iResult, COM_FILEPRM )
+{
+    dispAssertLine( iLabel );
+    com_printf( "%ld is false)\n", iResult );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( !iResult );}
+}
+
+void com_assertNullFunc( char *iLabel, void *iResult, COM_FILEPRM )
+{
+    dispAssertLine( iLabel );
+    com_printf( "%p is NULL)\n", iResult );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( !iResult );}
+}
+
+void com_assertNotNullFunc( char *iLabel, void *iResult, COM_FILEPRM )
+{
+    dispAssertLine( iLabel );
+    com_printf( "%p is not NULL)\n", iResult );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( iResult );}
+}
 
 
 // デバッグ機能 初期化処理 ---------------------------------------------------

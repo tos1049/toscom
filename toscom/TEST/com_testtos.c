@@ -27,16 +27,16 @@ static void startFunc( const char *iFunc )
 {
     com_printTag( "*", 79, COM_PTAG_CENTER, "%s", iFunc );
 }
-
+ 
 
 
 ///// test_realloct() ////////////////////////////////////////////////////////
 
-static void viewTable( int *iTable, int iCount )
+static void viewTable( int *iTable, long iCount )
 {
-    com_printf( "\ntable count = %d\n", iCount );
-    for( int i = 0;  i < iCount;  i++ ) {
-        com_printf( "table[%d] = %d\n", i, iTable[i] );
+    com_printf( "\ntable count = %ld\n", iCount );
+    for( long i = 0;  i < iCount;  i++ ) {
+        com_printf( "table[%ld] = %d\n", i, iTable[i] );
     }
 }
 
@@ -46,40 +46,43 @@ void test_realloct( void )
     int* table = NULL;
     long count = 0;
 
-    if( COM_UNLIKELY(
-        !com_realloct( &table, sizeof(int), &count, 3, "TEST+3" )) )
-    {
-        return;
-    }
+    com_assertTrue( "com_realloc() <TEST+3>",
+            com_realloct( &table, sizeof(int), &count, 3, "TEST+3" ) );
     viewTable( table, count );
     table[0] = 3;  table[1] = 2;  table[2] = 1;
     viewTable( table, count );
-    if( COM_UNLIKELY(
-         !com_realloct( &table, sizeof(int), &count, -2, "TEST-2" )) )
-    {
-        return;
-    }
+
+    com_assertTrue( "com_realloc() <TEST-2>",
+            com_realloct( &table, sizeof(int), &count, -2, "TEST-2" ) );
     viewTable( table, count );
-    if( COM_UNLIKELY(
-        !com_realloct( &table, sizeof(int), &count, 5, "TEST+5" )) )
-    {
-        return;
-    }
+
+    com_assertTrue( "com_realloc() <TEST+5>",
+            com_realloct( &table, sizeof(int), &count, 5, "TEST+5" ) );
     viewTable( table, count );
+
     int* newTable = com_reallocAddr( &table, sizeof(int), COM_TABLEEND,
                                      &count, 3, "TEST ADD" );
-    if( COM_UNLIKELY( !newTable ) ) {return;}
+    com_assertNotNull( "com_reallocAddr() <TEST ADD>", newTable );
     newTable[1] = 100;
     viewTable( table, count );
     table[3] = 3;  table[4] = 4;
+
     newTable = com_reallocAddr(&table, sizeof(int), 4, &count, 4, "TEST ADD2" );
+    com_assertNotNull( "com_reallocAddr() <TEST ADD2>", newTable );
     newTable[2] = 999;
     viewTable( table, count );
+
     newTable = com_reallocAddr(&table, sizeof(int), 4, &count, -4, "TEST DEL" );
+    com_assertNotNull( "com_reallocAddr() <TEST DEL>", newTable );
+    newTable[2] = 999;
     viewTable( table, count );
+
     newTable = com_reallocAddr(&table, sizeof(int), 7, &count, -4, "TEST DEL2");
+    com_assertNotNull( "com_reallocAddr() <TEST DEL2>", newTable );
+    newTable[2] = 999;
     viewTable( table, count );
     com_free( table );
+    com_assertNull( "table", table );
 }
 
 ///// test_getOpt() //////////////////////////////////////////////////////////
@@ -159,7 +162,7 @@ static void viewRestList( long *ioCnt, char ***ioList )
 }
 
 #define GETOPTION( OPTLIST ) \
-    com_getOption( gTestArgvCnt, gTestArgv, OPTLIST, &cnt, &list, NULL )
+    com_getOption( (int)gTestArgvCnt, gTestArgv, OPTLIST, &cnt, &list, NULL )
 
 void test_getOpt( void )
 {
@@ -170,14 +173,20 @@ void test_getOpt( void )
         com_printf( "%s ", gTestArgv[i] );
     }
     com_printLf();
+    com_printLf();
 
     char errMsg[] = "---error is correct result\n";
-    if( COM_LIKELY(!GETOPTION( gOptList1 )) ) {com_printf( "%s", errMsg );}
-    if( COM_LIKELY(!GETOPTION( gOptList2 )) ) {com_printf( "%s", errMsg );}
-    if( COM_UNLIKELY(!GETOPTION( gOptList3 )) ) {com_printf("** too bad **\n");}
+    com_assertFalse( "gOptList1", GETOPTION( gOptList1 ) );
+    com_printf( "%s", errMsg );
+    com_assertFalse( "gOptList2", GETOPTION( gOptList2 ) );
+    com_printf( "%s", errMsg );
+    com_assertTrue(  "gOptList3", GETOPTION( gOptList3 ) );
+    com_printf("** no error **\n");
     viewRestList( &cnt, &list );  // これだけはエラーにならず残り引数取得可能
-    if( COM_LIKELY(!GETOPTION( gOptList4 )) ) {com_printf( "%s", errMsg );}
-    if( COM_LIKELY(!GETOPTION( gOptList5 )) ) {com_printf( "%s", errMsg );}
+    com_assertFalse( "gOptList4", GETOPTION( gOptList4 ) );
+    com_printf( "%s", errMsg );
+    com_assertFalse( "gOptList5", GETOPTION( gOptList5 ) );
+    com_printf( "%s", errMsg );
 }
 
 ///// test_strdup() //////////////////////////////////////////////////////////
@@ -189,9 +198,9 @@ void test_strdup( void )
     char* str2 = com_strndup( "1234567", 3, NULL );
     char* str3 = com_strndup( "1234567", 10, NULL );
 
-    com_printf( "str1 = \"%s\"\n", str1 );
-    com_printf( "str2 = \"%s\"\n", str2 );
-    com_printf( "str3 = \"%s\"\n", str3 );
+    com_assertString( "str1", "1234567", str1 );
+    com_assertString( "str2", "123", str2 );
+    com_assertString( "str3", "1234567", str3 );
 
     com_free( str1 );
     com_free( str2 );
@@ -206,117 +215,179 @@ void test_convertString( void )
     char text[] = "aBcDeFgHiJ";
 
     com_convertUpper( text );
-    com_printf( "%s\n", text );
+    com_assertString( "com_convertUpper()", "ABCDEFGHIJ", text );
     com_convertLower( text );
-    com_printf( "%s\n", text );
+    com_assertString( "com_convertLower()", "abcdefghij", text );
 
     ulong test1 = 11223445566;
     COM_ULTOSTR( str1, test1 );
-    com_printf( "%s\n", str1 );
+    com_assertString( "COM_ULTOSTR()", "11223445566", str1 );
 
     uchar oct[] = { 0x1a, 0x2b, 0x3c, 0x4d, 0x5e, 0x6f, 0x70 };
     char* result = NULL;
     (void)com_octtostr( &result, 0, oct, COM_ELMCNT(oct), false );
-    com_printf( "%s\n", result );
+    com_assertString( "com_octtostr()", "1a2b3c4d5e6f70", result );
     com_free( result );
 
     char  result2[15];
     char* tmp = result2;
     (void)com_octtostr( &tmp, sizeof(result2), oct, COM_ELMCNT(oct), true );
-    com_printf( "%s\n", result2 );
+    com_assertString( "com_octtostr()", "1A2B3C4D5E6F70", result2 );
 }
 
 ///// test_searchString() ////////////////////////////////////////////////////
 
-static void searchString( const char *iTarget, long *ioIndex )
+static void searchString( const char *iTarget, long *ioIndex, char **oResult )
 {
-    char text[] = "ABCD BCDE CDEF DEFG EFGH";
+    static char text[] = "ABCD BCDE CDEF DEFG EFGH";
     com_printf( "%s\n", text );
-    com_printf( " %s\n", com_searchString(text, iTarget, ioIndex, 15, false));
+    // 検索対象は最初の15文字
+    *oResult = com_searchString(text, iTarget, ioIndex, 15, false);
+    com_printf( " %s\n", *oResult );
     if( ioIndex ) { com_printf( "  count = %ld\n", *ioIndex ); }
 }
 
 void test_searchString( void )
 {
     startFunc( __func__ );
-    searchString( "BC", NULL );
+    char* result = NULL;
+    searchString( "BC", NULL, &result );
+    com_assertString( "BC,NULL", "BCD BCDE CDEF DEFG EFGH", result );
     long idx = 0;
-    searchString( "BC", &idx );
+    searchString( "BC", &idx, &result );
+    com_assertString( "BC,0", "BCD BCDE CDEF DEFG EFGH", result );
+    com_assertEquals( "BC,0", 2, idx );
     idx = 2;
-    searchString( "CD", &idx );
+    searchString( "CD", &idx, &result );
+    com_assertString( "CD,2", "CDE CDEF DEFG EFGH", result );
+    com_assertEquals( "CD,2", 3, idx );
     idx = 5;
-    searchString( "EF", &idx );
+    searchString( "EF", &idx, &result );
+    com_assertNull( "EF,5", result );
+    com_assertEquals( "EF,5", 1, idx );
 }
 
 ///// test_replaceString() ///////////////////////////////////////////////////
 
 static void replaceString( const char *iReplacing, const char *iReplaced,
-                           long iIndex )
+                           long iIndex, char **oResult, size_t *oResultSize )
 {
     char source[] = "ABD TESTTEST TEST ABC";
-    char* result = NULL;
-    size_t resultSize = 0;
-    int count = 0;
+    long count = 0;
 
     com_replaceCond_t cond = { iReplacing, iReplaced, iIndex };
-    count = com_replaceString( &result, &resultSize, source, &cond );
+    count = com_replaceString( oResult, oResultSize, source, &cond );
     if( count == COM_REPLACE_NG ) {
         com_printf( "replace NG...\n" );
         return;
     }
-    com_printf( " replace : %d\n", count );
+    com_printf( " replace : %ld\n", count );
     com_printf( "   (%zu) %s\n-> (%zu) %s\n",
-                strlen(source), source, resultSize, result );
+                strlen(source), source, *oResultSize, *oResult );
 }
 
 void test_replaceString( void )
 {
     startFunc( __func__ );
-    replaceString( "TEST", "TOS", COM_REPLACE_ALL );
-    replaceString( "TEST", "CHECKOK!", 1 );
-    replaceString( "ABD",  "ABC", COM_REPLACE_ALL );
+    char* result = NULL;
+    size_t resultSize = 0;
+
+    replaceString( "TEST", "TOS", COM_REPLACE_ALL, &result, &resultSize );
+    com_assertString(  "TEST -> TOS, ALL", "ABD TOSTOS TOS ABC", result );
+    com_assertEqualsU("TEST -> TOS, ALL", 18, resultSize );
+
+    replaceString( "TEST", "CHECKOK!", 1, &result, &resultSize );
+    com_assertString(  "TEST -> CHECKOK!, 1", "ABD CHECKOK!TEST TEST ABC", result );
+    com_assertEqualsU("TEST -> CHECKOK!, 1", 25, resultSize );
+
+    replaceString( "ABD",  "ABC", COM_REPLACE_ALL, &result, &resultSize );
+    com_assertString(  "ABD -> ABC, ALL", "ABC TESTTEST TEST ABC", result );
+    com_assertEqualsU("ABD -> ABC, ALL", 21, resultSize );
 }
 
 ///// test_seekText() ////////////////////////////////////////////////////////
 
+static char* gAssertText1[] = {
+    "testLine"
+};
+
+static char* gAssertText2[] = {
+    "test1",
+    "",
+    "test2"
+};
+
+static char* gAssertText3[] = {
+    "",
+    "<<TEST>>",
+    "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111122222222222222222222",
+    "222222222222222222222222222222222222222222222222222222222222222222222222223333333333333333333333333333"
+};
+
+typedef struct {
+    char** assertLine;
+    long   linecnt;
+} assertData_t;
+
 static BOOL dispSeekTextLine( com_seekFileResult_t *iInf )
 {
+    assertData_t* data = iInf->userData;
     com_printf( ">>%s\n", iInf->line );
+    com_assertString( "iInf->line", data->assertLine[data->linecnt], iInf->line );
+    (data->linecnt)++;
     return true;
 }
 
-static void testTextLine( const char *iText )
+static void testTextLine( const char *iText, char **iAssert )
 {
     com_repeat( "-", 40, true );
     char buf[COM_LINEBUF_SIZE];
-    if( COM_UNLIKELY( !com_seekTextLine(
-                    iText, strlen(iText), false,
-                    dispSeekTextLine, NULL, buf, sizeof(buf) )) )
-    {
-        com_printf( "<ERROR>\n" );
-    }
+    assertData_t  data = { iAssert, 0 };
+    com_assertTrue( "com_seekTextLine()",
+            com_seekTextLine( iText, strlen(iText), false, dispSeekTextLine,
+                              &data, buf, sizeof(buf) ) );
 }
 
 void test_seekText( void )
 {
     startFunc( __func__ );
-    testTextLine( "testLine" );
-    testTextLine( "test1\n\ntest2\n" );
+    testTextLine( "testLine", gAssertText1 );
+    testTextLine( "test1\n\ntest2\n", gAssertText2 );
     // 長い行はテキスト走査関数のバッファサイズで区切られる
-    testTextLine( "\n<<TEST>>\n0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111122222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222223333333333333333333333333333" );
+    testTextLine( "\n<<TEST>>\n0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111122222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222223333333333333333333333333333", gAssertText3 );
 }
 
 ///// test_seekFunc() ////////////////////////////////////////////////////////
 
+static char* gAssertMakefile[] = {
+    "\n",
+    "COMMAND := test\n",
+    "VERSION := 0.0\n",
+    "\n"
+};
+
 static void dispSeekLine( int *ioTest, char *iLine )
 {
     com_printf( "%03d> %s", *ioTest, iLine );
+    if( *ioTest < 104 ) {
+        // 内容の変動があり得るので、最初の4行のみチェックする
+        com_assertString( "iLine", gAssertMakefile[*ioTest - 100], iLine );
+    }
+    if( *ioTest == 500 ) {
+        // 内容は変動があり得るので、最初の com.o のみチェックする
+        char assertcom[128] = {0};
+        int result = sscanf( iLine, "%*s %*s %*s %*s %*s %*s %*s %*s %s",
+                             assertcom );
+        com_assertEquals( "result", 1, result );
+        com_assertString( "file",   "com.o", assertcom );
+    }
     (*ioTest)++;
 }
 
 static BOOL seekMakefile( com_seekFileResult_t *iInf )
 {
     int* test = iInf->userData;
+    // コメント行は出力しない
     if( iInf->line[0] != '#' ) { dispSeekLine( test, iInf->line ); }
     return true;
 }
@@ -349,10 +420,24 @@ void test_seekFile( void )
 
 ///// test_seekBin() /////////////////////////////////////////////////////////
 
+static BOOL gCheckedTopLine = false;
+static uchar  gAssertBin[] = {
+    0x23, 0x0a, 0x23, 0x20, 0x6d, 0x61, 0x6b, 0x65,
+    0x66, 0x69, 0x6c, 0x65, 0x20, 0xe3, 0x82, 0xb5
+};
+
 static size_t readBinary( com_seekBinResult_t *iInf )
 {
     com_printBin_t flags = { .prefix = "> ", .seq = "", .seqAscii = " : " };
     com_printBinary( iInf->data, iInf->length, &flags );
+    if( !gCheckedTopLine ) {
+        // 内容の変動があり得るので、最初の 16octのみチェックするt
+        gCheckedTopLine = true;
+        com_assertEqualsU( "iInf->length", 16, iInf->length );
+        for( size_t i = 0;  i < iInf->length;  i++ ) {
+            com_assertEqualsU( "iInf->data[]", gAssertBin[i], iInf->data[i] );
+        }
+    }
     return 16;
 }
 
@@ -373,27 +458,21 @@ void test_removeDir( void )
     long fileCount, dirCount;
     long count = 0;
     
-    if( COM_UNLIKELY(
-        !com_makeDir( com_getString("%s/tmp", target) ) ) )
-    {
-        return;
-    }
+    com_assertTrue( "com_makeDir()",
+            com_makeDir( com_getString("%s/tmp", target) ) );
+
     com_system( "cp ../*.c %s", target );
     com_system( "ls -a %s", target );
 
-    if( COM_UNLIKELY(
-        !com_countFiles(&fileCount,&dirCount,NULL,target,true)) )
-    {
-        return;
-    }
+    com_assertTrue( "com_countFiles()",
+            com_countFiles( &fileCount, &dirCount, NULL, target, true) );
+
     com_printf( "remove %s\n", target );
     com_printf( " count result : %ld + %ld = %ld\n",
                 fileCount, dirCount, fileCount + dirCount );
     count = com_removeDir( target );
     com_printf( " delete result : %ld\n", count );
-    if( COM_LIKELY( count == fileCount + dirCount + 1 ) ) {
-        com_printf( "good result!\n" );
-    }
+    com_assertEquals( "count", fileCount + dirCount + 1, count );
 }
 
 ///// test_seekDir() /////////////////////////////////////////////////////////
@@ -420,23 +499,26 @@ void test_seekDir( int iArgc, char **iArgv )
     long dirCount = 0;
     off_t totalSize = 0;
     FILE* fp = com_fopen( "./makefile", "r" );  // ファイルオープン動作確認
-    int closeErr = 0;
 
     if( COM_UNLIKELY( !setPath( iArgc, iArgv )) ) {
         com_fclose( fp );
         return;
     }
-    com_printf( "seek result = %ld\n",
-                com_countFiles( &fileCount, &dirCount, &totalSize,
-                                gSeekPath, true ) );
+    com_assertTrue( "com_countFiles()",
+            com_countFiles(&fileCount, &dirCount, &totalSize, gSeekPath, true) );
     com_printf( "file count = %ld\n", fileCount );
+    // 変動の可能性があるので 0ではないことのみチェック
+    com_assertNotEquals( "fileCount", 0, fileCount );
     com_printf( " dir count = %ld\n", dirCount );
+    // 変動の可能性があるので 0ではないことのみチェック
+    com_assertNotEquals( "dirCount", 0, dirCount );
     com_printf( "total size = %lu\n", totalSize );
+    // 変動の可能性があるので 0ではないことのみチェック
+    com_assertNotEqualsU( "totalSize", 0, (ulong)totalSize );
 
-    closeErr = com_fclose( fp );  // ファイルクローズ動作確認
-    if( COM_UNLIKELY( closeErr ) ) {
-        com_printf( "fclose errno = %d\n", closeErr );
-    }
+    int closeErr = com_fclose( fp );  // ファイルクローズ動作確認
+    com_printf( "fclose errno = %d\n", closeErr );
+    com_assertEquals( "closeErr", 0, closeErr );
 }
 
 ///// test_seekDir2() ////////////////////////////////////////////////////////
@@ -452,6 +534,8 @@ static int checkCSource( const struct dirent *iEntry )
 
 static BOOL dispCName( const com_seekDirResult_t *iInf )
 {
+    BOOL*  found = iInf->userData;
+    *found = true;
     com_printf( "found C source [%s]\n", iInf->entry->d_name );
     return true;
 }
@@ -459,11 +543,11 @@ static BOOL dispCName( const com_seekDirResult_t *iInf )
 void test_seekDir2( void )
 {
     startFunc( __func__ );
-    if( COM_UNLIKELY(
-            !com_seekDir2("..", checkCSource, COM_SEEK_FILE, dispCName, NULL)))
-    {
-        com_printf( "com_seekDir2() NG\n" );
-    }
+    BOOL  foundCsource = false;
+    com_assertTrue( "com_seekDir2()",
+            com_seekDir2( "..", checkCSource, COM_SEEK_FILE, dispCName,
+                          &foundCsource) );
+    com_assertTrue( "foundCsource", foundCsource );
 }
 
 ///// test_scanDir() /////////////////////////////////////////////////////////
@@ -476,19 +560,20 @@ void test_scanDir( int iArgc, char **iArgv )
     com_buf_t path;
 
     if( COM_UNLIKELY( !setPath( iArgc, iArgv )) ) { return; }
-    com_initBuffer( &path, strlen(gSeekPath)+16, gSeekPath );
-    if( 0 > (count = com_scanDir( gSeekPath, checkCSource, &list )) ) {
-        com_printf( "something error (%s)\n", gSeekPath );
-        return;
-    }
+    com_assertTrue( "com_initBuffer()",
+            com_initBuffer( &path, strlen(gSeekPath)+16, gSeekPath ) );
+    count = com_scanDir( gSeekPath, checkCSource, &list );
     com_printf( "count = %d\n", count );
+    com_assertNotEquals( "count", 0, count );
+
     com_setWatchMemInfo( COM_DEBUG_SILENT );
     for( int i = 0;  i < count;  i++ ) {
         char* name = list[i]->d_name;
-        com_setBuffer( &path, "%s/%s", gSeekPath, name );
+        com_assertTrue( "com_setBuffer()",
+                com_setBuffer( &path, "%s/%s", gSeekPath, name ) );
         if( com_checkIsDir( path.data ) ) { com_printf( "*" ); }
         else { com_printf( " " ); }
-        com_printf( "%-19s", name );
+        com_printf( "%-19s\n", name );
     }
     com_printLf();
     com_setWatchMemInfo( COM_DEBUG_ON );
@@ -498,19 +583,23 @@ void test_scanDir( int iArgc, char **iArgv )
 
 ///// test_checkFiles() //////////////////////////////////////////////////////
 
-static void checkExistFiles( const char *iFiles )
+static void checkExistFiles( const char *iFiles, BOOL iAssert )
 {
     com_printf( "%s\n", iFiles );
-    if( com_checkExistFiles( iFiles, " " ) ) {com_printf("-> all exist!\n");}
-    else {com_printf("->not all exist...\n");}
+    if( com_checkExistFiles( iFiles, " " ) ) {
+        com_assertTrue( "all exist", iAssert );
+    }
+    else {
+        com_assertFalse( "not all exist...", iAssert );
+    }
 }
 
 void test_checkFiles( void )
 {
     startFunc( __func__ );
-    checkExistFiles( "../com_if.h" );
-    checkExistFiles( "../com_if.h  ../com_proc.c" );
-    checkExistFiles( "../com_if.h ../com_proc.c ../com_dummy.c  " );
+    checkExistFiles( "../com_if.h", true );
+    checkExistFiles( "../com_if.h  ../com_proc.c", true );
+    checkExistFiles( "../com_if.h ../com_proc.c ../com_dummy.c  ", false );
 }
 
 ///// test_printTag() ////////////////////////////////////////////////////////
@@ -521,6 +610,7 @@ static void testPrintTag( char *iTag, size_t iWidth, const char *iFormat, ... )
     COM_SET_FORMAT( label );    // [DBG] com_debug.h が必要
     for( COM_PTAG_POS_t pos = COM_PTAG_LEFT; pos <= COM_PTAG_RIGHT; pos++ ) {
         com_printTag( iTag, iWidth, pos, "%s", label );
+        // 目視で 左詰め・センター・右詰め になっているか確認
     }
 }
 
@@ -543,18 +633,21 @@ void test_debugLog( void )
     com_debug( "test\ndebug\nmode" );
     com_noComDebugLog( true );
     com_printf( " (disable COM log)\n" );
+    // 以後 次文も含めて [COM] が付くログは出力されない
     com_dbgCom( "THIS LOG IS NOT WRITTEN" );   // [DBG] com_debug.h が必要
+    // 画面出力と .test.log を目視確認
 }
 
 /////test_chainData() ////////////////////////////////////////////////////////
 
-static void spreadChain( com_strChain_t *iChain )
+static char *spreadChain( com_strChain_t *iChain )
 {
     static char spread[32];
     if(com_spreadChainData(iChain, spread, sizeof(spread)) == COM_SIZE_OVER){
         com_printf( "!" );
     }
     com_printf( "<%s>\n", spread );
+    return spread;
 }
 
 void test_chainData( void )
@@ -564,13 +657,17 @@ void test_chainData( void )
     com_strChain_t* chain = NULL;
     COM_ADDCHAIN_t sort = COM_SORT_ASCEND;  // ここを変えてソート順を指定
 
+    // わざと末尾にスペースを含む文字列を oushする
     com_pushChainData( &chain, "%-5s", "ABC" );
     com_pushChainData( &chain, "%-5s", "DEFG" );
     com_pushChainData( &chain, "%-5s", "HI" );
-    spreadChain( chain );
+    com_assertString( "chain", "HI    DEFG  ABC   ", spreadChain( chain ) );
     for( int i = 0;  i < 4;  i++ ) {
+        char* assertPop[] = { "HI   ", "DEFG ", "ABC  " };
         pop = com_popChainData( &chain );
         com_printf( " \"%s\" ", pop );
+        if( i < 3 ) { com_assertString( "pop", assertPop[i], pop ); }
+        else { com_assertNull( "pop", pop ); }
         spreadChain( chain );
     }
     com_sortAddChainData( &chain, sort, "abc" );
@@ -578,11 +675,11 @@ void test_chainData( void )
     com_sortAddChainData( &chain, sort, "ghi" );
     com_sortAddChainData( &chain, sort, "abc" );
     com_sortAddChainData( &chain, sort, "def" );
-    spreadChain( chain );
+    com_assertString( "chain", "abc abc def def ghi ", spreadChain( chain ) );
     com_deleteChainData( &chain, false, "def" );
-    spreadChain( chain );
+    com_assertString( "del \"def\" no repeat", "abc abc def ghi ", spreadChain( chain ) );
     com_deleteChainData( &chain, true,  "abc" );
-    spreadChain( chain );
+    com_assertString( "del \"abc\" repeat", "def ghi ", spreadChain( chain ) );
 
     com_freeChainData( &chain );
 }
@@ -594,37 +691,53 @@ void test_chainNum( void )
     startFunc( __func__ );
     long pop = 0;
     com_strChain_t* chain = NULL;
-    COM_ADDCHAIN_t sort = COM_SORT_DESCEND;  // ここを変えてソート順を指定
     char spread[COM_LINEBUF_SIZE];
 
     com_pushChainNum( &chain, 123456 );
     com_pushChainNum( &chain, 23455 );
     com_pushChainNum( &chain, 999999999 );
     com_spreadChainNum( chain, spread, sizeof(spread) );
-    com_printf( "chain = { %s }\n", spread );
+    com_assertString( "spread", "999999999 23455 123456 ", spread );
+    long idx = 0;
     while( chain ) {
+        long  assertPop[] = { 999999999, 23455, 123456 };
         pop = com_popChainNum( &chain );
-        com_printf( "pop = %ld\n", pop );
+        com_assertEquals( "pop", assertPop[idx++], pop );
     }
+
+    COM_ADDCHAIN_t sort = COM_SORT_ASCEND;  // ここを変えてソート順を指定
     com_sortAddChainNum( &chain, sort,  11223344 );
     com_sortAddChainNum( &chain, sort,  22334455 );
     com_sortAddChainNum( &chain, sort, -22334455 );
     com_sortAddChainNum( &chain, sort, -44556677 );
     com_spreadChainNum( chain, spread, sizeof(spread) );
-    com_printf( "chain = { %s }\n", spread );
+    if( sort == COM_SORT_ASCEND ) {
+        com_assertString( "spread(COM_SORT_ASCEND)",
+                      "-44556677 -22334455 11223344 22334455 ", spread );
+    }
+    if( sort == COM_SORT_DESCEND ) {
+        com_assertString( "spread(COM_SORT_DESCEND)",
+                      "22334455 11223344 -22334455 -44556677 ", spread );
+    }
 
     com_freeChainNum( &chain );
 }
 
 ///// test_bufferData() //////////////////////////////////////////////////////
 
-static void printBuffer( const char *iLabel, com_buf_t *iBuf )
+static void printBuffer(
+        const char *iLabel, com_buf_t *iBuf, char *iAssert, size_t iExpected )
 {
-    com_printf( "%s: ", iLabel );
-    if( !iBuf ) { com_printLf(); return; }
-    if( iBuf->data ) { com_printf( "\"%s\"", iBuf->data ); }
-    else { com_printf( "<nil>" ); }
-    com_printf( " (%zu)\n", iBuf->size );
+    com_printf( "%s:\n", iLabel );
+    if( !iBuf ) { return; }
+    if( iBuf->data ) {
+        com_assertString( "iBuf->data", iAssert, iBuf->data );
+    }
+    else {
+        com_assertNull( "iAssert", iAssert );
+    }
+    com_assertEqualsU( "iBuf->size", iExpected, iBuf->size );
+    com_printLf();
 }
 
 void test_bufferData( void )
@@ -632,25 +745,29 @@ void test_bufferData( void )
     startFunc( __func__ );
     com_buf_t* buf1 = NULL;
     com_buf_t  buf2, buf3;
-    if( COM_UNLIKELY( !com_createBuffer( &buf1, 0, "TEST BUFFER" )) ) {return;}
-    printBuffer( "buf1", buf1 );
+    com_assertTrue( "com_createBuffer() <TEST BUFFER>",
+            com_createBuffer( &buf1, 0, "TEST BUFFER" ) );
+    printBuffer( "buf1", buf1, "TEST BUFFER", 12 );
     com_initBuffer( &buf2, 0, NULL );
     com_initBuffer( &buf3, 0, "DUMMY" );
     com_resetBuffer( &buf2 );
-    com_setBuffer( &buf2, "%s%d", "TESTING NOW", 123 );
-    printBuffer( "buf2", &buf2 );
+    com_assertTrue( "com_setBuffer() <TESTING NOW123>",
+            com_setBuffer( &buf2, "%s%d", "TESTING NOW", 123 ) );
+    printBuffer( "buf2", &buf2, "TESTING NOW123", 15 );
     com_clearBuffer( buf1 );
-    printBuffer( "buf1", buf1 );
-    com_addBuffer( buf1, "ABCDE" );
-    com_addBuffer( buf1, "fghij" );
-    com_addBuffer( buf1, "%05d", 23 );
-    com_addBufferSize( buf1, 3, "pqrst" );
-    printBuffer( "buf1", buf1 );
+    com_printf( "clear buf1\n" );
+    printBuffer( "buf1", buf1, "", 12 );
+    com_assertTrue( "com_addBuffer() ABCDE", com_addBuffer( buf1, "ABCDE" ) );
+    com_assertTrue( "com_addBuffer() fghij", com_addBuffer( buf1, "fghij" ) );
+    com_assertTrue( "com_addBuffer() 00023", com_addBuffer( buf1, "%05d", 23 ) );
+    com_assertTrue( "com_addBufferSize() pqr", com_addBufferSize( buf1, 3, "pqrst" ) );
+    printBuffer( "buf1", buf1, "ABCDEfghij00023pqr", 19 );
     com_freeBuffer( &buf1 );
-    com_copyBuffer( &buf3, &buf2 );
-    com_resetBuffer( &buf2 );
-    printBuffer( "buf2", &buf2 );
-    printBuffer( "buf3", &buf3 );
+    com_assertTrue( "com_copyBuffer() buf2->buf3", com_copyBuffer( &buf3, &buf2 ) );
+    com_resetBuffer( &buf2 ); 
+    com_printf( "reset buf2\n" );
+    printBuffer( "buf2", &buf2, NULL, 0 );
+    printBuffer( "buf3", &buf3, "TESTING NOW123", 15 );
     com_resetBuffer( &buf3 );
 }
 
@@ -664,45 +781,48 @@ void test_strop( void )
     char text1[] = "aBcDeFgHiJ";
     char text2[] = "ABCDEFGHIJ";
 
-    if( COM_LIKELY(
-           !com_strncpy( testBuf, sizeof(testBuf), source, strlen(source) )) )
-    {
-        com_printf( "[1]buffer size over(%s)\n", testBuf );
-    }
+    com_assertFalse( "com_strncpy()",
+            com_strncpy( testBuf, sizeof(testBuf), source, strlen(source) ) );
+    com_printf( "[1]buffer size over(%s)\n", testBuf );
     COM_CLEAR_BUF( testBuf );
-    if( COM_UNLIKELY( !com_strncpy( testBuf, sizeof(testBuf), source, 6 )) ) {
-        com_printf( "[2]buffer size over(%s)\n", testBuf );
-    }
-    if( COM_LIKELY( !com_strncat( testBuf, sizeof(testBuf), source, 6 )) ) {
-        com_printf( "[3]buffer size over(%s)\n", testBuf );
-    }
-    if( COM_LIKELY( !com_strncat( testBuf, sizeof(testBuf), source, 6 )) ) {
-        com_printf( "[4]buffer size over(%s)\n", testBuf );
-    }
+    com_assertTrue( "com_strncpy)()",
+            com_strncpy( testBuf, sizeof(testBuf), source, 6 ) );
+    com_printf( "[2]buffer size OK! (%s)\n", testBuf );
+    com_assertFalse( "com_strncat()",
+            com_strncat( testBuf, sizeof(testBuf), source, 6 ) );
+    com_printf( "[3]buffer size over(%s)\n", testBuf );
+    com_assertFalse( "com_strncat()",
+            com_strncat( testBuf, sizeof(testBuf), source, 6 ) );
+    com_printf( "[4]buffer size over(%s)\n", testBuf );
 
-    com_printf( "%ld = compare result (%s : %s)\n",
-                com_compareString( text1, text2, 0, false ), text1, text2 );
-    com_printf( "%ld = no case compare result (%s : %s)\n",
-                com_compareString( text1, text2, 0, true  ), text1, text2 );
+    BOOL result = com_compareString( text1, text2, 0, false );
+    com_printf( "compare (%s : %s)\n", text1, text2 );
+    com_assertFalse( "result", result );
+    result = com_compareString( text1, text2, 0, true  );
+    com_printf( "no case compare (%s : %s)\n", text1, text2 );
+    com_assertTrue( "result", result );
 
     char topStr[] = "   \t   \nABC";
-    com_printf( "[%s]\n", com_topString( topStr, true  ) );
-    com_printf( "[%s]\n", com_topString( topStr, false ) );
+    char* top = com_topString( topStr, true );
+    com_assertString( "top", "ABC", top );
+    top = com_topString( topStr, false );
+    com_assertString( "top", "\nABC", top );
 }
 
 ///// test_checkString() /////////////////////////////////////////////////////
 
-static void checkStringProc( char *iText, com_isFunc_t *iFuncs, char *iLabel )
+static void checkStringProc(
+        char *iText, com_isFunc_t *iFuncs, char *iLabel, COM_CHECKOP_t iAssert )
 {
-    com_printf( "%s\n<%s>\n", iText, iLabel );
+    com_printf( "%s<%s>\n", iText, iLabel );
     if( com_checkString( iText, iFuncs, COM_CHECKOP_AND ) ) {
-        com_printf( "...AND\n" );
+        com_assertEquals( "AND", COM_CHECKOP_AND, iAssert );
     }
     if( com_checkString( iText, iFuncs, COM_CHECKOP_OR ) ) {
-        com_printf( "...OR\n" );
+        com_assertEquals( "OR", COM_CHECKOP_OR, iAssert );
     }
     if( com_checkString( iText, iFuncs, COM_CHECKOP_NOT ) ) {
-        com_printf( "...NOT\n" );
+        com_assertEquals( "NOT", COM_CHECKOP_NOT, iAssert );
     }
     com_printf( "--------------------\n" );
 }
@@ -713,28 +833,37 @@ void test_checkString( void )
     char test[] = "abcABC123\n";
     {
         com_isFunc_t funcs[] = { isalnum, iscntrl, NULL };
-        checkStringProc( test, funcs, "isalnum, iscntrl" );
+        checkStringProc( test, funcs, "isalnum, iscntrl", COM_CHECKOP_OR );
         // OR のみ条件が成立
     }
     {
         com_isFunc_t funcs[] = { isblank, ispunct, NULL };
-        checkStringProc( test, funcs, "isblank, ispunct" );
+        checkStringProc( test, funcs, "isblank, ispunct", COM_CHECKOP_NOT );
         // NOT のみ条件が成立
     }
 }
 
 ///// test_checkDigit() //////////////////////////////////////////////////////
 
+static void useDigitFunc(
+        const char *iLabel, char* iTarget, com_validator_t iFunc, BOOL iResult )
+{
+    BOOL result = (iFunc)( iTarget, NULL );
+    com_printf( " %s? %s\n", iLabel, iTarget );
+    com_assertEquals( "result", iResult, result );
+}
+
 void test_checkDigit( void )
 {
     startFunc( __func__ );
-    com_printf( " DEC? +123456: %ld\n", com_valDigit( "+123456", NULL ) );
-    com_printf( " DEC? -123456: %ld\n", com_valDigit( "-123456", NULL ) );
-    com_printf( " DEC? 1234ABC: %ld\n", com_valDigit( "1234ABC", NULL ) );
-    com_printf( " HEX? 1234ABC: %ld\n", com_valHex(   "1234ABC", NULL ) );
-    com_printf( " DEC? 0x12345: %ld\n", com_valDigit( "0x12345", NULL ) );
-    com_printf( " HEX? 0x12345: %ld\n", com_valHex(   "0x12345", NULL ) );
-    com_printf( " HEX? 0xABCDE: %ld\n", com_valHex(   "0xABCDE", NULL ) );
+    useDigitFunc( "DEC", "+123456", com_valDigit, true );
+    useDigitFunc( "DEC", "-123456", com_valDigit, true );
+    useDigitFunc( "DEC", "1234ABC", com_valDigit, false );
+    useDigitFunc( "HEX", "1234ABC", com_valHex,   true );
+    useDigitFunc( "DEC", "0x12345", com_valDigit, false );
+    useDigitFunc( "HEX", "0x12345", com_valHex,   true );
+    useDigitFunc( "HEX", "0xABCDE", com_valHex,   true );
+    useDigitFunc( "HEX", "0xVWXYZ", com_valHex,   false );
 }
 
 ///// test_getString() ///////////////////////////////////////////////////////
@@ -742,23 +871,35 @@ void test_checkDigit( void )
 void test_getString( void )
 {
     startFunc( __func__ );
-    com_printf( "0:%s 1:%s 2:%s 3:%s 4:%s 5:%s\n",
+    char tmpbuf[COM_LINEBUF_SIZE] = {0};
+    snprintf( tmpbuf, sizeof(tmpbuf), "0:%s 1:%s 2:%s 3:%s 4:%s 5:%s",
                 com_getString( "%d", 123 ),
                 com_getString( "%c", 65 ),
                 com_getString( "%s.test", "TEST" ),
                 com_getString( "%03d", 234 ),
                 com_getString( "%04o", 12 ),
                 com_getString( "%p", com_printf ) );
-    com_printf( "0:%s 1:%s 2:%s 3:%s 4:%s 5:%s\n",
+    com_printf( "%s\n", tmpbuf );
+    char tmp1[] = "0:123 1:A 2:TEST.test 3:234 4:0014 5:";
+    com_assertStringLen( "tmpbuf", tmp1, tmpbuf, strlen(tmp1) );
+
+    snprintf( tmpbuf, sizeof(tmpbuf), "0:%s 1:%s 2:%s 3:%s 4:%s 5:%s",
                 com_getString( "%s.test", "TEST" ),
                 com_getString( "%d", 123 ),
                 com_getString( "%03d", 234 ),
                 com_getString( "%c", 65 ),
                 com_getString( "%p", com_printf ),
                 com_getString( "%04o", 12 ) );
+    com_printf( "%s\n", tmpbuf );
+    char tmp2[] = "0:TEST.test 1:123 2:234 3:A 4:0x100401a74 5:";
+    com_assertStringLen( "tmpbuf", tmp2, tmpbuf, strlen(tmp2) );
 }
 // COM_FORMSTRING_MAX の数まではバッファが保持できるので、
-// 上記はどちらも 0～4は正しく出力されるが、5の内容は不定(0の内容？)
+// 上記はどちらも 0～4は正しく出力されるが、5の内容は不定(0の内容？)。
+// これは一文での処理なので、二度目の 0 の評価は最初にしているためと思われる。
+// そのため2つ目のsnprintf文では 最初に 0 に正しく内容が格納されている。
+//
+// ただ、二度目の 0の内容は不定と考えられるため、assert()は非対象とした。
 
 ///// test_getTime() /////////////////////////////////////////////////////////
 
@@ -771,112 +912,175 @@ void test_getTime( void )
     com_printf( "%s %s\n", dateText, timeText );
     com_getCurrentTime( COM_FORM_SIMPLE, dateText, timeText, NULL );
     com_printf( "%s %s\n", dateText, timeText );
+    // 目視で現在日時が出力されることを確認。
 }
 
 ///// test_convertTime() /////////////////////////////////////////////////////
 
-static void convertTime( struct timeval *iTv )
+static void convertTime( struct timeval *iTv, char *iAssert)
 {
     com_time_t inf;
     com_convertSecond( &inf, iTv );
-    com_printf( "%ld.%06ld sec\n ->%5ld days %02ld:%02ld:%02ld.%06ld\n",
-                iTv->tv_sec, iTv->tv_usec,
-                inf.day, inf.hour, inf.min, inf.sec, inf.usec );
+    char result[COM_TEXTBUF_SIZE] = {0};
+    snprintf( result, sizeof(result),
+              "%5ld days %02ld:%02ld:%02ld.%06ld",
+              inf.day, inf.hour, inf.min, inf.sec, inf.usec );
+    com_printf( "%ld.%06ld sec\n", iTv->tv_sec, iTv->tv_usec );
+    com_assertString( "result", iAssert, result );
 }
 
 void test_convertTime( void )
 {
     startFunc( __func__ );
-    convertTime( &(struct timeval){    3601,   0 } );
-    convertTime( &(struct timeval){ 1000000, 100 } );
+    convertTime( &(struct timeval){    3601,   0 },
+                 "    0 days 01:00:01.000000" );
+    convertTime( &(struct timeval){ 1000000, 100 },
+                 "   11 days 13:46:40.000100" );
 }
 
 ///// test_archive() /////////////////////////////////////////////////////////
 
-static int dispLs( const char *iLsPath )
+typedef struct {
+    long    linecnt;
+    long    assertCnt;
+    char*   assertLine;
+} assertArchive_t;
+
+static BOOL checkLsResult( com_seekFileResult_t *iInf )
 {
-    com_printf( "--- %s\n", iLsPath );
-    int ret = com_system( "ls -aF %s", iLsPath );
+    assertArchive_t* assertData = iInf->userData;
+
+    com_printf( "%s", iInf->line );
+    if( assertData->linecnt == assertData->assertCnt ) {
+        com_assertString( "iInf->line", assertData->assertLine, iInf->line );
+    }
+    (assertData->linecnt)++;
+    return true;  // 最初の行だけを見たいので falseを返すので問題なし
+}
+
+static void dispLs( const char *iLsPath, assertArchive_t *iAssert )
+{
+    com_printf( "--- %s   assertion:%s", iLsPath, iAssert->assertLine );
+    com_buf_t  lscmd;
+    com_assertTrue( "com_initBuffer()",
+            com_initBuffer( &lscmd, 0, "ls -aF %s", iLsPath ) );
+    com_assertTrue( "com_pipeCommand()",
+            com_pipeCommand( lscmd.data, checkLsResult, iAssert, NULL, 0 ) );
     com_printf( "-----\n" );
-    return ret;
+    com_resetBuffer( &lscmd );
+    return;
 }
 
 void test_archive( void ) 
 {
     startFunc( __func__ );
     char testdir[] = "testDir1";
-    com_zipFile( NULL, "makefile", NULL, false, true );
-    com_unzipFile( "makefile.zip", testdir, NULL, true );
-    if( COM_UNLIKELY( 0 > system( "ls" )) ) {return;}
-    if( COM_UNLIKELY( 0 > dispLs( testdir )) ) {return;}
 
-    char testzip[] = "testzip";
-    com_zipFile( testzip, "makefile", "PASS", true, true );
-    com_unzipFile( testzip, com_getString("%s/test2",testdir), "PASS", false );
-    if( COM_UNLIKELY( 0 > system( "ls" )) ) {return;}
-    if( COM_UNLIKELY( 0 > dispLs( testdir )) ) {return;}
+    com_assertEquals( "rm -fr",
+                  0, com_system( "rm -fr %s makefile,zip", testdir ) );
 
+    com_printf( "create makefile.zip\n" );
+    com_assertTrue( "com_zipFile()",
+                com_zipFile( NULL, "makefile", NULL, false, true ) );
+    com_assertTrue( "com_unzipFile()",
+                com_unzipFile( "makefile.zip", testdir, NULL, true ) );
+    com_assertEquals( "ls", 0, com_system( "ls" ) );
+    assertArchive_t  test1 = { 0, 2, "makefile\n" };
+    dispLs( testdir, &test1 );
+
+    com_printf( "\ncreate .testzip\n" );
+    char testzip[] = ".testzip";
+    com_assertTrue( "com_zipFile()",
+                com_zipFile( testzip, "makefile", "PASS", true, true ));
+    com_assertEquals( "ls", 0, com_system( "ls %s", testzip ) );
+    com_assertTrue( "com_unzipFile()",
+                com_unzipFile( testzip,
+                    com_getString("%s/test2",testdir), "PASS", false ));
+    com_assertEquals( "ls", 0, com_system( "ls" ) );
+    assertArchive_t  test2 = { 0, 3, "test2/\n" };
+    dispLs( testdir, &test2 );
+
+    com_printf( "\nremove %s\n", testdir );
     remove( testzip );
     com_removeDir( testdir );
+    com_assertNotEquals( "ls", 0, com_system( "ls %s", testdir ) );
 }
 
 ///// test_archive2() ////////////////////////////////////////////////////////
 
-static void checkArchive2(
+static BOOL checkArchive2(
         const char *iArch, const char *iSource, const char *iKey, BOOL iNoZip )
 {
     if( com_zipFile( iArch, iSource, iKey, iNoZip, true ) ) {
         com_debug( "archive suceed" );
-        system( "ls" );
-        system( "unzip -l pack.zip" );
+        com_assertEquals( "ls", 0, com_system( "ls %s.zip", iArch ) );
+        com_assertEquals( "unzip", 0, com_system( "unzip -l %s.zip", iArch ) );
+        // pack.zip の中身が com_* であることは目視で確認
         remove( "pack.zip" );
     }
-    else {com_debug( "archive failed...");}
+    else {
+        com_debug( "archive failed...");
+        return false;
+    }
+    return true;
 }
 
 void test_archive2( void )
 {
     startFunc( __func__ );
-    checkArchive2( NULL,   "../com*", NULL, false );   // 失敗する
-    checkArchive2( "pack", "../com*", NULL, false );   // 成功する
+    com_assertFalse( "NULL",
+            checkArchive2( NULL,   "../com*", NULL, false ) );   // 失敗する
+    com_assertTrue(  "pack",
+            checkArchive2( "pack", "../com*", NULL, false ) );   // 成功する
 }
 
 ///// test_strtoul() /////////////////////////////////////////////////////////
 
-static void dispConvertResult( char *iSource, int iBase, BOOL iCheck )
+static void checkConvertErrno( int iErrno, int iAssert )
 {
-    uint value = com_strtoul( iSource, iBase, iCheck );
-    int err = errno;
-    com_printf( "value = %-8x  errno = %d", value, err );
-    if( err ) { com_printf( " (%s)", com_strerror( err ) ); }
-    com_printLf();
+    if( iErrno ) { com_printf( " (%s)\n", com_strerror( iErrno ) ); }
+    else { com_printLf(); }
+    com_assertEquals( "errno", iAssert, iErrno );
 }
 
-static void dispConvertResult2( char *iSource, int iBase, BOOL iCheck )
+static void dispConvertResult(
+        char *iSource, int iBase, BOOL iCheck, ulong iConvert, int iAssert )
 {
-    int value = com_strtol( iSource, iBase, iCheck );
+    uint value = (uint)com_strtoul( iSource, iBase, iCheck );
+    // エラーメッセージが出力される言葉目視で確認
     int err = errno;
-    com_printf( "value = %-8x  errno = %d", value, err );
-    if( err ) { com_printf( " (%s)", com_strerror( err ) ); }
-    com_printLf();
+    com_printf( "%s -> %-8x  errno = %d", iSource, value, err );
+    checkConvertErrno( err, iAssert );
+    com_assertEqualsU( "com_strtoul()", iConvert, value );
 }
 
-static void dispConvertResult3( char *iSource )
+static void dispConvertResult2(
+        char *iSource, int iBase, BOOL iCheck, long iConvert, int iAssert )
+{
+    int value = (int)com_strtol( iSource, iBase, iCheck );
+    // エラーメッセージが出力される言葉目視で確認
+    int err = errno;
+    com_printf( "%s -> %-8d  errno = %d", iSource, value, err );
+    checkConvertErrno( err, iAssert );
+    com_assertEquals( "com_strtol()", iConvert, value );
+}
+
+static void dispConvertResult3( char *iSource, int iConvert, int iAssert )
 {
     int value = com_atoi( iSource );
     int err = errno;
-    com_printf( "value = %-8d  errno = %d", value, err );
-    if( err ) { com_printf( " (%s)", com_strerror( err ) ); }
-    com_printLf();
+    com_printf( "%s -> %-8d  errno = %d", iSource, value, err );
+    checkConvertErrno( err, iAssert );
+    com_assertEquals( "com_atoi()", iConvert, value );
 }
 
-static void dispConvertResult4( char *iSource )
+static void dispConvertResult4( char *iSource, float iConvert, int iAssert )
 {
     float value = com_atof( iSource );
     int err = errno;
-    com_printf( "value = %f  errno = %d", value, err );
-    if( err ) { com_printf( " (%s)", com_strerror( err ) ); }
-    com_printLf();
+    com_printf( "%s -> %f  errno = %d", iSource, value, err );
+    checkConvertErrno( err, iAssert );
+    com_assertEqualsF( "com_atof()", iConvert, value );
 }
 
 void test_strtoul( void )
@@ -886,27 +1090,27 @@ void test_strtoul( void )
     char text2[] = "1a2b3c";
 
     com_printf( "--- com_strtoul() ---\n" );
-    dispConvertResult( text1, 16, true );        // errno 20
-    dispConvertResult( text1, 16, false );       // errno 20
-    dispConvertResult( text2, 16, true );        // OK
-    dispConvertResult( "FFFFFFFF", 16, true );   // OK
+    dispConvertResult( text1, 16, true,      0xabcdef,   EINVAL );
+    dispConvertResult( text1, 16, false,     0xabcdef,   EINVAL );
+    dispConvertResult( text2, 16, true,      0x1a2b3c,   0 );
+    dispConvertResult( "FFFFFFFF", 16, true, 0xffffffff, 0 );
 
     com_printf( "--- com_strtol() ---\n" );
-    dispConvertResult2( text1, 16, true );       // errno 22
-    dispConvertResult2( text1, 16, false );      // errno 22
-    dispConvertResult2( text2, 16, true );       // OK
-    dispConvertResult2( "FFFFFFFF", 16, true );  // OK
+    dispConvertResult2( text1, 16, true,      0xabcdef,   EINVAL );
+    dispConvertResult2( text1, 16, false,     0xabcdef,   EINVAL );
+    dispConvertResult2( text2, 16, true,      0x1a2b3c,   0 );
+    dispConvertResult2( "FFFFFFFF", 16, true, -1,         0 );
 
     com_printf( "--- com_atoi() ---\n" );
-    dispConvertResult3( "123456" );              // OK
-    dispConvertResult3( "090807" );              // OK
-    dispConvertResult3( "0x1234" );              // errno 22
-    dispConvertResult3( "12abcd" );              // errno 22
+    dispConvertResult3( "123456", 123456, 0 );
+    dispConvertResult3( "090807", 90807,  0 );
+    dispConvertResult3( "0x1234", 0,      EINVAL );
+    dispConvertResult3( "12abcd", 12,     EINVAL );
 
     com_printf( "--- com_atof() ---\n" );
-    dispConvertResult4( "123.45678" );           // OK
-    dispConvertResult4( "123.DUMMY" );           // errno 22
-    dispConvertResult4( "0x234.abc" );           // OK
+    dispConvertResult4( "123.45678", 123.45678F, 0 );
+    dispConvertResult4( "123.DUMMY", 123.0F,     EINVAL );
+    dispConvertResult4( "0x234.abc", 564.67090F,  0 );
 }
 
 ///// test_hash() ////////////////////////////////////////////////////////////
@@ -931,39 +1135,66 @@ void test_hash( void )
     const void* val = NULL;
     size_t size = 0;
     int dummy = 1234567;
-    com_printf( "1st check = %ld\n", com_checkHash( 0 ) );
+
+    com_assertTrue( "com_checkHash(0)", com_checkHash( 0 ) );
     id1 = com_registerHash( 101, calcHashTest );
+    com_assertNotEquals( "hash id1", 0, id1 );
     id2 = com_registerHash(  17, NULL );
-    com_printf( "1st check = %ld\n", com_checkHash( id1 ) );
-    com_printf( "add(1) AAA->BCD = %d\n",
-                com_addHash( id1, false, "AAA", 4, "BCD", 4 ) );
-    com_printf( "add(1) AAA->CDE = %d\n",
-                com_addHash( id1, false, "AAA", 4, "CDE", 4 ) );
-    com_printf( "add(1) CCC->DEF = %d\n",
-                com_addHash( id1, false, "CCC", 4, "DEF", 4 ) );
-    com_printf( "add(1) CCC->123456 = %d\n",
-                com_addHash( id1, false, "CCC", 4, "123456", 4 ) );
-    if( com_searchHash( id1, "AAA", 4, &val, &size ) ) {
-        com_printf( "  (1)AAA = %s\n", (char*)val );
-    }
-    if( com_searchHash( id1, "BBB", 4, &val, &size ) ) {
-        com_printf( "  (1)BBB = %s\n", (char*)val );
-    }
-    if( com_searchHash( id1, "CCC", 4, &val, &size ) ) {
-        com_printf( "  (1)CCC = %s\n", (char*)val );
-    }
+    com_assertNotEquals( "hash id2", 0, id2 );
+
+    COM_HASH_t result = com_addHash( id1, false, "AAA", 4, "BCD", 4 );
+    com_printf( "add(1) AAA->BCD = %d\n", result );
+    com_assertEquals( "add result", COM_HASH_OK, result );
+
+    result = com_addHash( id1, false, "AAA", 4, "CDE", 4 );
+    com_printf( "add(1) AAA->CDE = %d\n", result );
+    com_assertEquals( "add result", COM_HASH_EXIST, result );
+
+    result = com_addHash( id1, false, "CCC", 4, "DEF", 4 );
+    com_printf( "add(1) CCC->DEF = %d\n", result );
+    com_assertEquals( "add result", COM_HASH_OK, result );
+
+    result = com_addHash( id1, false, "CCC", 4, "123456", 4 );
+    com_printf( "add(1) CCC->123456 = %d\n", result );
+    com_assertEquals( "add result", COM_HASH_EXIST, result );
+
+    com_assertTrue( "com_searchHash() \"AAA\"",
+            com_searchHash( id1, "AAA", 4, &val, &size ) );
+    com_printf( "  (1)AAA = %s\n", (char*)val );
+    com_assertString( "AAA", "BCD", (char*)val );
+
+    com_assertFalse( "com_searchHash() \"BBB\"",
+            com_searchHash( id1, "BBB", 4, &val, &size ) );
+    com_printf( "  (1)BBB = ---\n" );
+
+    com_assertTrue( "com_searchHash() \"CCC\"",
+            com_searchHash( id1, "CCC", 4, &val, &size ) );
+    com_printf( "  (1)CCC = %s\n", (char*)val );
+    com_assertString( "CCC", "DEF", (char*)val );
+
     com_dump( val, size, "" );
 
-    com_printf( "add(2) = %d\n",
-                com_addHash(id2, false, "12345667", 9, &dummy, sizeof(dummy)) );
+    result = com_addHash(id2, false, "12345667", 9, &dummy, sizeof(dummy));
+    com_printf( "add(2) = %d\n", result );
+    com_assertEquals( "add result", COM_HASH_OK, result );
+
     com_cancelHash( id2 );
-    com_printf( "add(1) = %d\n",
-                com_addHash( id1, true, "AAA", 4, "CCCCCC", 7 ) );
-    if( com_searchHash( id1, "AAA", 4, &val, &size ) ) {
-        com_printf( "   (1)AAA = %s\n", (char*)val );
-    }
-    com_printf( "del(1) BBB = %ld\n", com_deleteHash( id1, "BBB", 4 ) );
-    com_printf( "del(1) CCC = %ld\n", com_deleteHash( id1, "CCC", 4 ) );
+
+    result = com_addHash( id1, true, "AAA", 4, "CCCCCC", 7 );
+    com_printf( "add(1) = %d\n", result );
+    com_assertEquals( "add result", COM_HASH_OVERWRITE, result );
+
+    com_assertTrue( "com_searchHash() \"AAA\"",
+            com_searchHash( id1, "AAA", 4, &val, &size ) );
+    com_printf( "   (1)AAA = %s\n", (char*)val );
+
+    BOOL delResult = com_deleteHash( id1, "BBB", 4 );
+    com_printf( "del(1) BBB = %ld\n", delResult );
+    com_assertTrue( "com_deleteHash() \"BBB\"", delResult );
+
+    delResult = com_deleteHash( id1, "CCC", 4 );
+    com_printf( "del(1) CCC = %ld\n", delResult );
+    com_assertTrue( "com_deleteHash() \"CCC\"", delResult );
 }
     
 ///// test_sortTable() ///////////////////////////////////////////////////////
@@ -973,11 +1204,16 @@ typedef struct {
     char*  str;
 } com_testSort_t;
 
+enum {
+    SORTTEST_MAX = 44,
+    SORTDEBUG = 1
+};
+
 static com_testSort_t gSortTestData[] = {
     { 10, "beta" },
     { 11, "gamma" },
     {  1, "alpha" },
-    { 44, "epsilon" },
+    { SORTTEST_MAX, "epsilon" },
     { 11, "gamma2" },
     { 25, "delta" },
     {  1, "alpha2" },
@@ -985,11 +1221,53 @@ static com_testSort_t gSortTestData[] = {
     {  0, "TOP" }
 };
 
+static long modRange( long iRange )
+{
+    if( iRange > 1 ) {return (iRange - 1);}
+    return 0;
+}
+
+static void setAssert( long *ioTable, com_sort_t *iSort, size_t iIdx )
+{
+    if( SORTDEBUG ) {com_printf( " *%ld*", iIdx );}
+    for( long pos = 0; pos <= modRange( iSort->range ); pos++ ) {
+        if( SORTDEBUG ) {com_printf( " %ld", iSort->key + pos );}
+        ioTable[iSort->key + pos] = (long)iIdx;
+    }
+    if( SORTDEBUG ) {com_printLf();}
+}
+
+static BOOL checkRange( com_sort_t *iData, long *iTable )
+{
+    for( long i = 0;  i <= modRange( iData->range );  i++ ) {
+        long idx = iData->key + i;
+        if( SORTDEBUG ) {com_printf( " %ld", idx );}
+        if ( iTable[idx] ) {
+            if( SORTDEBUG ) {com_printf( " [%ld]\n", iTable[idx] );}
+            return false;
+        }
+    }
+    if( SORTDEBUG ) {com_printLf();}
+    return true;
+}
+
+static BOOL expectedResult(
+        size_t iIdx, com_sort_t *iData, COM_SORT_MATCH_t iMode, long *iTable )
+{
+    if( !iIdx ) {return true;}
+    if( checkRange( iData, iTable ) ) {return true;}
+    if( SORTDEBUG ) {com_printf( " --- %zu ---\n", iData->range );}
+    if( iData->range > 1 ) {return false;}
+    if( SORTDEBUG ) {com_printf( " --- %u ---\n", iMode );}
+    if( iMode == COM_SORT_SKIP ) {return false;}
+    return true;
+}
+
 static void showKeyData( com_sort_t *iData )
 {
     com_printf( "  %3ld", iData->key );
-    if( iData->range > 1 )  {
-        com_printf( "-%3ld", iData->key + iData->range - 1 );
+    if( modRange( iData->range ) > 0 )  {
+        com_printf( "-%3ld", iData->key + modRange( iData->range ) );
     }
     com_printf( " %s\n", (char*)iData->data );
 }
@@ -1002,53 +1280,83 @@ static void showTable( com_sortTable_t *iTable )
     }
 }
 
+static com_sort_t gTarget[] = {
+    { 11, 35, NULL, 0 },
+    { 11,  1, "gamma2", 7 },
+    {  5,  1, NULL, 0 },
+    { 50,  1, NULL, 0 }
+};
+
+static long expectedHit( com_sortTable_t *iTable, com_sort_t *iTarget )
+{
+    long  result = 0;
+    for( long i = 0;  i < iTable->count;  i++ ) {
+        com_sort_t* data = &(iTable->table[i]);
+        if( iTarget->data ) {
+            if( strcmp( data->data, iTarget->data ) ) {continue;}
+        }
+        if( (data->key <= (iTarget->key + modRange(iTarget->range))) &&
+            (iTarget->key <= (data->key + modRange(data->range))) )
+        {
+            result++;
+        }
+    }
+    return result;
+}
+
 static void searchTable( com_sortTable_t *iTable, com_sort_t *iTarget )
 {
     long searchCount = 0;
+    long expected = expectedHit( iTable, iTarget );
     com_sort_t** searchResult = NULL;
 
     searchCount = com_searchSortTable( iTable, iTarget, &searchResult );
     com_printf( "search " );
     showKeyData( iTarget );
-    com_printf( " hit : %ld\n", searchCount );
     for( long i = 0;  i < searchCount;  i++ ) {
         showKeyData( searchResult[i] );
     }
+    if( expected >= 0 ) {com_assertEquals( "hit count", expected, searchCount );}
 }
 
-#define  TEST_RANGE  1
+#define  TEST_MODE   COM_SORT_OVERWRITE
+#define  TEST_RANGE  0
 
 void test_sortTable( void )
 {
     startFunc( __func__ );
     com_sortTable_t test;
-    com_sort_t target1 = { 11, 35, NULL, 0 };
-    com_sort_t target2 = { 11,  1, "gamma2", 7 };
-    com_sort_t target3 = {  5,  1, NULL, 0 };
-    com_sort_t target4 = { 50,  1, NULL, 0 };
+    long testassert[SORTTEST_MAX + TEST_RANGE + 1] = {0};
 
-    // COM_SORT_～ を変えることで挙動が変わることを確認
-    com_initializeSortTable( &test, COM_SORT_MULTI );
-    for( long i = 0;  i < 9;  i++ ) {
+    // TEST_MODE や TEST_RANGE を変えることで挙動が変わることを確認
+    com_printf( "TEST_MODE:%d, TEST_RANGE:%d\n", TEST_MODE, TEST_RANGE );
+
+    com_initializeSortTable( &test, TEST_MODE );
+    for( size_t i = 0;  i < COM_ELMCNT( gSortTestData );  i++ ) {
         com_sort_t data = {
             gSortTestData[i].key, TEST_RANGE,
             gSortTestData[i].str, strlen(gSortTestData[i].str) + 1
         };  // TEST_RANGEの値を変えることで範囲付きキーの動作確認可能
-        if( !com_addSortTable( &test, &data, NULL ) ) {
+        BOOL expected = expectedResult( i, &data, TEST_MODE, testassert );
+        BOOL result = com_addSortTable( &test, &data, NULL );
+        if( !result ) {
             com_printf( ">> canceled :" );
             showKeyData( &data );
+            com_assertEquals( "com_addSortTable() canceled", expected, result );
             continue;
         }
         com_printf( " >> input :" );
         showKeyData( &data );
+        setAssert( testassert, &data, i + 1 );
+        com_assertEquals( "com_addSortTable() input", expected, result );
+
         showTable( &test );
     }
-    searchTable( &test, &target1 );
-    searchTable( &test, &target2 );
-    searchTable( &test, &target3 );
-    searchTable( &test, &target4 );
+    for( long i = 0;  i < 4;  i++ ) {
+        searchTable( &test, &(gTarget[i]) );
+    }
 
-    long delCount = com_deleteSortTable( &test, &target1, true );
+    long delCount = com_deleteSortTable( &test, &gTarget[0], true );
     showTable( &test );
     com_printf( " deleted : %ld\n", delCount );
 
@@ -1064,18 +1372,22 @@ void test_stopwatch( void )
     struct timeval tv;
 
     do { com_startStopwatch( &sw ); } while( sw.start.tv_usec < 950000 );
-    do{ com_gettimeofday( &tv, "stop time" ); } while( tv.tv_usec >= 950000 );
+    do { com_gettimeofday( &tv, "stop time" ); } while( tv.tv_usec >= 950000 );
     com_checkStopwatch( &sw );
     com_printf( " passed: %ld.%06ldsec\n", sw.passed.tv_sec, sw.passed.tv_usec);
+    com_assertEquals( " sec", 0,     sw.passed.tv_sec );
+    com_assertEquals( "usec", 50000, sw.passed.tv_usec );
 }
 
 ///// test_dayOfWeek() ///////////////////////////////////////////////////////
 
-static void checkDayOfWeek( time_t iYear, time_t iMon, time_t iDay )
+static void checkDayOfWeek(
+        time_t iYear, time_t iMon, time_t iDay, long iAssert )
 {
     COM_WD_TYPE_t dotw = com_getDotw( iYear, iMon, iDay );
     com_printf( "%4ld/%02ld/%02ld: ", iYear, iMon, iDay );
     com_printf( "%s (%d)\n", com_strDotw( dotw, COM_WDSTR_EN2 ), dotw );
+    if ( iAssert != COM_WD_NG ) {com_assertEquals( "dotw", iAssert, dotw );}
 }
 
 void test_dayOfWeek( void )
@@ -1084,9 +1396,9 @@ void test_dayOfWeek( void )
     com_time_t  tm;
 
     com_getCurrentTime( COM_FORM_DETAIL, NULL, NULL, &tm );
-    checkDayOfWeek( tm.year, tm.mon, tm.day );
-    checkDayOfWeek( 1973, 2, 28 );
-    checkDayOfWeek( 1978, 9, 30 );
+    checkDayOfWeek( tm.year, tm.mon, tm.day, COM_WD_NG );
+    checkDayOfWeek( 1973, 2, 28, COM_WD_WEDNESDAY );
+    checkDayOfWeek( 1978, 9, 30, COM_WD_SATURDAY );
 }
 
 ///// test_printEsc() ////////////////////////////////////////////////////////
@@ -1099,27 +1411,30 @@ void test_printEsc( void )
         com_printBack( "%4d\nTEST", i );
         sleep( 1 );
     }
+    // "count test:   11" と標準出力されることを目視
     com_printLf();
     com_repeat( "#", 70, true );
     com_repeat( "#", 70, false );
     com_printCr( "### caridge return test \n" );
     com_repeat( "#", 70, true );
+    // # で囲まれ "caridge return test" という文字が標準出力されることを目視
 }
 
 ///// test_fileInfo() ////////////////////////////////////////////////////////
 
-static void getFileInfo( const char *iPath )
+static void getFileInfo( const char *iPath, BOOL iAssert )
 {
     com_fileInfo_t  info;
     char dateText[COM_DATE_SSIZE];
     char timeText[COM_DATE_SSIZE];
 
-    com_printf( "--- %s ", iPath );
-    if( !com_getFileInfo( &info, iPath, false ) ) {
-        com_printf( "not exist... ---\n" );
+    com_printf( "--- %s ---\n", iPath );
+    BOOL result = com_getFileInfo( &info, iPath, false );
+    com_assertEquals( "com_getFileInfo()", iAssert, result );
+    if( !result ) {
+        com_printf( "not exist...\n" );
         return;
     }
-    com_printf( "information ---\n" );
     com_printf( " device:%lu (%u:%u)\n",
                 (ulong)info.device, info.dev_major, info.dev_minor );
     com_printf( " inode :%lu\n", info.inode );
@@ -1142,24 +1457,29 @@ static void getFileInfo( const char *iPath )
 void test_fileInfo( void )
 {
     startFunc( __func__ );
-    getFileInfo( "fields" );
+    getFileInfo( "fields", false );
     com_printLf();
-    getFileInfo( "." );
+    getFileInfo( ".", true );
 }
 
 ///// test_strtooct() ////////////////////////////////////////////////////////
 
-static void convertBinary( uchar *oOct, size_t iLen, const char *iSource )
+static void convertBinary(
+        uchar *oOct, size_t iLen, const char *iSource, uchar *iAssert )
 {
     com_printf( "[%s]\n", iSource );
     
-    BOOL noNeedFree = iLen;
+    BOOL noNeedFree = (BOOL)iLen;
     if( !com_strtooct( iSource, &oOct, &iLen ) ) {
-        com_printf( "convert NG\n" );
+        com_assertNull( "assertion", iAssert );
         return;
     }
-    com_printBin_t flags = { .prefix = " ", .colSeq = 1 };
-    com_printBinary( oOct, iLen, &flags );
+    com_assertNotNull( "assertion", iAssert );
+    for( size_t i = 0;  i < iLen;  i++ ) {
+        com_assertEqualsU( "binary", iAssert[i], oOct[i] );
+    }
+    //com_printBin_t flags = { .prefix = " ", .colSeq = 1 };
+    //com_printBinary( oOct, iLen, &flags );
     if( !noNeedFree ) { com_free( oOct ); }
 }
 
@@ -1168,12 +1488,18 @@ void test_strtooct( void )
     startFunc( __func__ );
     char test[] = { '3', '1', '\r', '\n', '3', '2', '\0' };
     uchar buf[4];
-    convertBinary( buf, sizeof(buf), "010203040506" );
-    convertBinary( NULL, 0, "01 02 03 04 05 06 07 08" );
-    convertBinary( NULL, 0, "aa bbc cdd eef ffg" );
-    convertBinary( NULL, 0, "aa bb cc dd ee ff 0" );
-    convertBinary( NULL, 0, "a1b     2c3      d4e  5f6" );
-    convertBinary( NULL, 0, test );
+    // 出力先サイズが 4 なので 4オクテットのみの取得
+    convertBinary( buf, sizeof(buf), "010203040506",
+               (uchar[]){ 0x01, 0x02, 0x03, 0x04 } );
+    convertBinary( NULL, 0, "01 02 03 04 05 06 07 08",
+               (uchar[]){ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 } );
+    // 16進数以外の文字が入っているのでNG
+    convertBinary( NULL, 0, "aa bbc cdd eef ffg", NULL );
+    // 数字が奇数個なのでNG
+    convertBinary( NULL, 0, "aa bb cc dd ee ff 0", NULL );
+    convertBinary( NULL, 0, "a1b     2c3      d4e  5f6",
+               (uchar[]){ 0xa1, 0xb2, 0xc3, 0xd4, 0xe5, 0xf6 } );
+    convertBinary( NULL, 0, test, (uchar[]){ 0x31, 0x32 } );
 }
 
 ///// test_doublefree() //////////////////////////////////////////////////////
@@ -1182,11 +1508,15 @@ void test_doublefree( void )
 {
     startFunc( __func__ );
     int* test = com_malloc( sizeof(int), __func__ );
+    com_assertNotNull( "test", test );
     int* dummy = test;
-    com_printf( "test = %p, dummy = %p\n", (void*)test, (void*)dummy );
+    //com_printf( "test = %p, dummy = %p\n", (void*)test, (void*)dummy );
     com_free( test );
-    com_printf( "test = %p, dummy = %p\n", (void*)test, (void*)dummy );
-    com_free( dummy );  // COM_DOUBLEFREE でエラーが出る。Linuxはその後落ちる
+    com_assertNull( "test", test );
+    //com_printf( "test = %p, dummy = %p\n", (void*)test, (void*)dummy );
+    com_free( dummy );  // COM_DOUBLEFREE でエラーが出る。
+    com_assertEquals( "last error", COM_ERR_DOUBLEFREE, com_getLastError() );
+    com_assertNull( "dummy", dummy );
 }
 
 ///// test_prmNG() ///////////////////////////////////////////////////////////
@@ -1201,37 +1531,41 @@ void test_prmNG( void )
     com_prmNG( "ABC" );
     com_prmNG( "%s -ABC%d", text, num );
     com_prmNG( NULL );
+    // 出力は目視確認
 }
 
 ///// test_getFileFunc() /////////////////////////////////////////////////////
 
 static void testGetFile(
-        char *oBuf, size_t iBufSize, long iType, const char *iTarget )
+        char *oBuf, size_t iBufSize, long iType, char *iTarget,
+        BOOL iAssertResult, char *iAssertText )
 {
+    com_printf( "type %ld:%s\n", iType, iTarget );
     BOOL result = false;
     if( iType == 1 ) {result = com_getFileName(oBuf,iBufSize,iTarget);}
     if( iType == 2 ) {result = com_getFilePath(oBuf,iBufSize,iTarget);}
     if( iType == 3 ) {result = com_getFileExt( oBuf,iBufSize,iTarget);}
-    if( !result ) {com_printf( "type %ld/%s failed\n", iType, iTarget );}
-    com_printf( "%s -> %s\n", iTarget, oBuf );
+    com_assertEquals( "result", iAssertResult, result );
+    com_assertString( "buffer", iAssertText, oBuf );
 }
 
-#define GETFILE( TYPE, PATH )   testGetFile( buf, sizeof(buf), (TYPE), PATH )
+#define GETFILE( TYPE, PATH, RESULT, TEXT )  \
+    testGetFile( buf, sizeof(buf), (TYPE), PATH, RESULT, TEXT )
 
 void test_getFileFunc( void )
 {
     startFunc( __func__ );
     char buf[10] = {0};
-    GETFILE( 1, "testfile.txt" );    // (fail) testfile.  ＊バッファ不足
-    GETFILE( 1, "aa/bb/cc.ex" );     // cc.ex
-    GETFILE( 2, "testfile.txt" );    // (fail) 空文字
-    GETFILE( 2, "aa/bb/cc.ex" );     // aa/bb/
-    GETFILE( 2, "aa/bb/cc/" );       // aa/bb/cc/
-    GETFILE( 3, "testfile.txt" );    // txt
-    GETFILE( 3, "aa/bb/cc.ex" );     // ex
-    GETFILE( 3, "aa/bb/cc.ex." );    // (fail) 空文字
-    GETFILE( 3, "aa/bb/.ccextra" );  // ccextra
-    GETFILE( 3, "aa/bb/ccextra" );   // (fail) 空文字
+    GETFILE( 1, "testfile.txt",   false, "testfile." );  // バッファ不足
+    GETFILE( 1, "aa/bb/cc.ex",    true,  "cc.ex" );
+    GETFILE( 2, "testfile.txt",   false, "" );
+    GETFILE( 2, "aa/bb/cc.ex",    true,  "aa/bb/" );
+    GETFILE( 2, "aa/bb/cc/",      true,  "aa/bb/cc/" );
+    GETFILE( 3, "testfile.txt",   true,  "txt" );
+    GETFILE( 3, "aa/bb/cc.ex",    true,  "ex" );
+    GETFILE( 3, "aa/bb/cc.ex.",   false, "" );
+    GETFILE( 3, "aa/bb/.ccextra", true,  "ccextra" );
+    GETFILE( 3, "aa/bb/ccextra",  false, "" );
 }
 
 ///// test_ringBuffer() //////////////////////////////////////////////////////
@@ -1244,65 +1578,65 @@ static void freeRingUnit( void *oData )
     com_free( *tmp );
 }
 
-static void testPull( const char *iPull, const char * iExpected )
-{
-    com_printf( "pull test = %s\n", iPull );
-    if( !strcmp( iPull, iExpected ) ) { com_printf( "-->OK!\n" ); }
-    else { com_printf( "-->NG\n" ); }
-}
-
 void test_ringBuffer( void )
 {
     startFunc( __func__ );
     char* tmp = NULL;
     com_ringBuf_t* ring =
         com_createRingBuf( sizeof(char*), 5, false, true, freeRingUnit );
-    if( COM_UNLIKELY( !ring ) ) {return;}
+    com_assertNotNull( "create", ring );
     if( (tmp = com_strdup( "ABCDE", "test1(ABCDE)" )) ) {
-        if( !com_pushRingBuf( ring, &tmp, sizeof(tmp) ) ) {com_free(tmp);}
+        com_assertTrue( "push1", com_pushRingBuf( ring, &tmp, sizeof(tmp) ) );
     }
     if( (tmp = com_strdup( "abcde", "test2(abcde)" )) ) {
-        if( !com_pushRingBuf( ring, &tmp, sizeof(tmp) ) ) {com_free(tmp);}
+        com_assertTrue( "push2", com_pushRingBuf( ring, &tmp, sizeof(tmp) ) );
     }
     com_printf( "current ring rest = %zu\n", com_getRestRingBuf( ring ) );
 
     char** data = com_pullRingBuf( ring );
-    testPull( *data, "ABCDE" );
+    com_assertString( "pull", "ABCDE", *data );
 
     if( (tmp = com_strdup( "33333", "test3(33333)" )) ) {
-        if( !com_pushRingBuf( ring, &tmp, sizeof(tmp) ) ) {com_free(tmp);}
+        com_assertTrue( "push3", com_pushRingBuf( ring, &tmp, sizeof(tmp) ) );
     }
     if( (tmp = com_strdup( "44444", "test4(44444)" )) ) {
-        if( !com_pushRingBuf( ring, &tmp, sizeof(tmp) ) ) {com_free(tmp);}
+        com_assertTrue( "push4", com_pushRingBuf( ring, &tmp, sizeof(tmp) ) );
     }
     if( (tmp = com_strdup( "55555", "test5(55555)" )) ) {
-        if( !com_pushRingBuf( ring, &tmp, sizeof(tmp) ) ) {com_free(tmp);}
+        com_assertTrue( "push5", com_pushRingBuf( ring, &tmp, sizeof(tmp) ) );
     }
     if( (tmp = com_strdup( "66666", "test6(66666)" )) ) {
-        if( !com_pushRingBuf( ring, &tmp, sizeof(tmp) ) ) {com_free(tmp);}
+        com_assertTrue( "push6", com_pushRingBuf( ring, &tmp, sizeof(tmp) ) );
     }
 
     com_printf( "--- push ring error test ---\n" );
+    
+    com_resetLastError();
     if( (tmp = com_strdup( "77777", "test7(77777)" )) ) {
-        if( !com_pushRingBuf( ring, &tmp, sizeof(tmp) ) ) {com_free(tmp);}
         // エラーになる
+        com_assertFalse( "push7", com_pushRingBuf( ring, &tmp, sizeof(tmp) ) );
+        com_assertEquals( "errno", COM_ERR_RING, com_getLastError() );
+        com_free(tmp);
     }
 
     data = com_pullRingBuf( ring );
-    testPull( *data, "abcde" );
+    com_assertString( "pull", "abcde", *data );
 
     if( (tmp = com_strdup( "88888", "test8(88888)" )) ) {
-        if( !com_pushRingBuf( ring, &tmp, sizeof(tmp) ) ) {com_free(tmp);}
+        com_assertTrue( "push8", com_pushRingBuf( ring, &tmp, sizeof(tmp) ) );
     }
 
     com_printf( "--- push ring error test2 ---\n" );
+    com_resetLastError();
     if( (tmp = com_strdup( "99999", "test9(99999)" )) ) {
-        if( !com_pushRingBuf( ring, &tmp, sizeof(tmp) ) ) {com_free(tmp);}
         // エラーになる
+        com_assertFalse( "push9", com_pushRingBuf( ring, &tmp, sizeof(tmp) ) );
+        com_assertEquals( "errno", COM_ERR_RING, com_getLastError() );
+        com_free(tmp);
     }
 
     com_printf( "--- ring test end ---\n" );
-    com_printf( " **overwrite count = %zd\n", ring->owCount );
+    com_assertEqualsU( "overwrite count", 0, ring->owCount );
     com_freeRingBuf( &ring );
 }
 
@@ -1314,80 +1648,113 @@ void test_ringBuffer( void )
 #define KEY_TEST4  "TEST4"
 #define KEY_TEST5  "TEST5"
 
-static void setCfgTest( char *iKey, char *iData )
+static void setCfgTest( char *iKey, char *iData, long iAssert )
 {
+    com_printf( "%s -> %s\n", iKey, iData );
     com_notifyError( false, true );  // エラー出力抑制(ログには残す)
     long result = com_setCfg( iKey, iData );
     com_notifyError( true, true );   // エラー出力抑制を解除
-    if( !result ) { com_printf( "%s -> %s\n", iKey, iData ); }
-    else {
-        com_printf( "%s not changed (%s)", iKey, iData );
-        if( result > 0 ) { com_printf( " by validator%ld", result ); }
-        else { com_printf( " by memory lack" );}
-        com_printLf();
-    }
+    com_assertEquals( "result", iAssert, result );
 }
 
 void test_config( void )
 {
     startFunc( __func__ );
 
-    com_registerCfg( KEY_TEST1, NULL );
-    if( com_isEmptyCfg( KEY_TEST1 ) ) {com_printf( KEY_TEST1 " is empty!\n" );}
+    com_assertTrue( "register TEST1", com_registerCfg( KEY_TEST1, NULL ) );
+    com_assertTrue( "empty TEST1", com_isEmptyCfg( KEY_TEST1 ) );
     com_valCondDigit_t cond = { 10, 40 };
     com_addCfgValidator( KEY_TEST1, &cond, COM_VAL_DIGIT );
-    setCfgTest( KEY_TEST1, "0" );      // エラーになる
-    setCfgTest( KEY_TEST1, "10" );
-    setCfgTest( KEY_TEST1, "40" );
-    setCfgTest( KEY_TEST1, "41" );     // エラーになる
-    setCfgTest( KEY_TEST1, "dummy" );  // エラーになる
-    com_printf( "%s: %ld\n\n", KEY_TEST1, com_getCfgDigit( KEY_TEST1 ) );
+    setCfgTest( KEY_TEST1, "0",  1 );
+    setCfgTest( KEY_TEST1, "10", 0 );
+    setCfgTest( KEY_TEST1, "40", 0 );
+    setCfgTest( KEY_TEST1, "41", 1 );
+    setCfgTest( KEY_TEST1, "dummy", 1 );
+    com_assertEquals( "TEST1", 40, com_getCfgDigit( KEY_TEST1 ) );
 
-    com_registerCfg( KEY_TEST1, "ALPHA" );    // エラーになる
-    com_registerCfg( KEY_TEST2, "ALPHA" );
+    com_resetLastError();
+    com_assertFalse( "register TEST1", com_registerCfg( KEY_TEST1, "ALPHA" ) );
+    com_assertEquals( "last error", COM_ERR_CONFIG, com_getLastError() );
+
+    com_assertTrue(  "register TEST2", com_registerCfg( KEY_TEST2, "ALPHA" ) );
     char* list2[] = { "ALPHA", "BETA", "GAMMA", NULL };
     com_valCondStrList_t cond2 = { false, list2 };
     com_addCfgValidator( KEY_TEST2, &cond2, COM_VAL_STRLIST );
-    setCfgTest( KEY_TEST2, "BETA" );
-    setCfgTest( KEY_TEST2, "DELTA" );   // エラーになる
-    setCfgTest( KEY_TEST2, "alpha" );   // エラーになる
-    com_printf( "%s: %s\n\n", KEY_TEST2, com_getCfg( KEY_TEST2 ) );
+    setCfgTest( KEY_TEST2, "BETA",  0 );
+    setCfgTest( KEY_TEST2, "DELTA", 1 );
+    setCfgTest( KEY_TEST2, "alpha", 1 );
+    com_assertString( "TEST2", "BETA", (char*)com_getCfg( KEY_TEST2 ) );
 
-    com_registerCfg( KEY_TEST3, NULL );
+    com_assertTrue( "register TEST3", com_registerCfg( KEY_TEST3, NULL ) );
     ulong list3[] = { 0xAAA, 0xBBB, 0xCCC };
     com_valCondUDgtList_t cond3 = { COM_ELMCNT(list3), list3 };
     com_addCfgValidator( KEY_TEST3, &cond3, COM_VAL_HEXLIST );
-    setCfgTest( KEY_TEST3, "aAa" );
-    com_printf( "%s: %lX\n", KEY_TEST3, com_getCfgHex( KEY_TEST3 ) );
-    setCfgTest( KEY_TEST3, "0xbbb" );
-    setCfgTest( KEY_TEST3, "Oxccc" );   // エラーになる
-    com_printf( "%s: %lX\n\n", KEY_TEST3, com_getCfgHex( KEY_TEST3 ) );
+    setCfgTest( KEY_TEST3, "aAa", 0 );
+    com_assertEqualsU( "TEST3", 0xaaa, com_getCfgHex( KEY_TEST3 ) );
+    setCfgTest( KEY_TEST3, "0xbbb", 0 );
+    setCfgTest( KEY_TEST3, "Oxccc", 1 );
+    com_assertEqualsU( "TEST3", 0xbbb, com_getCfgHex( KEY_TEST3 ) );
 
-    com_registerCfg( KEY_TEST4, NULL );
+    com_assertTrue( "register TEST4", com_registerCfg( KEY_TEST4, NULL ) );
     com_addCfgValidator( KEY_TEST4, NULL, COM_VAL_DIGIT );
     com_valCondString_t cond4 = { 1, 10 };
     com_addCfgValidator( KEY_TEST4, &cond4, COM_VAL_STRING );
-    setCfgTest( KEY_TEST4, "-1000" );
-    setCfgTest( KEY_TEST4, "1234567890" );
-    setCfgTest( KEY_TEST4, "12345678901" );    // エラーになる
-    setCfgTest( KEY_TEST4, "10*10" );          // エラーになる
-    setCfgTest( KEY_TEST4, "0xFFFFFFFF" );     // エラーになる
-    com_printf( "%s: %ld\n\n", KEY_TEST4, com_getCfgDigit( KEY_TEST4 ) );
+    setCfgTest( KEY_TEST4, "-1000", 0 );
+    setCfgTest( KEY_TEST4, "1234567890", 0 );
+    setCfgTest( KEY_TEST4, "12345678901", 2 );
+    setCfgTest( KEY_TEST4, "10*10", 1 );
+    setCfgTest( KEY_TEST4, "0xFFFFFFFF", 1 );
+    com_assertEqualsU( "TEST4", 0x1234567890, com_getCfgHex( KEY_TEST4 ) );
 
-    com_registerCfg( KEY_TEST5, NULL );
+    com_assertTrue( "register TEST5", com_registerCfg( KEY_TEST5, NULL ) );
     com_addCfgValidator( KEY_TEST5, NULL, COM_VAL_YESNO );
-    setCfgTest( KEY_TEST5, "On" );     // エラーになる
-    setCfgTest( KEY_TEST5, "YeS" );
-    com_printf( "%s:%ld\n\n", KEY_TEST5, com_getCfgBool( KEY_TEST5 ) );
+    setCfgTest( KEY_TEST5, "On", 1 );
+    setCfgTest( KEY_TEST5, "YeS", 0 );
+    com_assertTrue( "TEST5", com_getCfgBool( KEY_TEST5 ) );
 
-    (void)com_getCfg( "DUMMY" );    // エラーになる
+    com_resetLastError();
+    com_assertString( "DUMMY", "", (char*)com_getCfg( "DUMMY" ) );
+    com_assertEquals( "last error", COM_ERR_CONFIG, com_getLastError() );
 
+#if 0
     com_printLf();
     long count = 0;
     const char *key, *data;
     while( com_getCfgAll( &count, &key, &data ) ) {
         com_printf( "%s = %s\n", key, data );
     }
+#endif
+}
+
+#define ASSERTEQ   com_assertEquals
+#define ASSERTNE   com_assertNotEquals
+#define ASSERTEQU  com_assertEqualsU
+#define ASSERTNEU  com_assertNotEqualsU
+#define ASSERTEQF  com_assertEqualsF
+#define ASSERTNEF  com_assertNotEqualsF
+#define ASSERTEQD  com_assertEqualsD
+#define ASSERTNED  com_assertNotEqualsD
+
+#define ASSERT( LABEL, EXPECTED, RESULT, SUFFIX )  \
+    ASSERTEQ##SUFFIX( LABEL, (EXPECTED), (EXPECTED) ); \
+    ASSERTNE##SUFFIX( LABEL, (EXPECTED), (RESULT) ); \
+
+void test_assertion( void )
+{
+    startFunc( __func__ );
+    ASSERT( "long", 100L, 101,  );
+    ASSERT( "ulong", 100UL, 101, U );
+    ASSERT( "float", 0.0001F, 0.0002F, F );
+    ASSERT( "double", 0.0000000001, 0.0000000002, D );
+    
+    com_assertString( "string", "ABCDE", "ABCDE" );
+    com_assertStringLen( "string(length=5)", "ABCDEFGHIJ", "ABCDEVWXY", 5 );
+
+    com_assertTrue( "bool", TRUE );
+    com_assertFalse( "bool", FALSE );
+
+    com_assertNull( "pointer", NULL );
+    com_assertNotNull( "pointer", (void*)0xabcde );
 }
 
 
@@ -1402,11 +1769,11 @@ static void *procThread( void *ioInf )
 {
     com_threadInf_t* inf = ioInf;
     int* userData = inf->data;
-    int waitSec = com_rand(9);
+    long waitSec = com_rand(9);
     pid_t pid = getpid();
 
     com_readyThread( ioInf );
-    for( int s = 0;  s < waitSec;  s++ ) {
+    for( long s = 0;  s < waitSec;  s++ ) {
         sleep( 1 );
         com_mutexLock( &gMutexTest, "procThread" );
         com_printf( "[%d]thread%ld ", pid, inf->thId );
@@ -1416,7 +1783,7 @@ static void *procThread( void *ioInf )
             return NULL;   // 敢えて com_finishThread() を使わない
         }
         (*userData)++;
-        com_printf( "%d/%ld %d%d\n", pid, inf->thId, s, waitSec );
+        com_printf( "%d/%ld %ld%ld\n", pid, inf->thId, s, waitSec );
         com_mutexUnlock( &gMutexTest, "procThread" );
     }
     return com_finishThread( ioInf );
@@ -1469,7 +1836,7 @@ void test_comInputVar( void )
     com_free( text );
 
     while(1) {
-        int randMax = com_rand( 100 );
+        long randMax = com_rand( 100 );
         flags = (com_actFlag_t){ false, false };
         com_valFunc_t valRand = {
             com_valDigit,
@@ -1496,9 +1863,9 @@ void test_random( void )
 
 // test_stat() ///////////////////////////////////////////////////////////////
 
-static BOOL inputValue( com_calcStat_t *oStat, int iData )
+static BOOL inputValue( com_calcStat_t *oStat, long iData )
 {
-    com_printf( " input -> %d\n", iData );
+    com_printf( " input -> %ld\n", iData );
     if( !com_inputStat( oStat, iData ) ) {
         com_printf( "   *** FAILED ***\n" );
         return false;
@@ -1508,7 +1875,7 @@ static BOOL inputValue( com_calcStat_t *oStat, int iData )
     return true;
 }
 
-static void calcStat( int *iList, int iCount, BOOL iNeed )
+static void calcStat( long *iList, int iCount, BOOL iNeed )
 {
     com_calcStat_t statInf;
     com_readyStat( &statInf, iNeed );
@@ -1540,10 +1907,10 @@ static void calcStat( int *iList, int iCount, BOOL iNeed )
 void test_stat( void )
 {
     startFunc( __func__ );
-    int data1[] = { 21, 16,  9, 43, 24, 30, 17, 12, 25, 28 };
-    int data2[] = { 30, 34,  9, 43, 35, 30, 11, 12,  8, 10 };
-    int data3[] = { 21, 26, 29, 23, 24, 20, 27, 22, 25, 28 };
-    int data4[] = {  9,  5,  2,  9,  5,  3,  7,  5 };
+    long data1[] = { 21, 16,  9, 43, 24, 30, 17, 12, 25, 28 };
+    long data2[] = { 30, 34,  9, 43, 35, 30, 11, 12,  8, 10 };
+    long data3[] = { 21, 26, 29, 23, 24, 20, 27, 22, 25, 28 };
+    long data4[] = {  9,  5,  2,  9,  5,  3,  7,  5 };
 
     calcStat( data1, COM_ELMCNT( data1 ), true );
     calcStat( data2, COM_ELMCNT( data2 ), false );
@@ -1557,7 +1924,7 @@ void test_stat( void )
 void test_randStat( void )
 {
     startFunc( __func__ );
-    int randList[100];
+    long randList[100];
 
     for( size_t i = 0;  i < COM_ELMCNT( randList );  i++ ) {
         randList[i] = com_rand(10000);
@@ -1632,9 +1999,9 @@ void test_dice( void )
 {
     startFunc( __func__ );
     const int trial = 100000;
-    int sum1 = 0;
-    int sum2 = 0;
-    int sum3 = 0;
+    long sum1 = 0;
+    long sum2 = 0;
+    long sum3 = 0;
     BOOL disp = false;
     for( int i = 0;  i < trial;  i++ ) {
         disp = false;
@@ -1894,8 +2261,8 @@ static void sendPacket( com_selectId_t iId, char *iData, size_t iDataSize,
 static void makeUnixDst( com_sockaddr_t *oDst, struct sockaddr_un *iDst )
 {
     memset( oDst, 0, sizeof(*oDst) );
-    oDst->len = SUN_LEN( iDst );
-    memcpy( &oDst->addr, iDst, oDst->len );
+    oDst->len = (socklen_t)(SUN_LEN( iDst ));
+    memcpy( &oDst->addr, iDst, (size_t)(oDst->len) );
 }
 
 static BOOL recvTest(
@@ -2135,7 +2502,7 @@ static com_ifinfo_t *getSomeIf( long iCnt, com_ifinfo_t *iInf )
 static BOOL gUseNetlink = false;
 
 static void examSeekIf(
-        char *iLabel, com_ifinfo_t *iTarget, long iFlags,
+        char *iLabel, com_ifinfo_t *iTarget, int iFlags,
         com_seekIf_t *iCond )
 {
     com_ifinfo_t* result = com_seekIfInfo( iFlags, iCond, gUseNetlink );
@@ -2175,6 +2542,16 @@ void test_ifinfo( void )
                 &(com_seekIf_t){ .hwaddr = target->hwaddr } );
     examSeekIf( "hwaddr(text) -> NG", target, COM_IF_HWTXT,
                 &(com_seekIf_t){ .hwaddr = "FF:FF:FF:F1:F2:F3" } );
+}
+
+void test_cksumRfc( void )
+{
+    startFunc( __func__ );
+    uchar bindata[] = { 0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70,
+                        0x80, 0x90, 0xa0, 0xb0, 0xc0, 0xd0, 0xe0, 0xf0 };
+    ushort sum = com_cksumRfc( bindata, 16 );
+    com_printf( "cksum = %x\n", sum );
+    assert( sum == 0xfc7b );
 }
 
 #ifdef USING_COM_SIGNAL1   // セレクト機能＋シグナル機能1を使うテストコード
@@ -2500,6 +2877,7 @@ static void exam_baseFunctions( int iArgc, char **iArgv )
     //test_getFileFunc();             // ファイル名取得
     //test_ringBuffer();              // リングバッファ
     //test_config();                  // コンフィグ機能
+    test_assertion();               // アサート機能
 }
 
 static void exam_extraFunctions( void )
@@ -2533,6 +2911,7 @@ static void exam_selectFunctions( int iArgc, char **iArgv )
     //test_timer();                   // 非同期タイマーのテスト
     //test_checkSize();               // 構造体サイズチェック
     //test_ifinfo();                  // IF情報取得
+    //test_cksumRfc();                // チェックサム値計算
 #ifdef USING_COM_SIGNAL1  // シグナル機能1も使う
     //test_rawSocket();               // パケット rawソケット動作
 #endif // USING_COM_SIGNAL1
