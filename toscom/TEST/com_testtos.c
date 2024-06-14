@@ -1745,7 +1745,9 @@ void test_assertion( void )
     ASSERT( "long", 100L, 101,  );
     ASSERT( "ulong", 100UL, 101, U );
     ASSERT( "float", 0.0001F, 0.0002F, F );
+    com_printf( "FLT_EPSILON=%.16f\n", FLT_EPSILON );
     ASSERT( "double", 0.0000000001, 0.0000000002, D );
+    com_printf( "DBL_EPSILON=%.16f\n", DBL_EPSILON );
     
     com_assertString( "string", "ABCDE", "ABCDE" );
     com_assertStringLen( "string(length=5)", "ABCDEFGHIJ", "ABCDEVWXY", 5 );
