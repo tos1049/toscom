@@ -491,12 +491,14 @@ static BOOL setSeed( void )
 long com_rand( long iMax )
 {
     if( iMax == 0 ) { return 0; }
+    if( iMax > INT_MAX ) { iMax = INT_MAX; }
+    if( iMax < INT_MIN ) { iMax = INT_MIN; }
     BOOL  negative = false;
     if( iMax < 0 ) {iMax = labs( iMax );  negative = true;}
     if( !gSetSeed ) {if( !(gSetSeed = setSeed()) ) {return 0;}}
     int  result = 0;
     if( !random_r( &gRandomBuf, &result ) ) {
-        result = result % iMax + 1;
+        result = result % (int)iMax + 1;
         if( negative ) {result *= -1;}
     }
     else {com_error( COM_ERR_RANDOMIZE, "random_r() NG" );}

@@ -612,8 +612,8 @@ BOOL com_isPrime( ulong iNumber );
  * --- Linux向け固有情報 ---
  * 本I/Fを一番最初に呼んだ時に、現在時刻を srandom_r()にシードとして与える。
  * このI/Fを使うための状態情報バッファはスレッドごとに保持する。
- * また、random_r()が int型を返却するため、iMax は long型だが、int最大値を
- * 超える値を指定しても、int最大値を超える乱数は生成できないという制限がある。
+ * また、random_r()が int型を返却するため、iMax は long型だが、int型の
+ * 最大値/最小値を超える値を設定しても、最大値/最小値に補正されるので注意。
  */
 long com_rand( long iMax );
 

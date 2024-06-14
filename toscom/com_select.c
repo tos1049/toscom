@@ -244,7 +244,7 @@ static BOOL setSockCondRawSnd(
         return true;
     }
     *oFamily = AF_PACKET;
-    *oProtocol = htons( iSrc->ai_family );
+    *oProtocol = (int)htonl( iSrc->ai_family );
     return true;
 }
 
@@ -1548,10 +1548,10 @@ typedef struct {
 static void setNlmsgHdr( struct nlmsghdr *oHdr, size_t iSize, ushort iType )
 {
     *oHdr = (struct nlmsghdr){
-        .nlmsg_len   = NLMSG_LENGTH( iSize ),
+        .nlmsg_len   = (unsigned int)NLMSG_LENGTH( iSize ),
         .nlmsg_type  = iType,
         .nlmsg_flags = (NLM_F_REQUEST | NLM_F_DUMP),
-        .nlmsg_pid   = getpid()
+        .nlmsg_pid   = (unsigned int)getpid()
     };
 }
 
@@ -1590,7 +1590,7 @@ static BOOL recvNlmsg(
         }
         struct nlmsghdr* msg  = (struct nlmsghdr*)oBuf;
         if( msg->nlmsg_type == NLMSG_DONE ) {BREAK( true );} // 処理終了
-        if( !iFunc( msg, msgLen, iUserData ) ) {BREAK( false );}
+        if( !iFunc( msg, (size_t)msgLen, iUserData ) ) {BREAK( false );}
     }
     com_deleteSocket( iId );
     return result;
@@ -1605,7 +1605,7 @@ static BOOL setIfName( com_ifinfo_t *oInf, void *iIfname )
 }
 
 static com_ifinfo_t *getLinkDataFromAttr(
-        struct ifinfomsg *iIfMsg, int iMsgLen )
+        struct ifinfomsg *iIfMsg, uint iMsgLen )
 {
     com_ifinfo_t  inf;
     memset( &inf, 0, sizeof(inf) );
@@ -1637,7 +1637,7 @@ static void *addSaForNetlink( com_ifinfo_t *oInf, int iFamily )
         tmp = com_malloc( sizeof(struct sockaddr_in6), "IPv6 by Netlink" );
     }
     if( COM_UNLIKELY(!tmp) ) {return NULL;}
-    tmp->sa_family = iFamily;
+    tmp->sa_family = (sa_family_tiFamily;
 
     com_ifaddr_t*  soAddr =
         com_reallocAddr( &oInf->soAddrs, sizeof(*soAddr), 0,
@@ -1674,7 +1674,7 @@ static BOOL setIfLabel( com_ifinfo_t *oInf, void *iLabel )
 }
 
 static BOOL getAddrDataFromAttr(
-        struct ifaddrmsg *iAddrMsg, int iMsgLen, com_ifinfo_t *oInf )
+        struct ifaddrmsg *iAddrMsg, uint iMsgLen, com_ifinfo_t *oInf )
 {
     for( struct rtattr* attr = (struct rtattr*)IFA_RTA( iAddrMsg );
          RTA_OK( attr, iMsgLen );  attr = RTA_NEXT( attr, iMsgLen ) )
@@ -1703,7 +1703,7 @@ static BOOL getAddr( struct nlmsghdr *iMsg, size_t iMsgLen, void *iUserData )
 
     for( ;  NLMSG_OK(iMsg, iMsgLen);  iMsg = NLMSG_NEXT(iMsg, iMsgLen) ) {
         struct ifaddrmsg*  msg = (void*)NLMSG_DATA( iMsg );
-        int  msgLen = IFA_PAYLOAD( iMsg );
+        uint  msgLen = IFA_PAYLOAD( iMsg );
         if( msg->ifa_index == inf->index ) {
             getAddrDataFromAttr( msg, msgLen, inf->ifInfo );
         }
@@ -1732,7 +1732,7 @@ static BOOL getLink( struct nlmsghdr *iMsg, size_t iMsgLen, void *iUserData )
     COM_UNUSED( iUserData );
     for( ;  NLMSG_OK( iMsg, iMsgLen );  iMsg = NLMSG_NEXT( iMsg, iMsgLen ) ) {
         struct ifinfomsg*  msg = (void*)NLMSG_DATA( iMsg );
-        int  msgLen = IFLA_PAYLOAD( iMsg );
+        uint  msgLen = IFLA_PAYLOAD( iMsg );
         com_ifinfo_t*  inf = getLinkDataFromAttr( msg, msgLen );
         struct linkinfo  linkInf = { (ulong)(msg->ifi_index), inf };
         if( !getAddrList( &linkInf ) ) {return false;}
