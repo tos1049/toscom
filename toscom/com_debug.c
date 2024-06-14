@@ -337,11 +337,12 @@ static size_t calcTagLen(
         const char *iLabel )
 {
     size_t  labelLen = strlen( iLabel );
-    iWidth -= 1 + (iPos == COM_PTAG_CENTER);
+    uint isCenter = (uint)(iPos == COM_PTAG_CENTER);
+    if( iWidth >= (isCenter + 1) ) { iWidth -= isCenter + 1; }
     if( iWidth <= labelLen ) {return 0;}
     size_t  tagWidth = iWidth - labelLen;
     size_t  result = tagWidth / strlen( iTag );
-    if( iPos == COM_PTAG_CENTER ) {result /= 2;}
+    if( isCenter && result > 1 ) {result /= 2;}
     return result;
 }
 
@@ -354,13 +355,17 @@ static size_t printTag(
     if( iIsLeft && iPos == COM_PTAG_LEFT ) {return 0;}
     if( !iIsLeft && iPos == COM_PTAG_RIGHT ) {return 0;}
     if( !iIsLeft ) {com_printf( " " );}
-    com_repeat( iTag, tagLen, false );
+    com_repeat( iTag, (long)tagLen, false );
     if( iIsLeft ) {com_printf( " " );}
     return (tagLen * strlen(iTag) + 1);
 }
 
-static void printRestTag( const char *iTag, size_t iRest )
+static void printRestTag( const char *iTag, size_t iRest, COM_PTAG_POS_t iPos )
 {
+    if( iPos == COM_PTAG_RIGHT ) {
+        for( size_t i = 0; i < iRest;  i++ ) { com_printf( " " ); }
+        return;
+    }
     size_t  tagLen = strlen( iTag );
     while( iRest > tagLen ) {com_printf( "%s", iTag );  iRest -= tagLen;}
     for( size_t i = 0;  i < iRest;  i++ ) {
@@ -380,8 +385,10 @@ void com_printTag(
     size_t  dispLen = printTag( iTag, iWidth, iPos, label, true );
     com_printf( "%s", label );
     dispLen += strlen( label );
-    dispLen += printTag( iTag, iWidth, iPos, label, false );
-    if( dispLen < iWidth ) {printRestTag( iTag, iWidth - dispLen );}
+    if( dispLen + strlen(iTag) + 1 < iWidth ) {
+        dispLen += printTag( iTag, iWidth, iPos, label, false );
+    }
+    if( dispLen < iWidth ) {printRestTag( iTag, iWidth - dispLen, iPos );}
     com_printLf();
     com_setFuncTrace( true );
 }
