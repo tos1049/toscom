@@ -293,15 +293,15 @@ long com_searchPrtclByLabel( const char *iLabel )
 
 long com_showAvailProtocols( long **oList )
 {
-    long  cnt = gAnalyzeList.count;
+    size_t  cnt = (size_t)(gAnalyzeList.count);
     COM_SET_IF_EXIST(oList,com_malloc(sizeof(long)*cnt,"show avail protocols"));
-    for( long i = 0;  i < cnt;  i++ ) {
+    for( size_t i = 0;  i < cnt;  i++ ) {
         com_sort_t*  tmp = &(gAnalyzeList.table[i]);
         if( !oList ) {com_printf( "%s ", com_searchSigProtocol( tmp->key ) );}
         else {if( *oList ) {(*oList)[i] = tmp->key;}}
     }
     if( !oList ) {com_printLf();}
-    return cnt;
+    return (long)cnt;
 }
 
 BOOL com_setCustomAnalyzer( long iType, com_analyzeSig_t iAnalyzer )
@@ -382,7 +382,7 @@ void com_setPrtclType( COM_PRTCLTYPE_t iBase, com_sigPrtclType_t *iList )
     com_skipMemInfo( false );
 }
 
-long com_getPrtclType( COM_PRTCLTYPE_t iBase, long iType )
+long com_getPrtclType( COM_PRTCLTYPE_t iBase, ulong iType )
 {
     if( COM_UNLIKELY(iBase == COM_NOT_USE) ) {return 0;}
     mngProtocolType_t*  mngInf = getPrtclTypeInf( iBase, false );
@@ -408,7 +408,7 @@ long com_getPrtclLabel( COM_PRTCLTYPE_t iBase, char *iLabel )
     return mngInf->def;
 }
 
-void com_setBoolTable( COM_PRTCLTYPE_t iBase, long *iTypes, long iTypeCnt )
+void com_setBoolTable( COM_PRTCLTYPE_t iBase, ulong *iTypes, size_t iTypeCnt )
 {
     if( COM_UNLIKELY(!iTypes) ) {COM_PRMNG();}
     com_skipMemInfo( true );
@@ -416,7 +416,7 @@ void com_setBoolTable( COM_PRTCLTYPE_t iBase, long *iTypes, long iTypeCnt )
         com_malloc( sizeof(com_sigPrtclType_t) * (iTypeCnt + 1),
                     "create list data (cnt=%ld)", iTypeCnt );
     if( COM_UNLIKELY(!list) ) {com_exit( COM_ERR_NOMEMORY );}
-    long  i = 0;
+    size_t  i = 0;
     for( ;  i < iTypeCnt;  i++ ) {
         list[i] = (com_sigPrtclType_t){ {iTypes[i]}, true };
     }
@@ -608,10 +608,10 @@ static uint checkBlockHead(
 {
     fpos_t  back;
     fgetpos( oCapInf->fp, &back );
-    uint  blockType = readValue( oCapInf, oBuf, BLOCK_TYPE_SIZE );
+    uint  blockType = (uint)readValue( oCapInf, oBuf, BLOCK_TYPE_SIZE );
     if( !(*oBuf) ) {*oReturn = false;  return 0;}
     *oReturn = true;
-    for( long i = 0;  iExpect[i];  i++ ) {
+    for( uint i = 0;  iExpect[i];  i++ ) {
         if( blockType == iExpect[i] ) {return (i + 1);}
     }
     fsetpos( oCapInf->fp, &back );

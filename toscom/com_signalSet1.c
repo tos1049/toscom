@@ -17,7 +17,7 @@
 // 内部共通処理 //////////////////////////////////////////////////////////////
 
 static void checkUnknown(
-        long *ioType, BOOL iDecode, const char *iLabel, long iValue )
+        long *ioType, BOOL iDecode, const char *iLabel, ulong iValue )
 {
     if( *ioType != COM_SIG_UNKNOWN ) {return;}
     if( iDecode ) {com_error( COM_ERR_NOSUPPORT, iLabel, iValue );}
@@ -60,7 +60,7 @@ static com_sigPrtclType_t  gLinkNext1[] = {
 };
 
 // 初期化用：VLANタグ値
-static long  gVlanTag[] = {
+static ulong  gVlanTag[] = {
     ETH_P_8021Q
 };
 
@@ -73,13 +73,15 @@ BOOL com_analyzeEth2( COM_ANALYZER_PRM )
     com_bin*  posType = (com_bin*)&(eth2->ether_type);
     com_off  vlan = 0;
     long  type = COM_SIG_UNKNOWN;
-    long  ethType = com_getVal16( eth2->ether_type, COM_ORDER );
+    ulong  ethType = com_getVal16( eth2->ether_type, COM_ORDER );
     while( !(type = com_getPrtclType( COM_LINKNEXT, ethType )) ) {
         if( !com_getPrtclType( COM_VLANTAG, ethType ) ) {break;}
-        com_addPrmDirect( COM_APRM, ethType, VLANTAG_SIZE - COM_16BIT_SIZE,
-                          posType + vlan + COM_16BIT_SIZE );
+        com_addPrmDirect(
+                COM_APRM, (com_off)ethType, VLANTAG_SIZE - COM_16BIT_SIZE,
+                posType + vlan + COM_16BIT_SIZE );
         vlan += VLANTAG_SIZE;
-        ethType = com_getVal16( *((uint16_t*)(posType + vlan)), COM_ORDER );
+        ethType =
+            (long)com_getVal16( *((uint16_t*)(posType + vlan)), COM_ORDER );
     }
     checkUnknown( &type, iDecode,
                   "Ether2 not supported (ether type=%04x)", ethType );
@@ -95,7 +97,8 @@ void com_decodeEth2( COM_DECODER_PRM )
     if( COM_IPRMCNT ) {
         for( long i = 0;  i < COM_IPRMCNT;  i++ ) {
             com_sigTlv_t*  tmp = &(COM_IPRMLST[i]);
-            com_dispPrm( com_getVlanTagName( tmp->tag ), tmp->value, tmp->len );
+            com_dispPrm( com_getVlanTagName( (uint16_t)(tmp->tag) ),
+                         tmp->value, tmp->len );
             vlan += VLANTAG_SIZE;
         }
     }
@@ -126,7 +129,7 @@ BOOL com_analyzeSll( COM_ANALYZER_PRM )
 {
     COM_ANALYZER_START( sizeof( com_sigSllHead_t ) );
     COM_CAST_HEAD( com_sigSllHead_t, sll, COM_SGTOP );
-    long  sllPrt = com_getVal16( sll->protocol, COM_ORDER );
+    ulong  sllPrt = com_getVal16( sll->protocol, COM_ORDER );
     long  type = com_getPrtclType( COM_LINKNEXT, sllPrt );
     checkUnknown( &type, iDecode,
                   "SLL not supported (protocol=%04x)", sllPrt );
@@ -180,7 +183,7 @@ static com_sigPrtclType_t  gIpOptLen1[] = {
 };
 
 // 初期化用：IPv6拡張ヘッダ
-static long  gIpv6Ext[] = {
+static ulong  gIpv6Ext[] = {
     IPPROTO_HOPOPTS, IPPROTO_ROUTING, IPPROTO_FRAGMENT, IPPROTO_NONE,
     IPPROTO_DSTOPTS
 };
@@ -195,7 +198,7 @@ enum { OCT_UNIT = 8 };
 
 static BOOL getIpv4FragInf(
         com_sigInf_t *iHead, struct ip *iIpv4,
-        BOOL *oDF, BOOL *oMF, BOOL *oOff )
+        BOOL *oDF, BOOL *oMF, size_t *oOff )
 {
     uint16_t  frags = com_getVal16( iIpv4->ip_off, COM_IORDER );
     COM_SET_IF_EXIST( oDF, COM_CHECKBIT( frags, IP_DF ) );
@@ -219,7 +222,7 @@ static com_bin *combineSegments( com_sigFrg_t *iFrg )
 static COM_SIG_FRG_t judgeTotalSize( com_sigFrg_t *iFrg )
 {
     if( !iFrg->segMax ) {return COM_FRG_SEG;}  // 最初の断片
-    long  totalSize = 0;
+    size_t  totalSize = 0;
     for( long i = 0;  i < iFrg->cnt;  i++ ) {
         totalSize += iFrg->inf[i].bin.len;
     }
@@ -285,7 +288,7 @@ static COM_SIG_FRG_t procIpv4Fragment(
         com_sigInf_t *ioHead, struct ip *iIpv4, com_sigBin_t *oRas )
 {
     BOOL  df, mf;
-    long  fragOff;
+    size_t  fragOff;
     if( getIpv4FragInf( ioHead,iIpv4,&df,&mf,&fragOff ) ) {return COM_FRG_OK;}
     com_sigBin_t  ipBody;
     getIpv4Fragment( &ipBody, ioHead, iIpv4 );
@@ -296,7 +299,7 @@ static COM_SIG_FRG_t procIpv4Fragment(
     if( !mf ) {
         if( !fragOff ) {com_freeFragments( &cond );  return COM_FRG_OK;}
         if( existRas( ioHead,oRas,&cond,COM_SIG_IPV4 ) ) {return COM_FRG_REASM;}
-        frg->segMax = fragOff + com_getVal16( iIpv4->ip_len, COM_ORDER )
+        frg->segMax = fragOff + (size_t)com_getVal16( iIpv4->ip_len, COM_ORDER )
                       - IPV4_HDRSIZE( iIpv4 );
     }
     return reassembleFragments( frg, oRas, &cond );
@@ -315,9 +318,9 @@ static void getPrtOptions(
         if( opLen == OPT_VARLEN ) {opLen = *(ptr + 1);}
         long  opValLen = opLen;  // 01(Nop) と レングス2で値無しを区別する為
         if( opLen ) {opValLen -= 2;  opVal = ptr + 2;}
-        com_addPrmDirect( COM_APRM, opType, opValLen, opVal );
+        com_addPrmDirect( COM_APRM, opType, (com_off)opValLen, opVal );
         if( !opLen ) {if( !com_advancePtr( &ptr,&iHdrLen,1 ) ) {return;}}
-        else {if( !com_advancePtr( &ptr,&iHdrLen,opLen ) ) {return;}}
+        else {if( !com_advancePtr( &ptr, &iHdrLen, (com_off)opLen ) ) {return;}}
     }
 }
 
@@ -367,12 +370,12 @@ BOOL com_analyzeIpv4( COM_ANALYZER_PRM )
 static void dispIpv4FragInf( com_sigInf_t *iHead, struct ip *iIpv4 )
 {
     BOOL  df, mf;
-    long  fragOff;
+    size_t  fragOff;
     (void)getIpv4FragInf( iHead, iIpv4, &df, &mf, &fragOff );
-    com_dispVal( "don't fragment", df );
+    com_dispVal( "don't fragment", (ulong)df );
     com_sigInf_t*  trans = COM_INEXTSTK;
     if( !df ) {
-        com_dispVal( " more fragment", mf );
+        com_dispVal( " more fragment", (ulong)mf );
         com_dispVal( "fragment offset", fragOff );
         if( trans->ras.top ) {
             com_dispDec( "   <reassembled (size=%zu)>", trans->ras.len );
@@ -380,7 +383,7 @@ static void dispIpv4FragInf( com_sigInf_t *iHead, struct ip *iIpv4 )
     }
 }
 
-typedef char*(getOptNameFunc_t)( long iType );
+typedef char*(getOptNameFunc_t)( ulong iType );
 
 static void dispPrtOptions( com_sigPrm_t *iPrm, getOptNameFunc_t func )
 {
@@ -396,7 +399,7 @@ static void dispPrtOptions( com_sigPrm_t *iPrm, getOptNameFunc_t func )
 }
 
 static void dispIpNext(
-        long iProto, size_t iSize, com_sigInf_t *iNext, BOOL isV6 )
+        ulong iProto, size_t iSize, com_sigInf_t *iNext, BOOL isV6 )
 {
     long  code = COM_SIG_UNKNOWN;
     if( isV6 && com_getPrtclType( COM_IP6XHDR, iProto ) ) {
@@ -436,7 +439,7 @@ static com_decodeName_t  gIPv4OptName[] = {
     COM_DECODENAME_END  // 最後は必ずこれで
 };
 
-char *com_getIpv4OptName( long iType )
+char *com_getIpv4OptName( ulong iType )
 {
     return com_searchDecodeName( gIPv4OptName, iType, true );
 }
@@ -454,7 +457,7 @@ static com_sigTlv_t *getIpv6ExtHdr( com_sigInf_t *ioHead, long iHdrType )
 }
 
 static void getIpv6FragInf(
-        void *iFrg, BOOL iOrder, BOOL *oMf, long *oOff, long *oId )
+        void *iFrg, BOOL iOrder, BOOL *oMf, ulong *oOff, ulong *oId )
 {
     COM_CAST_HEAD( struct ip6_frag, frg, iFrg );
     uint16_t  offlg = com_getVal16( frg->ip6f_offlg, iOrder );
@@ -475,7 +478,7 @@ static void getIpv6Fragment(
 }
 
 static void setIpv6FragCond(
-        com_sigFrgCond_t *oCond, struct ip6_hdr *iIpv6, long iFragId )
+        com_sigFrgCond_t *oCond, struct ip6_hdr *iIpv6, ulong iFragId )
 {
     *oCond = (com_sigFrgCond_t){
         COM_SIG_IPV6,
@@ -493,7 +496,7 @@ static COM_SIG_FRG_t procIpv6Fragment(
     com_sigTlv_t*  frgHdr = getIpv6ExtHdr( ioHead, IPPROTO_FRAGMENT );
     if( !frgHdr ) {return COM_FRG_OK;}
     BOOL  mf = false;
-    long  fragOff, fragId;
+    ulong  fragOff, fragId;
     getIpv6FragInf( frgHdr->value, ioHead->order, &mf, &fragOff, &fragId );
     COM_CAST_HEAD( struct ip6_hdr, ipv6, COM_SGTOP );
     com_sigBin_t  ipBody;
@@ -504,13 +507,13 @@ static COM_SIG_FRG_t procIpv6Fragment(
     if( COM_UNLIKELY(!frg) ) {return COM_FRG_ERROR;}
     if( !mf ) {
         if( existRas( ioHead,oRas,&cond,COM_SIG_IPV6 ) ) {return COM_FRG_REASM;}
-        frg->segMax = fragOff + ipBody.len;
+        frg->segMax = (com_off)fragOff + ipBody.len;
     }
     return reassembleFragments( frg, oRas, &cond );
 }
 
 static com_off getIpv6Head(
-        com_sigInf_t *ioHead, long *oNextProto, COM_SIG_FRG_t *oFrgRet,
+        com_sigInf_t *ioHead, ulong *oNextProto, COM_SIG_FRG_t *oFrgRet,
         com_sigBin_t *oRas )
 {
     com_bin*  ptr = COM_SGTOP;
@@ -522,8 +525,9 @@ static com_off getIpv6Head(
         if( COM_SGLEN <= (com_off)(ptr - COM_SGTOP) ) {break;}
         if( *oNextProto == IPPROTO_NONE ) {break;}
         COM_CAST_HEAD( struct ip6_ext, extHdr, ptr );
-        com_off  size = IPV6EXTHDR_SIZE + extHdr->ip6e_len * IPV6EXT_UNITSIZE;
-        com_addPrmDirect( COM_APRM, *oNextProto, size, ptr );
+        com_off  size =
+            (com_off)(extHdr->ip6e_len) * IPV6EXT_UNITSIZE + IPV6EXTHDR_SIZE;
+        com_addPrmDirect( COM_APRM, (com_off)(*oNextProto), size, ptr );
         *oNextProto = extHdr->ip6e_nxt;
         hdrSize += size;
         ptr += size;
@@ -532,7 +536,7 @@ static com_off getIpv6Head(
     return hdrSize;
 }
 
-static long setIpv6Next( com_sigInf_t *ioHead, long iNxt )
+static long setIpv6Next( com_sigInf_t *ioHead, ulong iNxt )
 {
     if( com_getPrtclType( COM_IP6XHDR, iNxt ) ) {return COM_SIG_EXTENSION;}
     if( getIpv6ExtHdr( ioHead, IPPROTO_NONE ) ) {return COM_SIG_END;}
@@ -557,7 +561,7 @@ static BOOL setIpv6Inf(
 BOOL com_analyzeIpv6( COM_ANALYZER_PRM )
 {
     COM_ANALYZER_START( sizeof( struct ip6_hdr ) );
-    long  nxt = COM_SIG_UNKNOWN;
+    ulong  nxt = COM_SIG_UNKNOWN;
     COM_SIG_FRG_t  frgRet = COM_FRG_OK;
     com_sigBin_t   frgRas = { .top = NULL };
     com_off  hdrLen = getIpv6Head( ioHead, &nxt, &frgRet, &frgRas );
@@ -615,7 +619,7 @@ static void dispIp6extRouting( com_sigTlv_t *iExt, com_sigInf_t *iHead )
 static void dispIp6extFragment( com_sigTlv_t *iExt, com_sigInf_t *iHead )
 {
     BOOL  mf = false;
-    long  fragOff, fragId;
+    ulong  fragOff, fragId;
     getIpv6FragInf( iExt->value, COM_IORDER, &mf, &fragOff, &fragId );
     com_dispDec( "     fragment offset = %ld", fragOff );
     com_dispDec( "      more fragment = %ld", mf );
@@ -673,7 +677,7 @@ static com_decodeName_t  gIpv6ExtHdrName[] = {
     COM_DECODENAME_END  // 最後は必ずこれで
 };
 
-char *com_getIpv6ExtHdrName( long iCode )
+char *com_getIpv6ExtHdrName( ulong iCode )
 {
     return com_searchDecodeName( gIpv6ExtHdrName, iCode, true );
 }
@@ -1052,12 +1056,12 @@ static BOOL makeTcpInf( com_sigInf_t *ioHead, com_off iDataSize )
 
 static long getPortFromSdpInf( com_nodeInf_t *iInf );
 
-static void searchPort( com_sigInf_t *oTarget, long iBase, long *oHitPort )
+static void searchPort( com_sigInf_t *oTarget, long iBase, ulong *oHitPort )
 {
     com_nodeInf_t  node;
     if( oTarget ) {com_getNodeInf( oTarget, &node );}
-    long  srcPort = com_calcValue( node.srcPort, COM_16BIT_SIZE );
-    long  dstPort = com_calcValue( node.dstPort, COM_16BIT_SIZE );
+    ulong  srcPort = com_calcValue( node.srcPort, COM_16BIT_SIZE );
+    ulong  dstPort = com_calcValue( node.dstPort, COM_16BIT_SIZE );
     COM_SET_IF_EXIST( oHitPort, srcPort );
     long  type = com_getPrtclType( iBase, srcPort );
     if( type == COM_SIG_CONTINUE ) {  // 発ポートでダメなら着ポート
@@ -1104,7 +1108,7 @@ BOOL com_analyzeTcp( COM_ANALYZER_PRM )
 
 static void dispNextIfExist( com_sigInf_t *iHead )
 {
-    long*  port = iHead->ext;
+    ulong*  port = iHead->ext;
     if( !COM_INEXTCNT || !port ) {return;}
     if( COM_INEXTSTK[0].sig.ptype != COM_SIG_CONTINUE ) {
         com_dispNext( *port, sizeof(short), COM_INEXTSTK[0].sig.ptype );
@@ -1181,7 +1185,7 @@ static com_decodeName_t  gTcpOptName[] = {
     COM_DECODENAME_END  // 最後は必ずこれで
 };
 
-char *com_getTcpOptName( long iType )
+char *com_getTcpOptName( ulong iType )
 {
     return com_searchDecodeName( gTcpOptName, iType, true );
 }
@@ -1226,9 +1230,9 @@ com_sigFrg_t *com_stockTcpSeg(
     return frg;
 }
 
-static long calcTotalFrg( com_sigFrg_t *iFrg )
+static com_off calcTotalFrg( com_sigFrg_t *iFrg )
 {
-    long  total = 0;
+    com_off  total = 0;
     for( long i = 0;  i < iFrg->cnt;  i++ ) {total += iFrg->inf[i].bin.len;}
     return total;
 }
@@ -1244,7 +1248,7 @@ static long checkLastTcpSeg( com_sigFrg_t *iFrg )
 {
     if( !iFrg->ext ) {return -1;}
     long  lastCnt = -1;
-    long  maxSeg = 0;
+    ulong  maxSeg = 0;
     for( long i = 0;  i < iFrg->cnt;  i++ ) {
         if( iFrg->inf[i].seg > maxSeg ) {
             maxSeg = iFrg->inf[i].seg;
@@ -1282,7 +1286,7 @@ COM_SIG_FRG_t com_reassembleTcpSeg(
     com_sigTcpNode_t  node;
     com_sigFrgCond_t  cond;
     if( !makeSegCond( &node, &cond, ioTarget, iTcp ) ) {return COM_FRG_ERROR;}
-    long  total = calcTotalFrg( iFrg );
+    com_off  total = calcTotalFrg( iFrg );
     com_off  cutSize = 0;
     if( total < iFrg->segMax ) {return COM_FRG_SEG;}
     if( total > iFrg->segMax ) {cutSize = total - iFrg->segMax;}
@@ -1458,7 +1462,7 @@ static void dispChunk(
     com_dispPrm( "type", com_getSctpChunkName( iSctp ), 0 );
     if( dispChunkInf( iSctp->chunkHdr.type, &iChunk->sig ) ) {
         if( iPayload->ext ) {
-            long*  port = iPayload->ext;
+            ulong*  port = iPayload->ext;
             com_dispNext( *port, sizeof(short), iPayload->sig.ptype );
             com_free( iPayload->ext );
         }
@@ -1657,7 +1661,7 @@ static void setSdpAddrPort(
     inet_pton( af, tok, oAddr );
     (void)strtok_r( iMval, " ", &saveptr );
     tok = strtok_r( NULL, " ", &saveptr );
-    uint16_t  port = com_setVal16( com_atol( tok ), true );
+    uint16_t  port = com_setVal16( (uint16_t)com_atol( tok ), true );
     memmove( oPort, &port, sizeof(port) );
 }
 
@@ -1754,10 +1758,11 @@ void com_decodeSdp( COM_DECODER_PRM )
 
 static void addPortNum( com_bin *ioPort, long iPortAdd )
 {
-    uint16_t  port = (ioPort[0] << 8) + ioPort[1];
-    port += iPortAdd;
-    ioPort[0] = port >> 8;
-    ioPort[1] = port & 0xff;
+    uint16_t  port = (uint16_t)(ioPort[0] << 8) + ioPort[1];
+    if( iPortAdd > 0 ) { port += (uint16_t)iPortAdd; }
+    if( iPortAdd < 0 ) { port -= (uint16_t)(labs(iPortAdd)); }
+    ioPort[0] = (com_bin)(port >> 8);
+    ioPort[1] = (com_bin)(port & 0xff);
 }
 
 static void modifyNodeInf( com_nodeInf_t *oTarget, long iPortAdd )
@@ -1824,7 +1829,7 @@ void com_decodeRtp( COM_DECODER_PRM )
     COM_DECODER_START;
     COM_CAST_HEAD( com_sigRtpHdr_t, rtp, COM_ISGTOP );
     decodeSig( iHead, "RTP", COM_SIG_RTP );
-    long  pt = rtp->pt & COM_CAP_RTP_PTBIT;
+    ulong  pt = rtp->pt & COM_CAP_RTP_PTBIT;
     com_dispVal( "PT(payload type)", pt );
     com_dispVal( "sequence number", com_getVal16( rtp->seq, COM_IORDER ) );
     uint8_t bits = rtp->rtpBits;
@@ -1888,7 +1893,7 @@ char *com_getRtcpPtName( void *iSigTop )
 // Diameter //////////////////////////////////////////////////////////////////
 
 // 初期化用：Grouped AVP
-static long  gDiamAvpg1[] = {
+static ulong  gDiamAvpg1[] = {
     /*** Base   (RFC6733) ***/
     260,    // Vendor-Specific-Application-Id
     279,    // Failed-AVP
@@ -2135,7 +2140,7 @@ static com_decodeName_t  gDiameterCmdName[] = {
 char *com_getDiameterCmdName( void *iSigTop )
 {
     com_sigDiamHdr_t*  diam = iSigTop;
-    long  cmdCode = com_calcValue( diam->cmdCode, sizeof(diam->cmdCode) );
+    ulong  cmdCode = com_calcValue( diam->cmdCode, sizeof(diam->cmdCode) );
     char*  name = com_searchDecodeName( gDiameterCmdName, cmdCode, true );
     if( !name ) {return NULL;}
     char*  op = name + 2;  // 3文字目を以下で決める
@@ -2428,9 +2433,9 @@ static BOOL setRr(
     if( !newRec ) {return false;}
     *newRec = (com_sigDnsRecord_t){
         .recSec = iRecSec,  .rname = *iDomain,
-        .rtype  = (ulong)com_getVal16( iRr->rtype, COM_ORDER ),
-        .rclass = (ulong)com_getVal16( iRr->rclass, COM_ORDER ),
-        .rttl   = (ulong)com_getVal16( iRr->rttl, COM_ORDER ),
+        .rtype  = com_getVal16( iRr->rtype, COM_ORDER ),
+        .rclass = com_getVal16( iRr->rclass, COM_ORDER ),
+        .rttl   = com_getVal32( iRr->rttl, COM_ORDER ),
         .rdata  = *iRdata
     };
     return true;
@@ -2503,14 +2508,14 @@ static char*  gDnsRecType[] = {
 };
 
 typedef struct {
-    long    type;
+    ulong   type;
     char*   label;
 } sigDnsTypeUnit_t;
 
 enum { RR_DATACNT_MAX = 8 };
 
 typedef struct {
-    long    type;
+    ulong   type;
     char*   label;
     sigDnsTypeUnit_t  dataType[RR_DATACNT_MAX];
 } sigDnsType_t;
@@ -2592,9 +2597,8 @@ com_off com_getDomain(
     return size;
 }
 
-static sigDnsType_t *getDnsTypeInf( long iType )
+static sigDnsType_t *getDnsTypeInf( ulong iType )
 {
-    if( iType < 0 ) {return NULL;}
     for( sigDnsType_t * inf = gDnsTypeInf;  inf->type;  inf++ ) {
         if( inf->type == iType ) {return inf;}
     }
@@ -2636,10 +2640,10 @@ static BOOL dispRd_CHSTR( DISP_RDATA_PRM )
     return true;
 }
 
-static BOOL dispRdValue( DISP_RDATA_PRM, long iSize )
+static BOOL dispRdValue( DISP_RDATA_PRM, com_off iSize )
 {
     COM_UNUSED( iHead );
-    ulong  value = (ulong)com_calcValue( *ioPtr, iSize );
+    ulong  value = com_calcValue( *ioPtr, iSize );
     if( !com_advancePtr( ioPtr, ioRest, iSize ) ) {return false;}
     com_dispDec( "       (%s = %lu/0x%0*lx)",
                  iUnit->label, value, (int)iSize * 2, value );

@@ -64,12 +64,12 @@ static void getWindowPos(
     if( COM_UNLIKELY(!iWin) ) {return;}
     if( oMax ) {
         com_winpos_t max = *(getMaxPos( iWin ));
-        oMax->x = max.x - iWin->border;
-        oMax->y = max.y - iWin->border;
+        oMax->x = max.x - (int)(iWin->border);
+        oMax->y = max.y - (int)(iWin->border);
     }
     if( oMin ) {
-        oMin->x = iWin->border;
-        oMin->y = iWin->border;
+        oMin->x = (int)(iWin->border);
+        oMin->y = (int)(iWin->border);
     }
 }
 
@@ -82,7 +82,7 @@ static void setInitPos( com_cwin_t *ioWin )
 {
     //ioWin->window->_curx = ioWin->border;
     //ioWin->window->_cury = ioWin->border;
-    wmove( ioWin->window, ioWin->border, ioWin->border );
+    wmove( ioWin->window, (int)(ioWin->border), (int)(ioWin->border) );
 }
 
 static com_winId_t createWindow( WINDOW *iWin, BOOL iBorder )
@@ -155,7 +155,7 @@ com_winId_t com_createWindow(
     if( COM_UNLIKELY(!win) ) {forceExit( "fail to create new window..." );}
     keypad( win, gWin.keypad );
     com_skipMemInfo( true );
-    int  newId = createWindow( win, iBorder );
+    com_winId_t  newId = createWindow( win, iBorder );
     com_skipMemInfo( false );
     if( COM_UNLIKELY(newId == COM_NO_WIN) ) {forceExit( "no memory..." );}
     PANEL*  pan = new_panel( win );
@@ -230,7 +230,7 @@ BOOL com_deleteWindow( com_winId_t iId )
     return true;
 }
 
-int com_getWindowInf( com_winId_t iId, const com_cwin_t **oInf )
+com_winId_t com_getWindowInf( com_winId_t iId, const com_cwin_t **oInf )
 {
     if( COM_UNLIKELY(!oInf) ) {COM_PRMNG(COM_NO_WIN);}
     *oInf = NULL;
@@ -663,20 +663,20 @@ static BOOL cancelText( workInput_t *iWork )
     return true;
 }
 
-static int getInputSize( wint_t iVal )
+static size_t getInputSize( wint_t iVal )
 {
     char  tmp[MB_CUR_MAX];
-    return (size_t)wctomb( tmp, iVal );
+    return (size_t)wctomb( tmp, (wchar_t)iVal );
 }
 
-static int isOverSize( workInput_t *iWork, wint_t iInput )
+static size_t isOverSize( workInput_t *iWork, wint_t iInput )
 {
-    int  inSize = getInputSize( iInput );
+    size_t  inSize = getInputSize( iInput );
     if( iWork->win->border ) {
         com_winpos_t  cur, size;
         com_getWindowCur( iWork->id, &cur );
         com_getWindowMax( iWork->id, &size );
-        if( cur.x + inSize >= size.x ) {return 0;}
+        if( (size_t)(cur.x) + inSize >= (size_t)(size.x) ) {return 0;}
     }
     if( iWork->size ) {
         if( *gWorkSize + inSize >= iWork->size ) {return 0;}
@@ -688,7 +688,7 @@ static int isOverSize( workInput_t *iWork, wint_t iInput )
 static BOOL addText( workInput_t *iWork, wint_t *iInput )
 {
     if( *iInput != COM_KEYLF && !iswprint( *iInput ) ) {return false;}
-    int  size = isOverSize( iWork, *iInput );
+    size_t  size = isOverSize( iWork, *iInput );
     if( !size ) {return false;}
     wcscat( gWorkWstr, (wchar_t*)iInput );
     *gWorkSize += size;
@@ -798,7 +798,7 @@ size_t com_getRestSize( com_winId_t iId )
     GET_WIN(0);
     com_winpos_t  cur = *(getCurPos( win ));
     com_winpos_t  max = *(getMaxPos( win ));
-    if( win->border ) {return (max.x - cur.x);}
+    if( win->border ) {return (size_t)(max.x - cur.x);}
     return (size_t)(max.x * max.y - ((max.x * cur.y) + cur.x) + 1);
 }
 
@@ -856,7 +856,7 @@ BOOL com_setWindowKeymap( com_winId_t iId, const com_keymap_t *iKeymap )
     if( !iKeymap ) {COM_PRMNG(false);}
     GET_WIN( false );
     com_skipMemInfo( true );
-    com_hash_t  result = setWindowKeymap( iId, iKeymap, win->keyHash );
+    BOOL  result = setWindowKeymap( iId, iKeymap, win->keyHash );
     com_skipMemInfo( false );
     return result;
 }
@@ -952,7 +952,7 @@ BOOL com_readyWindow( com_winopt_t *iOpt, com_winpos_t *oSize )
         com_errorExit( COM_ERR_WINDOWNG, "fail to start stdscr" );
     }
     com_skipMemInfo( true );
-    int  result = createWindow( win, false );
+    long  result = createWindow( win, false );
     com_skipMemInfo( false );
     if( COM_UNLIKELY(result == COM_NO_WIN) ) {forceExit( "no memory..." );}
     com_suspendStdout( true );

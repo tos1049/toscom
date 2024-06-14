@@ -440,7 +440,7 @@ static BOOL bindUnixDomain(
         const struct sockaddr_un *iSrc )
 {
     com_copyAddr( &(oInf->srcInf), (const void*)iSrc );
-    return execBind( iId, oInf, iSrc, SUN_LEN( iSrc ) );
+    return execBind( iId, oInf, iSrc, (socklen_t)(SUN_LEN( iSrc )) );
 }
 
 static BOOL makeBind(
@@ -465,8 +465,11 @@ static BOOL startTcpClient( eventInf_t *oInf, const struct addrinfo *iDst )
     const void*  addr = NULL;
     socklen_t  len = 0;
     if( !oInf->isUnix ) {addr = iDst->ai_addr;  len = iDst->ai_addrlen;}
-    else {addr = iDst;  len = SUN_LEN((const struct sockaddr_un*)iDst);}
-    if( 0 > connect( oInf->sockId, addr, len ) ) {
+    else {
+        addr = iDst;
+        len = (socklen_t)(SUN_LEN((const struct sockaddr_un*)iDst));
+    }
+    if( 0 > connect( oInf->sockId, addr, (socklen_t)len ) ) {
         com_error( COM_ERR_CONNECTNG,
                    "fail to connect tcp client[%s]", com_strerror(errno) );
         return false;
@@ -603,7 +606,7 @@ BOOL com_sendSocket(
         com_selectId_t iId, const void *iData, size_t iDataSize,
         const com_sockaddr_t *iDst )
 {
-    int  ret = 0;
+    ssize_t  ret = 0;
     eventInf_t* tmp = checkSocketInf( iId, false );
     if( !tmp || !iData ) {COM_PRMNG(false);}
     if( tmp->type == COM_SOCK_RAWRCV ) {COM_PRMNG(false);}
@@ -630,7 +633,7 @@ ushort com_cksumRfc( void *iBin, size_t iBinSize )
     size_t   nleft = iBinSize;
     int      sum = 0;
     ushort*  w = iBin;
-    ushort   answer = 0;
+    int      answer = 0;
 
     while( nleft > 1 ) {
         sum += *w++;
@@ -643,7 +646,7 @@ ushort com_cksumRfc( void *iBin, size_t iBinSize )
     sum = (sum >> 16) + (sum & 0xffff);
     sum += (sum >> 16);
     if( 0xffff == (answer = ~sum) ) {return 0;}
-    return answer;
+    return (ushort)answer;
 }
 
 static BOOL checkNoRecv( BOOL iNonBlock, int iErrno )
@@ -1075,8 +1078,8 @@ static BOOL recvPacket( com_selectId_t iId, BOOL iNonBlock, long *oDrop )
     if( ret == COM_RECV_CLOSE )  {return closeTcpConnection( iId );}
     // 非TCP接続時は送信元を対向として保持
     if( inf->type <= COM_SOCK_UDP ) {inf->dstInf = fromAddr;}
-    return callEventFunc( inf, iId, COM_EVENT_RECEIVE, gRecvBuf, recvSize,
-                          COM_ERR_RECVNG );
+    return callEventFunc( inf, iId, COM_EVENT_RECEIVE, gRecvBuf,
+                          (size_t)recvSize, COM_ERR_RECVNG );
 }
 
 static BOOL recvBySelect( fd_set *iFds, int iCount, int *iWait, BOOL *oRetry )
@@ -1177,7 +1180,7 @@ static size_t calcSize( struct addrinfo *oInfo )
 {
     size_t  size = sizeof( *oInfo );
     if( (size_t)oInfo->ai_addrlen > sizeof( *oInfo ) ) {
-        size += oInfo->ai_addrlen;
+        size += (size_t)(oInfo->ai_addrlen);
     }
     else {size += sizeof( struct sockaddr );}
     if( oInfo->ai_canonname ) {size += strlen( oInfo->ai_canonname ) + 1;}
@@ -1238,12 +1241,12 @@ void com_copyAddr( com_sockaddr_t *oTarget, const void *iSource )
     if( !isUnixSocket( iSource ) ) {
         const struct addrinfo* ai = iSource;
         oTarget->len = ai->ai_addrlen;
-        memcpy( &oTarget->addr, ai->ai_addr, oTarget->len );
+        memcpy( &oTarget->addr, ai->ai_addr, (size_t)(oTarget->len) );
     }
     else {
         const struct sockaddr_un* sun = iSource;
-        oTarget->len = SUN_LEN( sun );
-        memcpy( &oTarget->addr, sun, oTarget->len );
+        oTarget->len = (socklen_t)(SUN_LEN( sun ));
+        memcpy( &oTarget->addr, sun, (size_t)(oTarget->len) );
     }
 }
 
@@ -1303,7 +1306,7 @@ static socklen_t getAddrUn( void *iSockAddr, void **oAddr )
 {
     struct sockaddr_un*  sun = iSockAddr;
     *oAddr = &(sun->sun_path);
-    return strlen(sun->sun_path);
+    return (socklen_t)(strlen(sun->sun_path));
 }
 
 static socklen_t getAddrLen( void *iSockAddr, void **oAddr )
@@ -1326,7 +1329,7 @@ BOOL com_compareAddr( void *iTarget, void *iSockAddr )
     void*  addr = NULL;
     socklen_t len = getAddrLen( iSockAddr, &addr );
     if( !len ) {return false;}
-    return !memcmp( iTarget, addr, len );
+    return !memcmp( iTarget, addr, (size_t)len );
 }
 
 static BOOL compareSockFamily(
@@ -1344,7 +1347,7 @@ static BOOL compareSockAddr( void *iTarget, void *iSource )
     socklen_t lenSource = getAddrLen( iSource, &addrSource );
     if( !lenSource ) {return false;}
     if( lenTarget != lenSource ) {return false;}
-    return !memcmp( addrTarget, addrSource, lenSource );
+    return !memcmp( addrTarget, addrSource, (size_t)lenSource );
 }
 
 BOOL com_compareSock( void *iTargetSock, void *iSockAddr )
@@ -1798,7 +1801,7 @@ static BOOL setIfMac( uchar *oMac, char *iMac )
     int  cnt = sscanf( iMac, "%02x:%02x:%02x:%02x:%02x:%02x",
                       &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5] );
     if( cnt != ETH_ALEN ) {return false;}
-    for( int i = 0;  i < ETH_ALEN;  i++ ) {oMac[i] = mac[i];}
+    for( int i = 0;  i < ETH_ALEN;  i++ ) {oMac[i] = (uchar)(mac[i]);}
     return true;
 }
 
@@ -1871,7 +1874,7 @@ static BOOL compareAddr(
         socklen_t  len = (iCond->sa_family == AF_INET ) ? 4 : 16;
         void*  addrIf = getAddrPoint( iAddrs[i].addr );
         void*  addrCo = getAddrPoint( iCond );
-        if( !memcmp( addrIf, addrCo, len ) ) {return true;}
+        if( !memcmp( addrIf, addrCo, (size_t)len ) ) {return true;}
     }
     return false;
 }
@@ -1986,7 +1989,8 @@ static void dumpSockAddr( const char *iLabel, com_sockaddr_t *iInf )
         else {com_dbgCom( "     %s=(illegal data?)", iLabel );}
     }
     else {    com_dbgCom( "     %s=(none)", iLabel );}
-    com_dumpCom( &(iInf->addr), iInf->len, "     (len=%zu)", iInf->len );
+    com_dumpCom( &(iInf->addr), (size_t)iInf->len,
+                 "     (len=%d)", iInf->len );
 }
 
 static void dispConvertTime( struct timeval *iTime )

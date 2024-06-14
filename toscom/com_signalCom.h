@@ -1272,7 +1272,7 @@ BOOL com_getAsnTlv( com_bin **ioSignal, com_sigPrm_t *oPrm );
  * 想定する。
  */
 BOOL com_searchAsnTlv(
-        com_sigPrm_t *iPrm, uint32_t *iTags, size_t iTagsSize,
+        com_sigPrm_t *iPrm, com_off *iTags, size_t iTagsSize,
         com_sigBin_t *oValue );
 
 /*
@@ -1477,7 +1477,7 @@ void com_dispIfExist( com_sigPrm_t *iPrm, long iType, const char *iName );
  */
 void com_dispDec( const char *iFormat, ... );
 
-void com_dispVal( const char *iName, long iValue );
+void com_dispVal( const char *iName, ulong iValue );
 
 enum { COM_NO_PTYPE = -1 };
 void com_dispSig( const char *iName, long iCode, const com_sigBin_t *iSig );
@@ -1495,7 +1495,7 @@ void com_dispBin(
         const char *iName, const void *iTop, com_off iLength,
         const char *iSep, BOOL iHex );
 
-void com_dispNext( long iProtocol, size_t iSize, long iType );
+void com_dispNext( ulong iProtocol, size_t iSize, long iType );
 
 /*
  * フラグメント判定付き種別取得  com_getSigType()
@@ -1539,14 +1539,15 @@ long com_getSigType( com_sigInf_t *iInf );
 
 // 文字列情報データ構造
 typedef struct {
-    long   code;
+    ulong  code;
     char*  name;
 } com_decodeName_t;
 
 // リスト最終データマクロ
-#define COM_DECODENAME_END    { -1, NULL }
+#define COM_END_OF_CODE   (ULONG_MAX)
+#define COM_DECODENAME_END    { COM_END_OF_CODE, NULL }
 
-char *com_searchDecodeName( com_decodeName_t *iList, long iCode, BOOL iAddNum );
+char *com_searchDecodeName( com_decodeName_t *iList, ulong iCode, BOOL iAddNum );
 
 /*
  * テキストベースプロトコルの共通デコード処理  com_decodeTxtBase()
@@ -1637,8 +1638,8 @@ typedef enum {
 
 // 分割条件データ構造 (使い方は com_stockFragments()の説明を参照
 typedef struct {
-    long          type;    // 自プロトコル種別(COM_SIG_～)
-    long          id;      // フラグメント識別子(プロトコル固有)
+    ulong         type;    // 自プロトコル種別(COM_SIG_～)
+    ulong         id;      // フラグメント識別子(プロトコル固有)
     com_sigBin_t  src;     // 送信元情報(必要があれば保持)
     com_sigBin_t  dst;     // 送信先情報(必要があれば保持)
     long          usr1;    // ユーザー情報1(プロトコル固有)
@@ -1693,7 +1694,7 @@ void com_freeSigFrgCond( com_sigFrgCond_t *oTarget );
  * 保持する。
  */
 com_sigFrg_t *com_stockFragments(
-        const com_sigFrgCond_t *iCond, long iSeg, com_sigBin_t *iFrag );
+        const com_sigFrgCond_t *iCond, ulong iSeg, com_sigBin_t *iFrag );
 
 /*
  * 分割データ取得  com_searchFragment()
@@ -1719,7 +1720,7 @@ com_sigFrg_t *com_stockFragments(
 
 // フラグメント管理情報データ構造
 typedef struct {
-    long               isUse;
+    ulong              isUse;
     com_sigFrgCond_t   cond;
     com_sigFrg_t       data;
 } com_sigFrgManage_t;

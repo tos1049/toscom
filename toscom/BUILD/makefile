@@ -87,7 +87,7 @@ CFLAGS += -lpanel -lncursesw
 #CFLAGS += -lefence
 
 # 最新gccではセットされているコンパイルオプション
-CFLAGS += -Wformat-security
+CFLAGS += -Wformat-security -Wconversion
 
 
 

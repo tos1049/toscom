@@ -389,7 +389,7 @@ void com_decodeIpv4( COM_DECODER_PRM );
  * iTypeで指定したオプション種別値に対応するオプション名文字列を返す。
  * gIPv4OptName[]から文字列を検索する。
  */
-char *com_getIpv4OptName( long iType );
+char *com_getIpv4OptName( ulong iType );
 
 
 // 参考情報：IPv6のヘッダ構造体 struct ip6_hdr (netinet/ip6.h)
@@ -513,7 +513,7 @@ void com_decodeIpv6( COM_DECODER_PRM );
  * iCodeで指定したプロトコル識別値に対応する拡張ヘッダ名文字列を返す。
  * gIpv6ExtHdrName[]から文字列を検索する。
  */
-char* com_getIpv6ExtHdrName( long iCode );
+char* com_getIpv6ExtHdrName( ulong iCode );
 
 
 /*
@@ -934,7 +934,7 @@ void com_decodeTcp( COM_DECODER_PRM );
  * iTypeで指定したオプション値に対応するオプション名文字列を返す。
  * gTcpOptName[]から文字列を検索する。
  */
-char *com_getTcpOptName( long iType );
+char *com_getTcpOptName( ulong iType );
 
 /*
  * TCPセグメンテーション データ保持  com_stockTcpSeg()

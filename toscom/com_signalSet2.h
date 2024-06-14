@@ -37,8 +37,8 @@ void com_initializeSigSet2( void );
 
 // No.7信号パラメータ情報構造
 typedef struct {
-    long    tag;  // パラメータタグ
-    long    len;  // パラメータ長(固定超必須時)/レングス長(可変長必須時)
+    ulong   tag;  // パラメータタグ
+    ulong   len;  // パラメータ長(固定超必須時)/レングス長(可変長必須時)
 } com_sigNo7Prm_t;
 
 // No.7信号パラメータ終端
@@ -46,13 +46,13 @@ enum { COM_CAP_NO7_END = 0x00 };
 
 // No.7メッセージ解析情報
 typedef struct {
-    long               msgType;     // メッセージ種別
+    ulong              msgType;     // メッセージ種別
     com_sigNo7Prm_t*   fix;         // 固定長必須パラメータ
     com_sigNo7Prm_t*   var;         // 可変長必須パラメータ
     BOOL               hasOpt;      // オプションパラメータ有無
 } com_sigNo7Form_t;
 
-BOOL com_getNo7Prm( com_sigInf_t *ioHead, com_sigNo7Form_t *iForm, long type );
+BOOL com_getNo7Prm( com_sigInf_t *ioHead, com_sigNo7Form_t *iForm, ulong iType );
 
 
 /*
@@ -372,10 +372,10 @@ typedef enum {
 BOOL com_analyzeTcap( COM_ANALYZER_PRM );
 void com_decodeTcap( COM_DECODER_PRM );
 
-char *com_getTcapTranName( long iTag );
-char *com_getTcapTranPrm( long iTag );
-char *com_getTcapDlgPduName( long iTag, long iType );
-char *com_getTcapCompName( long iTag );
+char *com_getTcapTranName( ulong iTag );
+char *com_getTcapTranPrm( ulong iTag );
+char *com_getTcapDlgPduName( ulong iTag, long iType );
+char *com_getTcapCompName( ulong iTag );
 
 // TCAPコンポーネント部パラメータ (全てを定義しているわけではない)
 enum {
@@ -429,7 +429,7 @@ typedef struct {
     com_sigTlv_t  prm[COM_SIG_TCAP_MAX];
 } com_sigTcapCompHead_t;
 
-char *com_getTcapCompPrm( long iTag );
+char *com_getTcapCompPrm( ulong iTag );
 BOOL com_getTcapCompInf( com_sigInf_t *ioHead );
 
 
@@ -466,7 +466,7 @@ typedef enum {
 BOOL com_analyzeInap( COM_ANALYZER_PRM );
 void com_decodeInap( COM_DECODER_PRM );
 
-char *com_getInapOpName( long iOpcode );
+char *com_getInapOpName( ulong iOpcode );
 
 
 /*
@@ -554,7 +554,7 @@ typedef enum {
 BOOL com_analyzeGsmmap( COM_ANALYZER_PRM );
 void com_decodeGsmmap( COM_DECODER_PRM );
 
-char *com_getGsmmapOpName( long iOpcode );
+char *com_getGsmmapOpName( ulong iOpcode );
 
 
 

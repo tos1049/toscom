@@ -293,7 +293,8 @@ static com_sigInf_t *getStack( com_sigStk_t *oNext )
     }
     else {
         *count += 1;
-        tmp = com_malloc( sizeSig * *count, "get next[%ld]", *count + 1 );
+        tmp = com_malloc( sizeSig * (size_t)(*count),
+                          "get next[%ld]", *count + 1 );
         if( COM_UNLIKELY(!tmp) ) {return NULL;}
         oNext->stack = tmp;
     }
@@ -1113,7 +1114,7 @@ static void pushConLength(
 {
     if( *ioNest ) {
         *ioRest -= TLV_LENGTH;
-        if( !com_pushChainNum( ioRestStack, *ioRest ) ) {return;}
+        if( !com_pushChainNum( ioRestStack, (long)(*ioRest) ) ) {return;}
     }
     (*ioNest)++;
     *ioRest = iTlv->len;
@@ -1128,7 +1129,7 @@ static void popConLength(
     while( *ioRest == 0 ) {
         (*ioNest)--;
         if( *ioNest == 0 ) {break;}
-        *ioRest = com_popChainNum( ioRestStack );
+        *ioRest = (com_off)com_popChainNum( ioRestStack );
     }
 }
 
@@ -1139,7 +1140,7 @@ static BOOL freeChainEnd( BOOL iResult, com_strChain_t **oStack )
 }
 
 BOOL com_searchAsnTlv(
-        com_sigPrm_t *iPrm, uint32_t *iTags, size_t iTagSize,
+        com_sigPrm_t *iPrm, com_off *iTags, size_t iTagSize,
         com_sigBin_t *oValue )
 {
     if( COM_UNLIKELY(!iPrm || !iTags || !oValue) ) {COM_PRMNG(false);}
@@ -1191,7 +1192,7 @@ void com_onlyDispSig( COM_DECODER_PRM )
 
 void com_dispIfExist( com_sigPrm_t *iPrm, long iType, const char *iName )
 {
-    com_sigTlv_t*  prm = com_searchPrm( iPrm, iType );
+    com_sigTlv_t*  prm = com_searchPrm( iPrm, (com_off)iType );
     if( !prm ) {return;}
     com_dispBin( iName, prm->value, prm->len, "", true );
 }
@@ -1224,7 +1225,7 @@ static void dispName( const char *iName )
     com_printf( "#    %s = ", iName );
 }
 
-void com_dispVal( const char *iName, long iValue )
+void com_dispVal( const char *iName, ulong iValue )
 {
     dispName( iName );
     com_printf( "%ld\n", iValue );
@@ -1288,7 +1289,7 @@ static void dispColRuler( long iTagSize, long iLenSize )
     com_printf( "-value-\n" );
 }
 
-static void dispPrmListVal( long iValue, long iHexSize )
+static void dispPrmListVal( com_off iValue, long iHexSize )
 {
     com_printf( "0x%0*lx/%-*ld  ", (int)iHexSize, iValue,
                                  (int)getDecSize( iHexSize ), iValue );
@@ -1305,7 +1306,7 @@ void com_dispPrmList(
         dispPrmListVal( tlv->tag, iTagSize );
         dispPrmListVal( tlv->len, iLenSize );
         if( iFunc ) {
-            if( !iFunc(tlv->tag) ) {
+            if( !iFunc( (com_bin)(tlv->tag) ) ) {
                 com_printf("<payload data>\n");
                 continue;
             }
@@ -1315,7 +1316,7 @@ void com_dispPrmList(
     }
 }
 
-void com_dispNext( long iProtocol, size_t iSize, long iType )
+void com_dispNext( ulong iProtocol, size_t iSize, long iType )
 {
     dispName( "next protocol" );
     com_printf( "0x%0*lx(%lu) -> ", (int)iSize * 2, iProtocol, iProtocol );
@@ -1341,7 +1342,7 @@ long com_getSigType( com_sigInf_t *iInf )
 
 enum { NAMEBUF_MAX = 5 };
 
-char *com_searchDecodeName( com_decodeName_t *iList, long iCode, BOOL iAddNum )
+char *com_searchDecodeName( com_decodeName_t *iList, ulong iCode, BOOL iAddNum )
 {
     if( !iList ) {COM_PRMNG(NULL);}
     static char  nameBuf[NAMEBUF_MAX][COM_LINEBUF_SIZE];
@@ -1349,7 +1350,7 @@ char *com_searchDecodeName( com_decodeName_t *iList, long iCode, BOOL iAddNum )
     idx = (idx + 1 ) % NAMEBUF_MAX;
     memset( nameBuf[idx], 0, sizeof(*(nameBuf[idx])) );
 
-    for( long i = 0;  iList[i].code >= 0;  i++ ) {
+    for( long i = 0;  iList[i].code != COM_END_OF_CODE;  i++ ) {
         if( iList[i].code == iCode ) {
             char*  hit = iList[i].name;
             if( !iAddNum ) {return hit;}
@@ -1429,7 +1430,7 @@ void com_decodeTxtBase(
     com_printf( "# %s HEADER [%ld]  <length=%zu>\n",
                 com_searchSigProtocol( COM_ISGTYPE ), COM_ISGTYPE, COM_ISGLEN );
     if( iSigType < COM_SIG_METHOD_END ) {com_dispPrm( "Method", iSigLabel, 0 );}
-    else {com_dispVal( "Status Code", iSigType );}
+    else {com_dispVal( "Status Code", (ulong)iSigType );}
     if( iHdrList ) {dispHdrList( iHead, iHdrList );}
     else {editHdrList( iHead );}
     dispTxtBody( iHead, iConType );
@@ -1446,7 +1447,7 @@ static void dispTagLen(
         const com_sigTlv_t *iTlv, com_off iNest, const char *iLabel )
 {
     com_printf( "%s", iLabel );
-    com_repeat( " ", iNest, false );
+    com_repeat( " ", (long)iNest, false );
     dispTagValue( "tag", iTlv->tagBin.top, iTlv->tagBin.len );
     dispTagValue( "len", iTlv->lenBin.top, iTlv->lenBin.len );
     com_printf( "(%0zu)", iTlv->len );
@@ -1587,7 +1588,7 @@ static com_sigFrg_t *stockNG( const com_sigFrgCond_t *iCond )
 }
 
 com_sigFrg_t *com_stockFragments(
-        const com_sigFrgCond_t *iCond, long iSeg, com_sigBin_t *iFrag )
+        const com_sigFrgCond_t *iCond, ulong iSeg, com_sigBin_t *iFrag )
 {
     if( COM_UNLIKELY(!iCond || !iFrag) ) {COM_PRMNG(NULL);}
     com_sigFrgManage_t*  mng = getFrgInf( iCond );

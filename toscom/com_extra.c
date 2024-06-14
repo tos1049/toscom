@@ -257,7 +257,7 @@ FILE *com_askFile( const com_actFlag_t *iFlags, const com_askFile_t *iAskCond,
 
 // 入力メニュー共通ルーチン処理
 static char  gMenuBuff[COM_DATABUF_SIZE];
-static int   gTimingLf = -1;
+static long  gTimingLf = -1;
 
 static size_t  gMenuCount = 0;     // メニューリストバッファのカウント
 static long*   gMenuList = NULL;   // メニューリストバッファ(終了処理で解放)
@@ -296,7 +296,7 @@ static void addWithPrompt( const char *iText, const char *iPrompt )
 }
 
 static void addMenu(
-        const com_selector_t *iMenu, long *ioCount, int iBorderLf,
+        const com_selector_t *iMenu, long *ioCount, long iBorderLf,
         const char *iPrompt )
 {
     // 作業データ初期化
@@ -315,7 +315,7 @@ static void addMenu(
         gMenuList[(*ioCount)++] = code;
     }
     else {ADD_MENU_BUFF( "     %*s", (int)strlen( iMenu->label ), " " );}
-    gTimingLf = iMenu->code / iBorderLf;
+    gTimingLf = code / iBorderLf;
 }
 
 static void makeMenu(
@@ -386,7 +386,7 @@ static BOOL checkOverflow( double *oTarget, double iInput )
 }
 
 static double calcSkewness(
-        double iCbT, double iSqT, double iAvr, double iDev, int iCnt )
+        double iCbT, double iSqT, double iAvr, double iDev, double iCnt )
 {
     return ( iCbT / iCnt - 3 * iAvr * iSqT / iCnt + 2 * pow( iAvr, 3 ) )
            / pow( iDev, 3 );
@@ -394,7 +394,7 @@ static double calcSkewness(
 
 static double calcKurtosis(
         double iFoT, double iCbT, double iSqT, double iAvr, double iDev,
-        int iCnt )
+        double iCnt )
 {
     return ( iFoT / iCnt - 4 * iAvr * iCbT / iCnt
              + 6 * iAvr * iAvr * iSqT / iCnt - 3 * pow( iAvr, 4 ) )
@@ -403,7 +403,7 @@ static double calcKurtosis(
 
 static void calcStat( com_calcStat_t *oStat )
 {
-    int  cnt = oStat->count;
+    double  cnt = (double)(oStat->count);
     oStat->average = oStat->total / cnt;
     oStat->geoavr = oStat->existNegative ? 0 : exp( oStat->lgtotal / cnt );
     oStat->hrmavr = oStat->existNegative ? 0 : 1 / ( oStat->rvtotal / cnt );
@@ -451,9 +451,9 @@ void com_finishStat( com_calcStat_t *oStat )
 BOOL com_isPrime( ulong iNumber )
 {
     if( iNumber < 2 ) {return false;}
-    long  sqrtNum = lrint( sqrt( (double)iNumber ) );
+    ulong  sqrtNum = (ulong)(lrint( sqrt( (double)iNumber ) ));
     if( sqrtNum < 2 ) {return true;}
-    for( long i = 2;  i <= sqrtNum;  i++ ) {
+    for( ulong i = 2;  i <= sqrtNum;  i++ ) {
         if( !(iNumber % i) ) {return false;}
     }
     return true;

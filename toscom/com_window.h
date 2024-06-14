@@ -537,7 +537,7 @@ BOOL com_hideWindow( com_winId_t iId, BOOL iHide );
  * WINDOW*型のデータであり、cursesライブラリを直接使いたい時に、その処理先を
  * 指定するのに多用される。
  */
-int com_getWindowInf( com_winId_t iId, const com_cwin_t **oInf );
+com_winId_t com_getWindowInf( com_winId_t iId, const com_cwin_t **oInf );
 
 
 /*

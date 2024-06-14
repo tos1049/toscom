@@ -221,7 +221,7 @@ static BOOL checkOpt(
         if( !decideParams( &inf, opt, iArgc, iArgv, *ioCnt ) ) {return false;}
         if( !notifyOpt( opt, &inf ) ) {return false;}
         if( opt->mandatory ) { delMandatoryOption( opt ); (*oMonCnt)++; }
-        if( opt->argvCnt > 0 ) {*ioCnt += opt->argvCnt;}
+        if( opt->argvCnt > 0 ) {*ioCnt += (int)(opt->argvCnt);}
     }
     return true;
 }
@@ -291,7 +291,11 @@ void com_exitFunc( long iType, COM_FILEPRM )
             printf( " in %s:line %ld %s()\n", COM_FILEVAR );
         }
     }
-    exit( iType );
+    if( iType > INT_MAX ) {
+        printf( "*** Error code is over INT_MAX (%ld) ***\n", iType );
+        iType = INT_MAX;
+    }
+    exit( (int)iType );
 }
 
 #ifndef CHECK_PRINT_FORMAT    // make checkfを打った時に指定されるマクロ
@@ -445,13 +449,14 @@ static void *returnTablePos(
 {
     if( !iCount ) {return NULL;}
     iCount--;
+    long unitNum = (long)iUnit;
     if( iPos >= 0 ) {
-        if( iPos <= iCount ) {return (*iAddr + iPos * iUnit);}
+        if( iPos <= iCount ) {return (*iAddr + iPos * unitNum);}
     }
     else {
-        if( iResize > 0 ) {return (*iAddr + (iCount - iResize + 1) * iUnit);}
+        if( iResize > 0 ) {return (*iAddr + (iCount - iResize + 1) * unitNum);}
     }
-    return (*iAddr + iCount * iUnit );
+    return (*iAddr + iCount * unitNum );
 }
 
 static BOOL calcTmpSize(
@@ -459,33 +464,33 @@ static BOOL calcTmpSize(
         long iPos, long iCount, long *ioResize )
 {
     if( *ioResize > 0 ) { // 途中追加の場合は、拡張後の移動サイズを保持
-        if( iPos > COM_TABLEEND ) {*oTmpSize = (iCount - iPos) * iUnit;}
+        if( iPos > COM_TABLEEND ) {*oTmpSize = (size_t)(iCount - iPos) * iUnit;}
     }
     else { 
         if( iPos - *ioResize >= iCount ) {*ioResize = iPos - iCount;}
         else { // 削除範囲より後にデータがある時は、内容を退避
             long  diff = iPos - *ioResize;
-            *oTmpSize = (iCount - diff) * iUnit;
+            *oTmpSize = (size_t)(iCount - diff) * iUnit;
             *oTmp = malloc( *oTmpSize );
             if( COM_UNLIKELY(!(*oTmp)) ) {
                 com_error( COM_ERR_NOMEMORY, "fail to get tmp area" );
                 return false;
             }
-            memcpy( *oTmp, *iAddr + diff * iUnit, *oTmpSize );
+            memcpy( *oTmp, *iAddr + diff * (long)iUnit, *oTmpSize );
         }
     }
     return true;
 }
 
 static void moveTableData(
-        char *iStack, size_t iMoveSize, char **iAddr, size_t iUnit,
+        char *iStack, size_t iMoveSize, char **iAddr, long iUnit,
         long iPos, long iResize )
 {
     if( !iResize || !iMoveSize ) {return;}
     char*  target = *iAddr + iPos * iUnit;
     if( iResize > 0 ) {
         memmove( *iAddr + (iPos + iResize) * iUnit, target, iMoveSize );
-        memset( target, 0, iUnit * iResize );
+        memset( target, 0, (size_t)(iUnit * iResize) );
     }
     else {memcpy( target, iStack, iMoveSize );}
 }
@@ -508,7 +513,7 @@ void *com_reallocAddrFunc(
     PROC_REALLOCT;
     if( COM_UNLIKELY(!result) ) {free( tmp );  return NULL;}
     dmy = ioAddr; // アドレス変化の可能性があるので再取得
-    moveTableData( tmp, tmpSize, dmy, iUnit, iPos, iResize );
+    moveTableData( tmp, tmpSize, dmy, (long)iUnit, iPos, iResize );
     free( tmp );
     return returnTablePos( dmy, iUnit, iPos, *ioCount, iResize );
 }
@@ -2129,11 +2134,11 @@ BOOL com_setSortDataFunc( com_sort_t *oTarget, com_sort_t *iData, COM_FILEPRM )
 
 static void resizeSortSearch( COM_FILEPRM, com_sortTable_t *oTable )
 {
-    long  cnt = oTable->count;
+    size_t  cnt = (size_t)(oTable->count);
     // 検索結果格納用領域の確保
     oTable->search = com_reallocfFunc( oTable->search,
                                        sizeof(com_sort_t*) * cnt, COM_FILEVAR,
-                                       "resize sort search(%ld)", cnt );
+                                       "resize sort search(%z)", cnt );
     // 確保できない場合は最初に見つかったもののみを検索するようになる
 }
 
@@ -2191,12 +2196,12 @@ static BOOL solveCollision(
     return true;
 }
 
-static int getRangeMin( com_sort_t *iData )
+static long getRangeMin( com_sort_t *iData )
 {
     return iData->key;
 }
 
-static int getRangeMax( com_sort_t *iData )
+static long getRangeMax( com_sort_t *iData )
 {
     return (iData->key + iData->range - 1);
 }
@@ -2291,7 +2296,8 @@ static long editSearch(
     static com_sort_t*  only1 = NULL;
     // 検索結果領域が確保できていないときは最初の1つだけを返す
     if( !(*oResult = iTable->search) ) {*oResult = &only1;}
-    else {memset( *oResult, 0, sizeof(*(iTable->search)) * iTable->count );}
+    else { memset( *oResult, 0,
+                   sizeof(*(iTable->search)) * (size_t)(iTable->count) );}
     long  result = 0;
     for( long i = iPos;  i < iTable->count;  i++ ) {
         com_sort_t*  tbl = &(iTable->table[i]);
@@ -2434,10 +2440,10 @@ com_ringBuf_t *com_createRingBufFunc(
 }
 
 #define RINGNEXT( RING, MEMBER ) \
-    (RING)->MEMBER = (((RING)->MEMBER + 1) % (RING)->size )
+    (RING)->MEMBER = (((RING)->MEMBER + 1) % (long)((RING)->size) )
 
 #define RINGBUF( RING, POS ) \
-    ((void*)((char*)((RING)->buf) + (POS) * (RING)->unit))
+    ((void*)((char*)((RING)->buf) + (long)(POS) * (long)((RING)->unit)))
 
 static void notifyOverwrite( com_ringBuf_t *ioRing )
 {
@@ -2703,7 +2709,7 @@ BOOL com_valHex( char *ioData, void *iCond )
         com_error( COM_ERR_CONFIG, "no condition num list" ); \
         return false; \
     } \
-    target->list = com_malloc( sizeof(TYPE) * target->count, \
+    target->list = com_malloc( sizeof(TYPE) * (size_t)(target->count), \
                                "copy condition num list" ); \
     if( COM_UNLIKELY(!target->list) ) {return false;} \
     for( long i = 0;  i < target->count;  i++ ) { \
@@ -2801,7 +2807,7 @@ BOOL com_valStrListCondCopy( void **oCond, void *iCond )
         com_error( COM_ERR_CONFIG, "no condition string list" );
         return false;
     }
-    target->list = com_malloc( sizeof(char*) * cnt, "copy string list" );
+    target->list = com_malloc(sizeof(char*) * (size_t)cnt, "copy string list");
     if( !target->list ) {return false;}
     for( long i = 0;  source->list[i];  i++ ) {
         if( !(target->list[i] = com_strdup( source->list[i], NULL )) ) {
@@ -3016,7 +3022,7 @@ BOOL com_getFileInfo( com_fileInfo_t *oInfo, const char *iPath, BOOL iLink )
     if( result ) {return false;}
     if( oInfo ) {
         *oInfo = (com_fileInfo_t){
-            st.st_dev, major(st.st_dev), minor(st.st_dev),
+            st.st_dev, (uint)(major(st.st_dev)), (uint)(minor(st.st_dev)),
 #ifdef __CYGWIN__
             DMY,
 #endif
@@ -3076,7 +3082,7 @@ static BOOL notifyTextLine(
         char *oBuf, size_t iBufSize, FILE *ioFp, com_seekFileCB_t iFunc,
         void *ioUserData )
 {
-    while( fgets( oBuf, iBufSize, ioFp ) ) {
+    while( fgets( oBuf, (int)iBufSize, ioFp ) ) {
         com_seekFileResult_t  inf = { oBuf, ioFp, ioUserData };
         if( !iFunc( &inf ) ) {return false;}
     }
@@ -3301,7 +3307,7 @@ static BOOL deleteSubDirs( const com_seekDirResult_t *iInf )
 {
     char*  path = com_strdup( iInf->path, "remove sub(%s)", iInf->path );
     if( COM_UNLIKELY(!path) ) {return false;}
-    int  result = com_removeDir( path );
+    long  result = com_removeDir( path );
     com_free( path );
     if( result < 0 ) {return false;}
 
@@ -3490,7 +3496,7 @@ int com_scanDirFunc(
                         "scandir(%s)", iPath );
 
     }
-    return com_mutexUnlockCom( &gMutexMem, COM_FILELOC, result );
+    return (int)(com_mutexUnlockCom( &gMutexMem, COM_FILELOC, result ));
 }
     
 void com_freeScanDirFunc( int iCount, struct dirent ***oList, COM_FILEPRM )

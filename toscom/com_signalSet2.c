@@ -50,7 +50,8 @@ static BOOL getM3uaPrm( com_sigInf_t *iM3ua, com_sigInf_t *oHead )
         // 信号上のパラメータ長からパラメータヘッダ長を引いておく
         (com_getRecentPrm( &oHead->prm ))->len -= sizeof(com_sigM3uaPrm_t);
         uint16_t  prmLen = com_getVal16( prm->len, iM3ua->order );
-        prmLen = ((prmLen - 1) / COM_32BIT_SIZE + 1) * COM_32BIT_SIZE;
+        prmLen =
+            (uint16_t)(((prmLen - 1) / COM_32BIT_SIZE + 1) * COM_32BIT_SIZE);
         if( !com_advancePtr( &ptr, &msgLen, prmLen ) ) {return false;}
     }
     return true;
@@ -63,7 +64,7 @@ static BOOL setNextInf(
     com_initSigInf( oNext, ioHead );
     oNext->sig.ptype = COM_SIG_END;
     if( !iHasData ) {return false;}
-    com_sigTlv_t*  prm = com_searchPrm( COM_APRM, iTargetType );
+    com_sigTlv_t*  prm = com_searchPrm( COM_APRM, (com_off)iTargetType );
     if( !prm ) {return false;}
     oNext->sig = (com_sigBin_t){ prm->value, prm->len, COM_SIG_UNKNOWN };
     return true;
@@ -394,7 +395,7 @@ static BOOL seekNo7Msg( com_sigInf_t *ioHead, com_sigNo7Form_t *iForm )
     return true;
 }
 
-BOOL com_getNo7Prm( com_sigInf_t *ioHead, com_sigNo7Form_t *iForm, long iType )
+BOOL com_getNo7Prm( com_sigInf_t *ioHead, com_sigNo7Form_t *iForm, ulong iType )
 {
     if( !ioHead || !iForm ) {COM_PRMNG(false);}
     for( long i = 0;  iForm[i].msgType;  i++ ) {
@@ -515,7 +516,7 @@ static sccpConnInf_t *getSccpConnInf(
     com_sigTlv_t  *slr, *dlr, *cldpad; \
     collectSccpConnData( (HEAD), &m3uaPrm, &slr, &dlr, &cldpad );
 
-static void regSccpConn( com_sigInf_t *iHead, long iType )
+static void regSccpConn( com_sigInf_t *iHead, ulong iType )
 {
     if( !iHead->prev ) {return;}  // 下位プロトコル情報がない時は何もしない
     COLLECT_SCCP_CONN_DATA( iHead );
@@ -567,7 +568,7 @@ static void canSccpConn( com_sigInf_t *iHead )
     judgeFreeConnInf();
 }
 
-static void getSccpConn( com_sigInf_t *ioHead, long iType )
+static void getSccpConn( com_sigInf_t *ioHead, ulong iType )
 {
     if( iType == COM_CAP_SCCP_CR || iType == COM_CAP_SCCP_CC ) {
         regSccpConn( ioHead, iType );
@@ -577,7 +578,7 @@ static void getSccpConn( com_sigInf_t *ioHead, long iType )
     }
 }
 
-static long getSccpDataTag( long iType )
+static long getSccpDataTag( ulong iType )
 {
     if( iType == COM_CAP_SCCP_LUDT ) {return COM_CAP_SCCPPRM_LONGDATA;}
     return COM_CAP_SCCPPRM_DATA;
@@ -650,11 +651,12 @@ static BOOL reassembleSccp( com_sigInf_t *ioBody, com_sigFrg_t *iFrg )
     com_bin*  top = com_malloc( totalLen, "sccp reassemble" );
     if( !top ) {return false;}
     com_bin*  ptr = top;
-    for( long i = iFrg->segMax - 1;  i >= 0;  i-- ) {
+    for( long i = (long)(iFrg->segMax - 1);  i >= 0;  i-- ) {
+        // 負数でループ抜けるようにしたいので、i は敢えて long型で定義
         BOOL  found = false;
         for( long j = 0;  j < iFrg->cnt;  j++ ) {
             com_sigSeg_t*  segInf = &(iFrg->inf[j]);
-            if( i == segInf->seg ) {
+            if( (ulong)i == segInf->seg ) {
                 found = true;
                 memcpy( ptr, segInf->bin.top, segInf->bin.len );
                 ptr += segInf->bin.len;
@@ -684,7 +686,7 @@ static BOOL procSccpFragment(
         {(com_bin*)&m3uaPrm->opc, sizeof(m3uaPrm->opc), 0},
         {(com_bin*)&m3uaPrm->dpc, sizeof(m3uaPrm->dpc), 0}, 0, 0
     };
-    long  remSeg = (seg->segFlags & COM_CAP_SCCP_REM_SEG);
+    ulong  remSeg = (seg->segFlags & COM_CAP_SCCP_REM_SEG);
     com_sigFrg_t*  frg = com_stockFragments( &cond, remSeg, &ioBody->sig );
     if( COM_CHECKBIT( seg->segFlags, COM_CAP_SCCP_1ST_SEG ) ) {
         frg->segMax = remSeg + 1;
@@ -694,7 +696,7 @@ static BOOL procSccpFragment(
     // 結合データ取得済みなら、それを優先 (テキストログ読み込み時のみ)
     if( ioHead->ras.ptype == COM_SIG_SCCP ) {ioBody->ras = ioHead->ras;}
     else {
-        if( frg->segMax > frg->cnt ) {return sccpSeg( ioBody );}
+        if( frg->segMax > (ulong)(frg->cnt) ) {return sccpSeg( ioBody );}
         result = reassembleSccp( ioBody, frg );
     }
     com_freeFragments( &cond );
@@ -706,7 +708,7 @@ static BOOL getSccpPayload( com_sigInf_t *ioHead, com_sigInf_t *oBody )
 {
     if( !ioHead->ext ) {getSccpSsn( ioHead );}
     if( ioHead->ext ) {
-        long*  ssn = ioHead->ext;
+        ulong*  ssn = ioHead->ext;
         oBody->sig.ptype = com_getPrtclType( COM_SCCPSSN, *ssn );
     }
     else {return false;}
@@ -722,7 +724,7 @@ BOOL com_analyzeSccp( COM_ANALYZER_PRM )
 {
     COM_ANALYZER_START( COM_NO_MIN_LEN );
     if( com_getSccpMsgName( COM_SGTOP ) ) {
-        long  type = *COM_SGTOP;
+        ulong  type = *COM_SGTOP;
         result = com_getNo7Prm( ioHead, gSccpForm, type );
         COM_SGTYPE = COM_SIG_SCCP;
         if( result ) {getSccpConn( ioHead, type );}
@@ -742,7 +744,7 @@ static BOOL judgeData( com_bin iTag )
     return true;
 }
 
-static void dispNextFromSsn( long *iSsn, long iNextType )
+static void dispNextFromSsn( ulong *iSsn, long iNextType )
 {
     if( !iSsn ) {return;}
     com_dispNext( *iSsn, 1, iNextType );
@@ -791,7 +793,7 @@ static com_decodeName_t  gSccpMsg[] = {
 
 char *com_getSccpMsgName( void *iSigTop )
 {
-    char*  sccp = iSigTop;
+    com_bin*  sccp = iSigTop;
     return com_searchDecodeName( gSccpMsg, *sccp, true );
 }
 
@@ -946,7 +948,7 @@ static com_decodeName_t  gIsupMsg[] = {
 
 char *com_getIsupMsgName( void *iSigTop )
 {
-    char*  isup = iSigTop;
+    com_bin*  isup = iSigTop;
     return com_searchDecodeName( gIsupMsg, *isup, true );
 }
 
@@ -965,7 +967,7 @@ static com_sigPrtclType_t  gTcapSsn2[] = {
 static void getComponentTypeFromSccp( com_sigInf_t *iSccp, com_sigInf_t *oComp )
 {
     if( !iSccp ) {return;}
-    long*  ssn = iSccp->ext;
+    ulong*  ssn = iSccp->ext;
     if( ssn ) {
         long  prtcl = com_getPrtclType( COM_TCAPSSN, *ssn );
         if( prtcl == COM_SIG_UNKNOWN ) {return;}
@@ -1011,12 +1013,12 @@ BOOL com_analyzeTcap( COM_ANALYZER_PRM )
 }
 
 // Dialogue-As-Idのタグパターン(先頭要素は処理でTCメッセージ種別タグを格納)
-static uint32_t  gTagsDlgAsId[] = {
+static com_off  gTagsDlgAsId[] = {
     0x00, COM_CAP_TCAP_DIALOGUE, COM_CAP_TCAP_DLG_EXT, COM_CAP_TCAP_DLG_AS_ID
 };
 
 // Single ASN Typeのタグパターン(先頭要素は処理でTCメッセージ種別タグを格納)
-static uint32_t  gTagsSAsn[] = {
+static com_off  gTagsSAsn[] = {
     0x00, COM_CAP_TCAP_DIALOGUE, COM_CAP_TCAP_DLG_EXT, COM_CAP_TCAP_DLG_ASN1
 };
 
@@ -1063,7 +1065,7 @@ static com_decodeName_t  gTcapTranName[] = {
     COM_DECODENAME_END    // 最後は必ずこれで
 };
 
-char *com_getTcapTranName( long iTag )
+char *com_getTcapTranName( ulong iTag )
 {
     return com_searchDecodeName( gTcapTranName, iTag, true );
 }
@@ -1075,7 +1077,7 @@ static com_decodeName_t  gTcapTranPrm[] = {
     COM_DECODENAME_END    // 最後は必ずこれで
 };
 
-char *com_getTcapTranPrm( long iTag )
+char *com_getTcapTranPrm( ulong iTag )
 {
     return com_searchDecodeName( gTcapTranPrm, iTag, true );
 }
@@ -1092,7 +1094,7 @@ static com_decodeName_t  gTcapUndlgPduName[] = {
     COM_DECODENAME_END    // 最後は必ずこれで
 };
 
-char *com_getTcapDlgPduName( long iTag, long iType )
+char *com_getTcapDlgPduName( ulong iTag, long iType )
 {
     if( iType == COM_CAP_TCAP_DLGPDU ) {
         return com_searchDecodeName( gTcapDlgPduName, iTag, true );
@@ -1112,7 +1114,7 @@ static com_decodeName_t  gTcapCompName[] = {
     COM_DECODENAME_END    // 最後は必ずこれで
 };
 
-char *com_getTcapCompName( long iTag )
+char *com_getTcapCompName( ulong iTag )
 {
     return com_searchDecodeName( gTcapCompName, iTag, true );
 }
@@ -1275,7 +1277,7 @@ BOOL com_getTcapCompInf( com_sigInf_t *ioHead )
 }
 
 // コンポーネント部オペレーションコード名取得関数プロトタイプ
-typedef char *(getOpName_t)( long iOpcode );
+typedef char *(getOpName_t)( ulong iOpcode );
 
 // コンポーネント部出力 内部共通処理
 static void decodeTcapComponents( com_sigInf_t *iHead, getOpName_t iFunc )
@@ -1285,7 +1287,7 @@ static void decodeTcapComponents( com_sigInf_t *iHead, getOpName_t iFunc )
              com_searchSigProtocol( COM_ISGTYPE ), COM_ISGTYPE, COM_ISGLEN );
     com_dispPrm( "tcap component type", com_getTcapCompName( *COM_ISGTOP ), 0 );
     COM_CAST_HEAD( com_sigTcapCompHead_t, compPrm, iHead->ext );
-    for( long i = 0;  i < COM_SIG_TCAP_MAX;  i++ ) {
+    for( ulong i = 0;  i < COM_SIG_TCAP_MAX;  i++ ) {
         com_sigTlv_t*  tlv = &(compPrm->prm[i]);
         if( i == COM_SIG_TCAP_OPCODE ) {
             com_dispPrm( com_getTcapCompPrm(i), iFunc( *tlv->value ), 0 );
@@ -1309,20 +1311,20 @@ static com_decodeName_t  gTcapCompPrm[] = {
     COM_DECODENAME_END    // 最後は必ずこれで
 };
 
-char *com_getTcapCompPrm( long iTag )
+char *com_getTcapCompPrm( ulong iTag )
 {
     return com_searchDecodeName( gTcapCompPrm, iTag, false );
 }
 
-enum { NO_TCAPCOMP_PRM = -1 };
+enum { NO_TCAPCOMP_PRM = ULONG_MAX };
 
 // コンポーネント部オペレーションコード取得 内部共通処理
-static long getTcapCompOpcode( com_sigInf_t *iHead )
+static ulong getTcapCompOpcode( com_sigInf_t *iHead )
 {
     COM_CAST_HEAD( com_sigTcapCompHead_t, compPrm, iHead->ext );
     if( !compPrm ) {return NO_TCAPCOMP_PRM;}
     com_sigTlv_t*  tlv = &(compPrm->prm[COM_SIG_TCAP_OPCODE]);
-    return (long)(*tlv->value);
+    return *tlv->value;
 }
 
 
@@ -1334,7 +1336,8 @@ BOOL com_analyzeInap( COM_ANALYZER_PRM )
     COM_ANALYZER_START( COM_NO_MIN_LEN );
     if( (result = com_getTcapCompInf( ioHead )) ) {
         COM_SGTYPE = COM_SIG_INAP;
-        result = (com_getInapOpName( getTcapCompOpcode( ioHead ) ) != NULL);
+        result = (com_getInapOpName( (ulong)getTcapCompOpcode( ioHead ) )
+                  != NULL);
     }
     COM_ANALYZER_END;
 }
@@ -1365,7 +1368,7 @@ static com_decodeName_t  gInapOpName[] = {
     COM_DECODENAME_END    // 最後は必ずこれで
 };
 
-char *com_getInapOpName( long iOpcode )
+char *com_getInapOpName( ulong iOpcode )
 {
     return com_searchDecodeName( gInapOpName, iOpcode, true );
 }
@@ -1455,7 +1458,7 @@ static com_decodeName_t  gGsmmapOpName[] = {
     COM_DECODENAME_END    // 最後は必ずこれで
 };
 
-char *com_getGsmmapOpName( long iOpcode )
+char *com_getGsmmapOpName( ulong iOpcode )
 {
     return com_searchDecodeName( gGsmmapOpName, iOpcode, true );
 }

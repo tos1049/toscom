@@ -316,13 +316,13 @@ typedef struct {
 
 // 信号フラグメント セグメント構造
 typedef struct {
-    long                seg;         // セグメント値
+    ulong               seg;         // セグメント値
     com_sigBin_t        bin;         // 実際のセグメント情報
 } com_sigSeg_t;
 
 // 信号フラグメントデータ構造
 typedef struct {
-    long                segMax;      // フラグメント数
+    ulong               segMax;      // フラグメント数
     void*               ext;         // 追加情報
     long                cnt;         // 収集済みセグメント数
     com_sigSeg_t*       inf;         // 収集したセグメント情報
@@ -483,7 +483,7 @@ BOOL com_copySigBin( com_sigBin_t *oTarget, const com_sigBin_t *iSource );
  * .next.stack[]は動的にメモリ確保され、そのスタック数を .next.cntに格納する。
  *
  * 本I/Fは .nextのために静的バッファを設定する。その場合
- * .next.cnt は COM_SIG_STATIC (-1) という特別な値に代わり、
+ * .next.cnt は COM_SIG_STATIC で宣言した特別な値に代わり、
  * .next.stack に指定された iSourceのアドレスが設定される。
  *
  * この状態になった場合、次プロトコルスタックの情報を格納するときは
@@ -494,7 +494,7 @@ BOOL com_copySigBin( com_sigBin_t *oTarget, const com_sigBin_t *iSource );
  */
 
 // 静的領域設定を示す指標
-enum { COM_SIG_STATIC = -1 };
+#define  COM_SIG_STATIC  (-1)
 
 void com_setStaticStk( com_sigStk_t *oTarget, com_sigInf_t *iSource );
 
@@ -602,13 +602,13 @@ typedef enum {
     COM_SCCPSSN      = 200,   // SCCP解析 サブシステム番号プロトコル対応
     COM_TCAPSSN,              // TCAP解析 サブシステム番号プロトコル対応
     /*** 共通のデータ終了識別子 ***/
-    COM_PRTCLTYPE_END = -1
+    COM_PRTCLTYPE_END = 999
 } COM_PRTCLTYPE_t;
 
 // プロトコル種別判定データ構造
 typedef struct {
     union {
-        long   type;    // 次プロトコルを示す数値データ
+        ulong  type;    // 次プロトコルを示す数値データ
         char*  label;   // 次プロトコルを示す文字データ
     } target;
     long   code;        // targetに対応するプロトコル識別値(COM_SIG_～)
@@ -630,13 +630,13 @@ void com_setPrtclType( COM_PRTCLTYPE_t iBase, com_sigPrtclType_t *iList );
  * ===========================================================================
  * iBaseで指定した種別で登録した情報を取得する。
  * 
- * com_getPrtclType()は iType が com_setPrtclType()で登録した .target.typwと
+ * com_getPrtclType()は iType が com_setPrtclType()で登録した .target.typeと
  * 一致したら、その時の .code を返す。
  *
  * com_getPrtclLabel()は iLabel が com_setPrtclType()で登録した .target.labelと
  * 一致したら、その時の .code を返す。
  */
-long com_getPrtclType( COM_PRTCLTYPE_t iBase, long iType );
+long com_getPrtclType( COM_PRTCLTYPE_t iBase, ulong iType );
 long com_getPrtclLabel( COM_PRTCLTYPE_t iBase, char *iLabel );
 
 /*
@@ -656,7 +656,7 @@ long com_getPrtclLabel( COM_PRTCLTYPE_t iBase, char *iLabel );
  * それが true か false かを判定することが可能になる。
  * (登録されていない数値なら false が返る)
  */
-void com_setBoolTable( COM_PRTCLTYPE_t iBase, long *iTypes, long iTypeCnt );
+void com_setBoolTable( COM_PRTCLTYPE_t iBase, ulong *iTypes, size_t iTypeCnt );
 
 /*
  * プロトコル種別判定情報解放  com_freePrtclType()
@@ -756,7 +756,7 @@ typedef void(*com_freeSig_t)( com_sigInf_t *oTarget );
 // プロトコル解析用情報データ構造
 typedef struct {
     long               type;        // プロトコル種別(COM_SIG_～)
-    long               port;        // 該当ポート番号
+    ulong              port;        // 該当ポート番号
     char*              label;       // プロトコル名文字列
     com_analyzeSig_t   func;        // 解析I/F
     com_decodeSig_t    decoFunc;    // デコードI/F
@@ -876,7 +876,7 @@ BOOL com_setCustomFreer( long iType, com_freeSig_t iFreer );
 
 // 信号キャプチャ取得用データ構造
 typedef struct {
-    long            cause;       // 処理結果
+    ulong           cause;       // 処理結果
     char*           fileName;    // 読込中ファイル名
     FILE*           fp;          // 読込中ファイルポインタ
     com_sigInf_t    head;        // ファイルヘッダ
