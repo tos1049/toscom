@@ -244,7 +244,7 @@ static BOOL setSockCondRawSnd(
         return true;
     }
     *oFamily = AF_PACKET;
-    *oProtocol = (int)htonl( iSrc->ai_family );
+    *oProtocol = (int)htonl( (uint)(iSrc->ai_family) );
     return true;
 }
 
@@ -1637,7 +1637,7 @@ static void *addSaForNetlink( com_ifinfo_t *oInf, int iFamily )
         tmp = com_malloc( sizeof(struct sockaddr_in6), "IPv6 by Netlink" );
     }
     if( COM_UNLIKELY(!tmp) ) {return NULL;}
-    tmp->sa_family = (sa_family_tiFamily;
+    tmp->sa_family = (sa_family_t)iFamily;
 
     com_ifaddr_t*  soAddr =
         com_reallocAddr( &oInf->soAddrs, sizeof(*soAddr), 0,
