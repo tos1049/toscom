@@ -2093,7 +2093,7 @@ void test_dice( void )
     dispDiceAvr( "1d20", 10.5, (double)sum3 / trial );
 }
 
-// test_writePack() //////////////////////////////////////////////////////////
+// test_procPack() ///////////////////////////////////////////////////////////
 
 // 読み書きどちらでもベースとなるデータパッケージ設定
 static com_packInf_t gPackInf = {
@@ -2155,9 +2155,8 @@ static testPack_t gPackDataList[] = {
     {"ALPHA", 26, 70}, {"BETA", 32, 84}, {"GAMMA", 14, 40}
 };
 
-void test_writePack( void )
+static void writePackMain( void )
 {
-    startFunc( __func__ );
     com_packInf_t  wInf = gPackInf;
     wInf.writeFile = true;
     if( !com_readyPack( &wInf, "same file exist, overwrite OK? " ) ) {return;}
@@ -2169,9 +2168,7 @@ void test_writePack( void )
     com_assertEquals( "file created", 0,
                       com_system( "ls %s", gPackInf.archive ) );
 }
-// 作ったデータファイルは そのまま com_readPack()で読み出し確認出来る。
-
-// test_readPack() ///////////////////////////////////////////////////////////
+// 作ったデータファイルは そのまま readPackMain()で読み出し確認する。
 
 static void dispReadData( testPack_t *iData, size_t iNum ) 
 {
@@ -2206,11 +2203,10 @@ static void readPack( com_packInf_t *ioInf ) {
     com_printf( "********* %s (%zu) **********\n", test, testSize );
 }
 
-// test_writePack() で作ったデータファイルを読み込む
+// writePackMain() で作ったデータファイルを読み込む
 // その後、作成したデータファイルは削除する
-void test_readPack( void )
+static void readPackMain( void )
 {
-    startFunc( __func__ );
     com_packInf_t rInf = gPackInf;
     if( !com_readyPack( &rInf, NULL ) ) { return; }
     readPack( &rInf );
@@ -2222,9 +2218,9 @@ void test_readPack( void )
 
 void test_procPack( void )
 {
-    // この2つはセットなので、必ず一緒に動作させる
-    test_writePack();
-    test_readPack();
+    startFunc( __func__ );
+    writePackMain();
+    readPackMain();
 }
 
 #endif // USING_COM_EXTRA
@@ -2977,7 +2973,7 @@ static void exam_extraFunctions( void )
     //test_menu();                    // メニュー生成
     //test_searchPrime();             // 素数判定
     //test_dice();                    // ダイス判定
-    //test_procPack();               // データ保存・読込
+    //test_procPack();                // データ保存・読込
 #endif // USING_COM_EXTRA
 }
 
