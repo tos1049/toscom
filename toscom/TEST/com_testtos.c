@@ -1826,6 +1826,7 @@ void test_multiThread( void ) {
 
 // test_comInputVar() ////////////////////////////////////////////////////////
 
+// 動作については目視確認
 void test_comInputVar( void )
 {
     startFunc( __func__ );
@@ -1853,6 +1854,7 @@ void test_comInputVar( void )
 
 // test_random() /////////////////////////////////////////////////////////////
 
+// 動作については目視確認
 void test_random( void )
 {
     startFunc( __func__ );
@@ -1877,7 +1879,15 @@ static BOOL inputValue( com_calcStat_t *oStat, long iData )
     return true;
 }
 
-static void calcStat( long *iList, int iCount, BOOL iNeed )
+#define EXPMEMBER( MEMBER ) \
+    (iExpected ? iExpected->MEMBER : 0)
+
+#define ASSERTFUNC( LABEL, EXPECTED, RESULT, FUNC, FORMAT ) \
+    if( iExpected ) { FUNC( LABEL, (EXPECTED), (RESULT) ); } \
+    else { com_printf( "%s: " FORMAT "\n", LABEL, (RESULT) ); } 
+
+static void calcStat(
+        long *iList, int iCount, com_calcStat_t *iExpected, BOOL iNeed )
 {
     com_calcStat_t statInf;
     com_readyStat( &statInf, iNeed );
@@ -1892,16 +1902,26 @@ static void calcStat( long *iList, int iCount, BOOL iNeed )
         }
         com_printLf();
     }
-    com_printf( "     max = %5ld\n", statInf.max );
-    com_printf( "     min = %5ld\n", statInf.min );
-    com_printf( " ari.avr = %10.4f\n", statInf.average );
-    com_printf( " geo.avr = %10.4f\n", statInf.geoavr );
-    com_printf( " hrm.avr = %10.4f\n", statInf.hrmavr );
-    com_printf( "     var = %10.4f\n", statInf.variance );
-    com_printf( " std.dev = %10.4f\n", statInf.stddev );;
-    com_printf( "      cv = %10.4f\n", statInf.coevar );
-    com_printf( "      sk = %10.4f\n", statInf.skewness );
-    com_printf( "      ku = %10.4f\n", statInf.kurtosis );
+    ASSERTFUNC( "    最大値",
+      EXPMEMBER(max),      statInf.max, com_assertEquals, "%ld" );
+    ASSERTFUNC( "    最小値",
+      EXPMEMBER(min),      statInf.min, com_assertEquals, "%ld" );
+    ASSERTFUNC( "算術平均値",
+      EXPMEMBER(average),  statInf.average, com_assertEqualsD, "%f" );
+    ASSERTFUNC( "幾何平均値",
+      EXPMEMBER(geoavr),   statInf.geoavr, com_assertEqualsD, "%f" );
+    ASSERTFUNC( "調和平均値",
+      EXPMEMBER(hrmavr),   statInf.hrmavr, com_assertEqualsD, "%f" );
+    ASSERTFUNC( "      分散",
+      EXPMEMBER(variance), statInf.variance, com_assertEqualsD, "%f" );
+    ASSERTFUNC( "  標準偏差",
+      EXPMEMBER(stddev),   statInf.stddev, com_assertEqualsD, "%f" );
+    ASSERTFUNC( "  変動係数",
+      EXPMEMBER(coevar),   statInf.coevar, com_assertEqualsD, "%f" );
+    ASSERTFUNC( "      歪度",
+      EXPMEMBER(skewness), statInf.skewness, com_assertEqualsD, "%f" );
+    ASSERTFUNC( "      尖度",
+      EXPMEMBER(kurtosis), statInf.kurtosis, com_assertEqualsD, "%f" );
     com_repeat( "-", 40, true );
     com_finishStat( &statInf );
 }
@@ -1910,19 +1930,64 @@ void test_stat( void )
 {
     startFunc( __func__ );
     long data1[] = { 21, 16,  9, 43, 24, 30, 17, 12, 25, 28 };
+    com_calcStat_t  stat1 = {
+        .max = 43,  .min = 9,
+        .average  = 22.5000000000000000,
+        .geoavr   = 20.5405039527952340,
+        .hrmavr   = 18.6095979871424362,
+        .variance = 88.2500000000000000,
+        .stddev   =  9.3941471140279678,
+        .coevar   =  0.4175176495123541,
+        .skewness =  0.6224115318589741,
+        .kurtosis =  2.9379402771870473
+    };
     long data2[] = { 30, 34,  9, 43, 35, 30, 11, 12,  8, 10 };
+    com_calcStat_t  stat2 = {
+        .max = 43,  .min = 8,
+        .average  = 22.2000000000000000,
+        .geoavr   = 18.3703078974651532,
+        .hrmavr   = 15.1915838919724013,
+        .variance = 161.1600000000000250,
+        .stddev   = 12.6948808580466803,
+        .coevar   =  0.5718414800921928,
+        .skewness =  0.2073877259280199,
+        .kurtosis =  1.3881690210604427
+    };
     long data3[] = { 21, 26, 29, 23, 24, 20, 27, 22, 25, 28 };
+    com_calcStat_t  stat3 = {
+        .max = 29,  .min = 20,
+        .average  = 24.5000000000000000,
+        .geoavr   = 24.3301294651750055,
+        .hrmavr   = 24.1595998370295284,
+        .variance =  8.2500000000000000,
+        .stddev   =  2.8722813232690143,
+        .coevar   =  0.1172359723783271,
+        .skewness =  0.0000000000000000,
+        .kurtosis =  1.7757575757582600
+    };
     long data4[] = {  9,  5,  2,  9,  5,  3,  7,  5 };
+    com_calcStat_t  stat4 = {
+        .max = 9,   .min = 2,
+        .average  =  5.6250000000000000,
+        .geoavr   =  5.0533635131234522,
+        .hrmavr   =  4.4483671668137692,
+        .variance =  5.7343750000000000,
+        .stddev   =  2.3946555075835021,
+        .coevar   =  0.4257165346815115,
+        .skewness =  0.1186224676595500,
+        .kurtosis =  1.8386430963181848
+    };
 
-    calcStat( data1, COM_ELMCNT( data1 ), true );
-    calcStat( data2, COM_ELMCNT( data2 ), false );
-    calcStat( data3, COM_ELMCNT( data3 ), false );
-    calcStat( data4, COM_ELMCNT( data4 ), false );
+    calcStat( data1, COM_ELMCNT( data1 ), &stat1, true );
+    calcStat( data2, COM_ELMCNT( data2 ), &stat2, false );
+    calcStat( data3, COM_ELMCNT( data3 ), &stat3, false );
+    calcStat( data4, COM_ELMCNT( data4 ), &stat4, false );
     com_printf( " *DBL_MAX = %f\n", DBL_MAX );
 }
 
 // test_randStat() ///////////////////////////////////////////////////////////
 
+// 動作については目視確認
 void test_randStat( void )
 {
     startFunc( __func__ );
@@ -1931,7 +1996,7 @@ void test_randStat( void )
     for( size_t i = 0;  i < COM_ELMCNT( randList );  i++ ) {
         randList[i] = com_rand(10000);
     }
-    calcStat( randList, COM_ELMCNT( randList ), false );
+    calcStat( randList, COM_ELMCNT( randList ), NULL, false );
 }
 
 // test_menu() ///////////////////////////////////////////////////////////////
@@ -1939,12 +2004,13 @@ void test_randStat( void )
 static BOOL menuItem( long iCode )
 {
     com_printf( "item%ld!\n", iCode );
+    com_assertTrue( "code=1 or 3", ((iCode == 1) || (iCode == 3)) );
     return true;
 }
 
 static BOOL menuCancel( long iCode )
 {
-    COM_UNUSED( iCode );
+    com_assertEquals( "cancel code", 2, iCode );
     return false;   // 無条件で非表示にする
 }
 
@@ -1959,14 +2025,10 @@ void test_menu( void )
 {
     startFunc( __func__ );
     com_selPrompt_t prompt = { NULL, "\n> ", 5, "##" };
-    com_actFlag_t flags = { true, false };
+    com_actFlag_t flags = { false, false };
 
-    if( com_execSelector( gTestMenu, &prompt, &flags ) ) {
-        com_printf( "---> OK\n" );
-    }
-    else {
-        com_printf( "---> NG\n" );
-    }
+    com_assertTrue( "com_execSelector()",
+                    com_execSelector( gTestMenu, &prompt, &flags ) );
 }
 
 // test_searchPrime() ////////////////////////////////////////////////////////
@@ -1986,6 +2048,7 @@ static void searchPrime( uint iStart, uint iEnd )
     com_printf( " passed: %ld.%06ldsec\n", tmp->tv_sec, tmp->tv_usec );
 }
 
+// 動作については目視確認
 void test_searchPrime( void )
 {
     startFunc( __func__ );
@@ -1996,6 +2059,12 @@ void test_searchPrime( void )
 }
 
 // test_dice() ///////////////////////////////////////////////////////////////
+
+static void dispDiceAvr( char *iLabel, double iExpected, double iAvr )
+{
+    com_printf( "%s = %f (expected:%f)\n", iLabel, iAvr, iExpected );
+    com_assertTrue( "avarage", (fabs(iAvr - iExpected) < 0.1) );
+}
 
 void test_dice( void )
 {
@@ -2019,9 +2088,9 @@ void test_dice( void )
         sum3 += com_rollDice( 1, 20, 0, disp );
     }
     com_printf( "---- average ----\n" );
-    com_printf( "3d6+2 = %2.1f\n", (double)sum1 / trial );
-    com_printf( "2d10  = %2.1f\n", (double)sum2 / trial );
-    com_printf( "1d20  = %2.1f\n", (double)sum3 / trial );
+    dispDiceAvr( "2d6+2", 9.0, (double)sum1 / trial );
+    dispDiceAvr( "2d10", 11.0, (double)sum2 / trial );
+    dispDiceAvr( "1d20", 10.5, (double)sum3 / trial );
 }
 
 // test_writePack() //////////////////////////////////////////////////////////
@@ -2082,30 +2151,33 @@ static void writePack( com_packInf_t *ioInf, testPack_t *iList )
 #endif
 }
 
+static testPack_t gPackDataList[] = {
+    {"ALPHA", 26, 70}, {"BETA", 32, 84}, {"GAMMA", 14, 40}
+};
+
 void test_writePack( void )
 {
     startFunc( __func__ );
-    testPack_t tList[] = {
-        {"ALPHA", 26, 70}, {"BETA", 32, 84}, {"GAMMA", 14, 40}
-    };
     com_packInf_t  wInf = gPackInf;
     wInf.writeFile = true;
     if( !com_readyPack( &wInf, "same file exist, overwrite OK? " ) ) {return;}
-    size_t num = COM_ELMCNT( tList );
+    size_t num = COM_ELMCNT( gPackDataList );
     if( com_writePackDirect( &wInf, &num, sizeof(num), false ) ) {
-        writePack( &wInf, tList );
+        writePack( &wInf, gPackDataList );
     }
     com_finishPack( &wInf, true );
+    com_assertEquals( "file created", 0,
+                      com_system( "ls %s", gPackInf.archive ) );
 }
 // 作ったデータファイルは そのまま com_readPack()で読み出し確認出来る。
 
 // test_readPack() ///////////////////////////////////////////////////////////
 
-static void dispReadData( testPack_t *iData ) 
+static void dispReadData( testPack_t *iData, size_t iNum ) 
 {
-    com_printf( "  name = %s\n",  iData->name );
-    com_printf( "   age = %ld\n", iData->age );
-    com_printf( " score = %ld\n", iData->score );
+    com_assertString( "  name", gPackDataList[iNum].name,  iData->name );
+    com_assertEquals( "   age", gPackDataList[iNum].age,   iData->age );
+    com_assertEquals( " score", gPackDataList[iNum].score, iData->score );
     com_free( iData->name );
     com_repeat( "-", 40, true );
 }
@@ -2120,7 +2192,7 @@ static void readPack( com_packInf_t *ioInf ) {
             size_t dmy;
             if( !com_readPackVar( ioInf, &(testElm.name), &dmy ) ) { return; }
             if( !com_readPack( ioInf, elmList + 1, 2 ) ) { return; }
-            dispReadData( &testElm );
+            dispReadData( &testElm, i );
         }
     }
     char test[FIX_TEXTLEN] = {0};
@@ -2143,7 +2215,16 @@ void test_readPack( void )
     if( !com_readyPack( &rInf, NULL ) ) { return; }
     readPack( &rInf );
     remove( rInf.archive );    // データファイルの削除
+    com_assertNotEquals( "file removed", 0,
+                         com_system( "ls %s", gPackInf.archive ) );
     com_finishPack( &rInf, true );
+}
+
+void test_procPack( void )
+{
+    // この2つはセットなので、必ず一緒に動作させる
+    test_writePack();
+    test_readPack();
 }
 
 #endif // USING_COM_EXTRA
@@ -2896,8 +2977,7 @@ static void exam_extraFunctions( void )
     //test_menu();                    // メニュー生成
     //test_searchPrime();             // 素数判定
     //test_dice();                    // ダイス判定
-    //test_writePack();               // データ保存
-    //test_readPack();                // データ読込
+    //test_procPack();               // データ保存・読込
 #endif // USING_COM_EXTRA
 }
 
