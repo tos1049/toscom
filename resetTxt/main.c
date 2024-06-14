@@ -204,7 +204,7 @@ static BOOL viewVersion( com_getOptInf_t *iOptInf )
 #ifdef    USE_TESTFUNC    // テスト関数使用のコンパイルオプション
 static BOOL execTest( com_getOptInf_t *iOptInf )
 {
-    com_testCode( iOptInf->argc, iOptInf->argv );
+    com_testCode( (int)iOptInf->argc, iOptInf->argv );
     return true;
 }
 #endif // USE_TESTFUNC
