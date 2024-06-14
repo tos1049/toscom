@@ -844,6 +844,11 @@ long com_atol( const char *iString )
     return com_strtol( iString, 10, false );
 }
 
+ulong com_atoul( const char *iString )
+{
+    return com_strtoul( iString, 10, false );
+}
+
 #define CONVERTFLOAT( RESULT, CONVFUNC, STRING, DISPERROR ) \
     do { \
         if( !(STRING) ) {com_prmNgFunc( COM_FILELOC, NULL ); return 0; } \

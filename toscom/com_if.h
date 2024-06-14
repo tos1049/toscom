@@ -3070,6 +3070,7 @@ double com_strtod( const char *iString, BOOL iError );
 /*
  * atoi()代替I/F  com_atoi()
  * atol()代替I/F  com_atol()
+ *                com_atoul()
  * atof()代替I/F  com_atof()
  *   変換結果を返す。
  * ---------------------------------------------------------------------------
@@ -3080,9 +3081,12 @@ double com_strtod( const char *iString, BOOL iError );
  * 実際は com_strtol()・com_strtof()を内部で使用して、
  * 文字列数値変換を実施し、その結果を返す。基数は 10固定ということになる。
  * 呼んだ直後の errnoを見れば変換NGを検出可能。
+ *
+ * atoul() は標準関数には存在しないが、com_atoul() は準備する。
  */
 int   com_atoi( const char *iString );
 long  com_atol( const char *iString );
+ulong com_atoul( const char *iString );
 float com_atof( const char *iString );
 
 /*
