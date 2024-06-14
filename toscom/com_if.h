@@ -578,6 +578,8 @@ void com_exitFunc( long iType, COM_FILEPRM );
  *
  * make checkf と打つことで、iFormatとそれ以降の記述の正当性をチェック可能。
  * この詳細は com_printf()の説明記述を参照。
+ *
+ * なおコマンド実行による画面出力を取得したい時は、com_pipeCommand()が使える。
  */
 #ifndef CHECK_PRINT_FORMAT
 int com_system( const char *iFormat, ... );
@@ -1951,7 +1953,7 @@ typedef struct {
 
 // 入力キーが既に登録済みの場合の動作(range=1のみ、2以上は全て COM_SORT_SKIP)
 typedef enum {
-    COM_SORT_OVERWRITE,      // 上書きする
+    COM_SORT_OVERWRITE = 0,  // 上書きする
     COM_SORT_MULTI,          // 複数の存在を許容する
     COM_SORT_SKIP            // 追加せずに破棄する
 } COM_SORT_MATCH_t;
@@ -3289,7 +3291,7 @@ BOOL com_strncpy(
  * 文字列長を指定する。iCatLenを 0にすると、iSource全てを連結する。
  * (その場合は、派生マクロ com_strcat()の方が使いやすいかもしれない)
  * iCatLenが iSourceの文字列長より大きい場合、iSource全てが連結対象となり
- * その文字列長を iCopyLenの値として処理を進める。
+ * その文字列長を iCatLenの値として処理を進める。
  *
  * iTargetSize - 1を超すような連結になる場合、iTargetSize - 1文字までを
  * 連結し、最後に '\0' を付与して終端させる。これが発生したら falseを返す。
