@@ -1608,24 +1608,27 @@ void com_assertNotEqualsUFunc(
     if( checkNDEBUG() ) {assert( iExpected != iResult );}
 }
 
+// 判定に使用する FLT_EPSILON は float.h で宣言されている
 void com_assertEqualsFFunc(
         char *iLabel, float iExpected, float iResult, COM_FILEPRM )
 {
     dispAssertLine( iLabel );
     com_printf( "%f == %f )\n", iExpected, iResult );
     dispAssertLocation( COM_FILEVAR );
-    if( checkNDEBUG() ) {assert( fabs( iExpected - iResult ) < FLT_EPSILON );}
+    if( checkNDEBUG() ) {assert( fabsf( iExpected - iResult ) < FLT_EPSILON );}
 }
 
+// 判定に使用する FLT_EPSILON は float.h で宣言されている
 void com_assertNotEqualsFFunc(
         char *iLabel, float iExpected, float iResult, COM_FILEPRM )
 {
     dispAssertLine( iLabel );
     com_printf( "%f != %f )\n", iExpected, iResult );
     dispAssertLocation( COM_FILEVAR );
-    if( checkNDEBUG() ) {assert( fabs( iExpected - iResult ) >= FLT_EPSILON );}
+    if( checkNDEBUG() ) {assert( fabsf( iExpected - iResult ) >= FLT_EPSILON );}
 }
 
+// 判定に使用する DBL_EPSILON は float.h で宣言されている
 void com_assertEqualsDFunc(
         char *iLabel, double iExpected, double iResult, COM_FILEPRM )
 {
@@ -1635,6 +1638,7 @@ void com_assertEqualsDFunc(
     if( checkNDEBUG() ) {assert( fabs( iExpected - iResult ) < DBL_EPSILON );}
 }
 
+// 判定に使用する DBL_EPSILON は float.h で宣言されている
 void com_assertNotEqualsDFunc(
         char *iLabel, double iExpected, double iResult, COM_FILEPRM )
 {
