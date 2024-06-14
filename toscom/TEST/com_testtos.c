@@ -2155,7 +2155,7 @@ static testPack_t gPackDataList[] = {
     {"ALPHA", 26, 70}, {"BETA", 32, 84}, {"GAMMA", 14, 40}
 };
 
-static void writePackMain( void )
+static void writePackFile( void )
 {
     com_packInf_t  wInf = gPackInf;
     wInf.writeFile = true;
@@ -2168,7 +2168,7 @@ static void writePackMain( void )
     com_assertEquals( "file created", 0,
                       com_system( "ls %s", gPackInf.archive ) );
 }
-// 作ったデータファイルは そのまま readPackMain()で読み出し確認する。
+// 作ったデータファイルは そのまま readPackFile()で読み出し確認する。
 
 static void dispReadData( testPack_t *iData, size_t iNum ) 
 {
@@ -2203,9 +2203,9 @@ static void readPack( com_packInf_t *ioInf ) {
     com_printf( "********* %s (%zu) **********\n", test, testSize );
 }
 
-// writePackMain() で作ったデータファイルを読み込む
+// writePackFile() で作ったデータファイルを読み込む
 // その後、作成したデータファイルは削除する
-static void readPackMain( void )
+static void readPackFile( void )
 {
     com_packInf_t rInf = gPackInf;
     if( !com_readyPack( &rInf, NULL ) ) { return; }
@@ -2219,8 +2219,8 @@ static void readPackMain( void )
 void test_procPack( void )
 {
     startFunc( __func__ );
-    writePackMain();
-    readPackMain();
+    writePackFile();
+    readPackFile();
 }
 
 #endif // USING_COM_EXTRA
