@@ -70,9 +70,9 @@ void smpl_specInvalidMessage( const char *iMsg )
 }
 
 void smpl_specRecvMessage(
-        const char *iMsg, const char *iDst, ssize_t iSize, const char *iTime )
+        const char *iMsg, const char *iDst, size_t iSize, const char *iTime )
 {
-    com_printf( "\n%s\n << %s (%zd byte received at %s\n",
+    com_printf( "\n%s\n << %s (%zu byte received at %s\n",
                 iMsg, iDst, iSize, iTime );
 }
 

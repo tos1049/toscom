@@ -137,7 +137,7 @@ static BOOL setFilter( com_getOptInf_t *iOptInf )
     return setProtoConfig( iOptInf->argv[0], &gPickProto, "pickup" );
 }
 
-static BOOL addPrtclPort( long iPort, char *iPrtcl, long iType )
+static BOOL addPrtclPort( ulong iPort, char *iPrtcl, long iType )
 {
     long  nextType = getProtoCode( iPrtcl );
     if( nextType == COM_SIG_UNKNOWN ) {return false;}
@@ -151,7 +151,7 @@ static BOOL addPrtclPort( long iPort, char *iPrtcl, long iType )
 
 static BOOL addPort( com_getOptInf_t *iOptInf )
 {
-    long  port = com_atol( iOptInf->argv[0] );
+    ulong  port = com_atoul( iOptInf->argv[0] );
     return addPrtclPort( port, iOptInf->argv[1], iOptInf->optValue );
 }
 
@@ -215,7 +215,7 @@ static void dispProtocolList( long iIndent, long iWidth )
         if( !dispCnt ) {com_repeat( " ", iIndent, false );}
         char*  label = com_searchSigProtocol( list[i] );
         com_printf( "%s ", label );
-        dispCnt += strlen( label ) + 1;
+        dispCnt += (long)strlen( label ) + 1;
         if( dispCnt > iWidth - iIndent ) {
             com_printLf();
             dispCnt = 0;

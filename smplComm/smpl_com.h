@@ -27,7 +27,7 @@ enum {
 
 ////////// smpl_main.c モジュール内公開I/F ///////////////////////////////////
 
-char *smpl_makeDstLabel( int iNum, const char *iHandle );
+char *smpl_makeDstLabel( long iNum, const char *iHandle );
 
 BOOL smpl_procStdin( char *iData, size_t iDataSize );
 
@@ -74,7 +74,7 @@ void smpl_specDispMessage( const char *iMsg );
 void smpl_specInvalidMessage( const char *iMsg );
 
 void smpl_specRecvMessage(
-        const char *iMsg, const char *iDst, ssize_t iSize, const char *iTime );
+        const char *iMsg, const char *iDst, size_t iSize, const char *iTime );
 
 void smpl_specCommand( const char *iData );
 

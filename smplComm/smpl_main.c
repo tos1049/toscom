@@ -170,17 +170,17 @@ static void makeSysMsg( SMPL_SYSMSG_t iType, const char *iMsg, size_t iSize )
 
 static smpl_sysMsg_func_t *getSysMsgCode( char *iMsg )
 {
-    uint type = (iMsg[0] << 8) + iMsg[1];
+    SMPL_SYSMSG_t type = (iMsg[0] << 8) + iMsg[1];
     for( smpl_sysMsg_func_t* tmp = gSysMsgList;  tmp->type;  tmp++ ) {
         if( tmp->type == type ) { return tmp; }
     }
     return NULL;
 }
 
-char *smpl_makeDstLabel( int iNum, const char *iHandle )
+char *smpl_makeDstLabel( long iNum, const char *iHandle )
 {
     static char label[SMPL_HANDLE_MAX + 6 + 5];
-    if( iHandle ) { snprintf( label, sizeof(label), "%d:%s", iNum, iHandle ); }
+    if( iHandle ) { snprintf( label, sizeof(label), "%ld:%s", iNum, iHandle ); }
     else { com_strcpy( label, "BROADCAST" ); }
     return label;
 }
@@ -195,7 +195,7 @@ static void writeChatLog( BOOL isSend, char *iDst, char *curTime, char *iMsg )
 }
 
 static void writeSendLog(
-        int iNum, char *iName, BOOL iResult, char *iMsg, size_t iMsgSize )
+        long iNum, char *iName, BOOL iResult, char *iMsg, size_t iMsgSize )
 {
     smpl_specDispMessage( iMsg );
     char* dst = smpl_makeDstLabel( iNum, iName );
@@ -208,7 +208,7 @@ static void writeSendLog(
     else { SMPL_PRINT( " failed...\n" ); }
 }
 
-static BOOL sendMessage( int iNum, char *iMsg, size_t iMsgSize, BOOL isSys )
+static BOOL sendMessage( long iNum, char *iMsg, size_t iMsgSize, BOOL isSys )
 {
     smpl_profile_t* dst = &(gDstList[iNum]);
     BOOL result = com_sendSocket( dst->sid, iMsg, iMsgSize, NULL );
@@ -227,7 +227,7 @@ static void setDstList( smpl_profile_t *oTarget, com_selectId_t iId )
     gPrompt = false;   // HELLOが来るまでプロンプト非表示にする
 }
 
-static void sendHELLO( int iId, smpl_profile_t *iProf )
+static void sendHELLO( long iId, smpl_profile_t *iProf )
 {
     char msg[24] = {0};
     com_strcpy( msg, iProf->handle );
@@ -237,7 +237,7 @@ static void sendHELLO( int iId, smpl_profile_t *iProf )
     (void)sendMessage( iId, gSysMsgBuff, sizeof(gSysMsgBuff), true );
 }
 
-static int addDestination( com_selectId_t iId )
+static long addDestination( com_selectId_t iId )
 {
     long newId = gDstCount;
     if( !com_realloct( &gDstList, sizeof(*gDstList), &gDstCount, 1,
@@ -272,13 +272,13 @@ static smpl_profile_t *searchDst( com_selectId_t iId, int *oNum )
 // 相手先index値も別のものになる。
 // 今の所、メモリが続く限り追加していくが、上限を設ける措置は必要かもしれない。
 
-static void closeDstList( int iDstId )
+static void closeDstList( long iDstId )
 {
     smpl_profile_t* tmp = &(gDstList[iDstId]);
     char* curTime = getCurTime();
-    SMPL_PRINT( "\n--- %d:%s [%s]:%d exited at %s ---\n",
+    SMPL_PRINT( "\n--- %ld:%s [%s]:%d exited at %s ---\n",
                 iDstId, tmp->handle, tmp->addr, tmp->port, curTime );
-    CHATLOG( "%s <<%d:%s [%s]:%d exited>>\n",
+    CHATLOG( "%s <<%ld:%s [%s]:%d exited>>\n",
              curTime, iDstId, tmp->handle, tmp->addr, tmp->port );
     CHATFLUSH;
     tmp->sid = COM_NO_SOCK;
@@ -315,7 +315,7 @@ static char *getHandle( com_selectId_t iId, int *oNum )
 
 static int gLastRecv = COM_NO_SOCK;    // 最後に受信した相手
 
-static BOOL recvMessage( com_selectId_t iId, char *iMsg, ssize_t iSize )
+static BOOL recvMessage( com_selectId_t iId, char *iMsg, size_t iSize )
 {
     int num;
     char* handle = getHandle( iId, &num );
@@ -359,7 +359,7 @@ static char *nextPrm( char *iData )
     return result;
 }
 
-static BOOL isAvailDst( int iDst )
+static BOOL isAvailDst( long iDst )
 {
     if( iDst < 0 || iDst >= gDstCount ) {
         SMPL_PRINT( "*** illegal destination ID\n" );
@@ -468,7 +468,7 @@ static void dispDstInfo( struct addrinfo *iDst )
 }
 
 static com_selectId_t tryConnect(
-        ushort iPort, int *oSockErr, struct addrinfo *iDst )
+        ushort iPort, long *oSockErr, struct addrinfo *iDst )
 {
     SMPL_PRINT( "--- use [%s]:%d ---\n", gMyProf.addr, iPort );
     struct addrinfo* src = NULL;
@@ -494,7 +494,7 @@ static com_selectId_t connectWithRetry( struct addrinfo *iDst )
         else { (gMyProf.conCount)++; }
         port = (ushort)(gMyProf.port + gMyProf.conCount);
 
-        int sockErr = COM_NO_ERROR;
+        long sockErr = COM_NO_ERROR;
         com_selectId_t result = tryConnect( port, &sockErr, iDst );
         if( result != COM_NO_SOCK ) { return result; }  // 接続成功
         if( sockErr == COM_ERR_CONNECTNG ) {
@@ -511,7 +511,7 @@ static void createConnect( struct addrinfo *iDst )
 {
     com_selectId_t dstId = connectWithRetry( iDst );
     if( dstId == COM_NO_SOCK ) { return; }
-    int tmp = addDestination( dstId );
+    long tmp = addDestination( dstId );
     if( tmp == COM_NO_SOCK ) {
         com_deleteSocket( dstId );
         SMPL_PRINT( "*** fail to add destination list...\n" );
@@ -548,7 +548,7 @@ static BOOL cmdList( char *iData )
 
 static BOOL cmdDisconnect( char *iData )
 {
-    int dst;
+    long dst;
     char* tkn = nextPrm( iData );
     if( !tkn ) { dst = gDstId; }
     else {
@@ -556,7 +556,7 @@ static BOOL cmdDisconnect( char *iData )
             SMPL_PRINT( "*** illegal destination ID\n" );
             return true;
         }
-        dst = com_atoi( tkn );
+        dst = com_atol( tkn );
     }
     if( !isAvailDst( dst ) ) { return true; }
     (void)com_deleteSocket( gDstList[dst].sid );
@@ -891,7 +891,7 @@ static void inputMyProf( struct addrinfo **oInf )
     char addr[SMPL_ADDR_SIZE] = {0};
     val = (com_valFunc_t){ com_valIpAddress, NULL };
     flag.enterSkip = true;
-    BOOL ret = com_inputVar( addr, sizeof(addr), &val, &flag,
+    size_t ret = com_inputVar( addr, sizeof(addr), &val, &flag,
                              "address (default:127.0.0.1)\n> " );
     if( !ret ) { com_strcpy( addr, "127.0.0.1" ); }
 
@@ -950,7 +950,7 @@ static BOOL clearLogs( com_getOptInf_t *iOptInf )
 #ifdef USE_TESTFUNC
 static BOOL optTest( com_getOptInf_t *iOptInf )
 {
-    com_testCode( iOptInf->argc, iOptInf->argv );
+    com_testCode( (int)iOptInf->argc, iOptInf->argv );
     return true;
 }
 #endif // USE_TESTFUNC

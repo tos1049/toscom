@@ -40,8 +40,8 @@ static void setWinScrl( const com_cwin_t *iInf )
     com_winpos_t  pos, max;
     com_getWindowPos( iInf->id, &pos );
     com_getWindowMax( iInf->id, &max );
-    wsetscrreg( iInf->window, pos.y + iInf->border,
-                              pos.y + max.y - iInf->border );
+    wsetscrreg( iInf->window, pos.y + (int)(iInf->border),
+                              pos.y + max.y - (int)(iInf->border) );
     scrollok( iInf->window, true );
 }
 
@@ -220,10 +220,10 @@ void smpl_specInvalidMessage( const char *iMsg )
 }
 
 void smpl_specRecvMessage(
-        const char *iMsg, const char *iDst, ssize_t iSize, const char *iTime )
+        const char *iMsg, const char *iDst, size_t iSize, const char *iTime )
 {
     smpl_specDispMessage( iMsg );
-    smpl_printLog( 0, "<< %s (%zd byte received) at %s\n", iDst, iSize, iTime );
+    smpl_printLog( 0, "<< %s (%zu byte received) at %s\n", iDst, iSize, iTime );
 }
 
 void smpl_specCommand( const char *iData )

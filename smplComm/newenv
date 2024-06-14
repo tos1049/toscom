@@ -263,9 +263,8 @@ setFiles 1 "${COMBASE[*]}"
 
 ### エキストラ機能 (USE_EXTRA) ###
 COMEXTRA=(extra.h extra.c)
-LIBEXTRA="-lm"
 # makefileで -lm の記述がある行を修正対象とする
-setFiles "$USE_EXTRA" "${COMEXTRA[*]}" "extra.h" "$LIBEXTRA"
+setFiles "$USE_EXTRA" "${COMEXTRA[*]}" "extra.h"
 
 ### セレクト機能 (USE_SELECT) ###
 COMSELECT=(select.h select.c)

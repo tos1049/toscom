@@ -1,7 +1,3 @@
-83c83
-< CFLAGS += -lm
----
-> #CFLAGS += -lm
 85c85
 < CFLAGS += -lpanel -lncursesw
 ---
