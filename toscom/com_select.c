@@ -1703,7 +1703,7 @@ static BOOL getAddr( struct nlmsghdr *iMsg, size_t iMsgLen, void *iUserData )
 
     for( ;  NLMSG_OK(iMsg, iMsgLen);  iMsg = NLMSG_NEXT(iMsg, iMsgLen) ) {
         struct ifaddrmsg*  msg = (void*)NLMSG_DATA( iMsg );
-        uint  msgLen = IFA_PAYLOAD( iMsg );
+        uint  msgLen = (uint)(IFA_PAYLOAD( iMsg ));
         if( msg->ifa_index == inf->index ) {
             getAddrDataFromAttr( msg, msgLen, inf->ifInfo );
         }
@@ -1732,7 +1732,7 @@ static BOOL getLink( struct nlmsghdr *iMsg, size_t iMsgLen, void *iUserData )
     COM_UNUSED( iUserData );
     for( ;  NLMSG_OK( iMsg, iMsgLen );  iMsg = NLMSG_NEXT( iMsg, iMsgLen ) ) {
         struct ifinfomsg*  msg = (void*)NLMSG_DATA( iMsg );
-        uint  msgLen = IFLA_PAYLOAD( iMsg );
+        uint  msgLen = (uint)(IFLA_PAYLOAD( iMsg ));
         com_ifinfo_t*  inf = getLinkDataFromAttr( msg, msgLen );
         struct linkinfo  linkInf = { (ulong)(msg->ifi_index), inf };
         if( !getAddrList( &linkInf ) ) {return false;}
