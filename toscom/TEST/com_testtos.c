@@ -2877,7 +2877,7 @@ static void exam_baseFunctions( int iArgc, char **iArgv )
     //test_getFileFunc();             // ファイル名取得
     //test_ringBuffer();              // リングバッファ
     //test_config();                  // コンフィグ機能
-    test_assertion();               // アサート機能
+    //test_assertion();               // アサート機能
 }
 
 static void exam_extraFunctions( void )
