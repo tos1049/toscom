@@ -528,7 +528,7 @@ static int checkCSource( const struct dirent *iEntry )
     const char* name = iEntry->d_name;
     char ext[16];
     if( !com_getFileExt( ext, sizeof(ext), name ) ) {return 0;}
-    if( !strcmp( ext, "c" ) ) {return 1;}
+    if( com_compareString( ext, "c", 0, false ) ) {return 1;}
     return 0;
 }
 
@@ -1293,7 +1293,9 @@ static long expectedHit( com_sortTable_t *iTable, com_sort_t *iTarget )
     for( long i = 0;  i < iTable->count;  i++ ) {
         com_sort_t* data = &(iTable->table[i]);
         if( iTarget->data ) {
-            if( strcmp( data->data, iTarget->data ) ) {continue;}
+            if( !com_compareString( data->data, iTarget->data, 0, false ) ) {
+                continue;
+            }
         }
         if( (data->key <= (iTarget->key + modRange(iTarget->range))) &&
             (iTarget->key <= (data->key + modRange(data->range))) )
@@ -2231,35 +2233,39 @@ void test_procPack( void )
 // test_convertAddr() ////////////////////////////////////////////////////////
 
 static void procConvert(
-        COM_SOCK_TYPE_t iType, int iFamily, const char *iAddr, ushort iPort )
+        COM_SOCK_TYPE_t iType, int iFamily, const char *iAddr, ushort iPort,
+        BOOL iExpected )
 {
     static int count = 0;
     struct addrinfo* tmp = NULL;
     com_sockaddr_t test;
     count++;
-    if( com_getaddrinfo( &tmp, iType, iFamily, iAddr, iPort ) ) {
+    com_resetLastError();
+    BOOL result = com_getaddrinfo( &tmp, iType, iFamily, iAddr, iPort );
+    com_assertEquals( "result", iExpected, result );
+    if( result ) {
         char *addr, *port;
         com_copyAddr( &test, tmp );
         com_getnameinfo( &addr, &port, &test.addr, 0 );
         com_printf( "[%s]:%s\n", addr, port );
         com_freeaddrinfo( &tmp );
     }
-    else { com_printf( "convert NG (%d)\n", count ); }
+    else { com_assertEquals( "errno", COM_ERR_DEBUGNG, com_getLastError() ); }
 }
 
 void test_convertAddr( void )
 {
     startFunc( __func__ );
-    procConvert( COM_SOCK_UDP, AF_INET, "192.168.1.1", 12345 );
-    procConvert( COM_SOCK_TCP_CLIENT, AF_INET, "10.1.2.3", 34 );
-    procConvert( COM_SOCK_UDP, AF_INET, "192.3.56.78.123.3", 222 ); // エラー
-    procConvert( COM_SOCK_TCP_SERVER, AF_INET6, "2001:aaaa:bbbb::1:2", 456 );
-    procConvert( COM_SOCK_UDP, AF_INET6, "2001::1::23:x", 222 );    // エラー
+    procConvert( COM_SOCK_UDP, AF_INET, "192.168.1.1", 12345, true );
+    procConvert( COM_SOCK_TCP_CLIENT, AF_INET, "10.1.2.3", 34, true );
+    procConvert( COM_SOCK_UDP, AF_INET, "192.3.56.78.123.3", 222, false );
+    procConvert( COM_SOCK_TCP_SERVER, AF_INET6, "2001:aaaa:bbbb::1:2", 456, true );
+    procConvert( COM_SOCK_UDP, AF_INET6, "2001::1::23:x", 222, false );
 }
 
 // test_ipAddr() /////////////////////////////////////////////////////////////
 
-static void checkAddr( const char *iString )
+static void checkAddr( const char *iString, COM_AF_TYPE_t iExpected )
 {
     COM_AF_TYPE_t type = com_isIpAddr( iString );
 
@@ -2267,18 +2273,19 @@ static void checkAddr( const char *iString )
     if( type == AF_INET )   { com_printf( " ...IPv4 address\n" ); }
     if( type == COM_IPV6 )  { com_printf( " ...IPv6 address\n" ); }
     if( type == COM_NOTIP ) { com_printf( " ...not IP address\n" ); }
+    com_assertEquals( "type", iExpected, type );
 }
 
 void test_ipAddr( void )
 {
     startFunc( __func__ );
-    checkAddr( "127.0.0.1" );       // IPv4
-    checkAddr( "123.4" );           // not
-    checkAddr( "123.A" );           // not
-    checkAddr( "2001::1" );         // IPv6
-    checkAddr( "1111:2222:3333:4444:5555:6666:7777:8888" );   // IPv6
-    checkAddr( "111::222::333" );   // not
-    checkAddr( "ABC:DEF::GHI" );    // not
+    checkAddr( "127.0.0.1", COM_IPV4 );
+    checkAddr( "123.4", COM_NOTIP );
+    checkAddr( "123.A", COM_NOTIP );
+    checkAddr( "2001::1", COM_IPV6 );
+    checkAddr( "1111:2222:3333:4444:5555:6666:7777:8888", COM_IPV6 );
+    checkAddr( "111::222::333", COM_NOTIP );
+    checkAddr( "ABC:DEF::GHI", COM_NOTIP );
 }
 
 // test_network() ////////////////////////////////////////////////////////////
@@ -2456,10 +2463,10 @@ void test_network( int iArgc, char **iArgv )
 
     // com_select.h 動作チェック用オプション
     if( iArgc < 5 ) { com_printf( "need s/c t/u 4/6/U\n" ); return; }
-    gIsServer = !strcmp( iArgv[2], "s" );
-    gIsTcp    = !strcmp( iArgv[3], "t" );
-    gIsV6     = !strcmp( iArgv[4], "6" );
-    gIsUNIX   = !strcmp( iArgv[4], "U" );
+    gIsServer = com_compareString( iArgv[2], "s", 0, false );
+    gIsTcp    = com_compareString( iArgv[3], "t", 0, false );
+    gIsV6     = com_compareString( iArgv[4], "6", 0, false );
+    gIsUNIX   = com_compareString( iArgv[4], "U", 0, false );
     setTestAddr();
 
     if( gIsServer ) {
@@ -2518,6 +2525,7 @@ void test_timer( void )
 
 // test_checkSize() //////////////////////////////////////////////////////////
 
+// ネット用の構造体のサイズを目視確認
 void test_checkSize( void )
 {
     startFunc( __func__ );
@@ -2572,7 +2580,9 @@ static void dispIfInf( long iCnt, com_ifinfo_t *iInf )
 static com_ifinfo_t *getSomeIf( long iCnt, com_ifinfo_t *iInf )
 {
     for( long i = 0;  i < iCnt;  i++ ) {
-        if( strcmp( iInf[i].ifname, "lo" ) ) { return &(iInf[i]); }
+        if( !com_compareString( iInf[i].ifname, "lo", 0, false ) ) {
+            return &(iInf[i]);
+        }
     }
     return NULL;
 }
@@ -2582,9 +2592,11 @@ static BOOL gUseNetlink = false;
 
 static void examSeekIf(
         char *iLabel, com_ifinfo_t *iTarget, int iFlags,
-        com_seekIf_t *iCond )
+        com_seekIf_t *iCond, BOOL iExpected )
 {
     com_ifinfo_t* result = com_seekIfInfo( iFlags, iCond, gUseNetlink );
+    if( iExpected ) { com_assertNotNull( "result", result ); }
+    else { com_assertNull( "result", result ); }
     if( result ) {
         com_printf( "--found ifindex=%d(%s)\n",
                     result->ifindex, result->ifname );
@@ -2607,20 +2619,20 @@ void test_ifinfo( void )
     com_ifinfo_t* target = getSomeIf( cnt, inf );
     if( !target ) { return; }
     examSeekIf( "ifname", target, COM_IF_NAME,
-                &(com_seekIf_t){ .ifname = target->ifname } );
+                &(com_seekIf_t){ .ifname = target->ifname }, true );
     examSeekIf( "ifindex", target, COM_IF_INDEX,
-                &(com_seekIf_t){ .ifindex = target->ifindex } );
+                &(com_seekIf_t){ .ifindex = target->ifindex }, true );
     examSeekIf( "ifname & ifindex", target, COM_IF_NAME | COM_IF_INDEX,
                 &(com_seekIf_t){ .ifname = target->ifname,
-                                 .ifindex = target->ifindex } );
+                                 .ifindex = target->ifindex }, true );
     examSeekIf( "ipaddr(sa)", target, COM_IF_IPSA,
-                &(com_seekIf_t){ .ipaddr = target->soAddrs[0].addr } );
+                &(com_seekIf_t){ .ipaddr = target->soAddrs[0].addr }, true );
     examSeekIf( "ipaddr(text) -> NG", target, COM_IF_IPTXT,
-                &(com_seekIf_t){ .ipaddr = "255.255.255.2" } );
+                &(com_seekIf_t){ .ipaddr = "255.255.255.2" }, false );
     examSeekIf( "hwaddr(bin)", target, COM_IF_HWBIN,
-                &(com_seekIf_t){ .hwaddr = target->hwaddr } );
+                &(com_seekIf_t){ .hwaddr = target->hwaddr }, true );
     examSeekIf( "hwaddr(text) -> NG", target, COM_IF_HWTXT,
-                &(com_seekIf_t){ .hwaddr = "FF:FF:FF:F1:F2:F3" } );
+                &(com_seekIf_t){ .hwaddr = "FF:FF:FF:F1:F2:F3" }, false );
 }
 
 void test_cksumRfc( void )
@@ -2629,8 +2641,7 @@ void test_cksumRfc( void )
     uchar bindata[] = { 0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70,
                         0x80, 0x90, 0xa0, 0xb0, 0xc0, 0xd0, 0xe0, 0xf0 };
     ushort sum = com_cksumRfc( bindata, 16 );
-    com_printf( "cksum = %x\n", sum );
-    assert( sum == 0xfc7b );
+    com_assertEqualsU( "sum", 0xfc7b, sum );
 }
 
 #ifdef USING_COM_SIGNAL1   // セレクト機能＋シグナル機能1を使うテストコード
