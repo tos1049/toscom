@@ -1,11 +1,11 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 #
-# $B%/%m!<%s:n@.D>8e!"$3$N%7%'%k%9%/%j%W%H$r<B9T$7$F!"(B
-# $B!&%U%!%$%k$N%Q!<%_%C%7%g%s$rE,@Z$J$b$N$KJQ99(B
-# $B!&(Btoscom$B$N;n83MQ%U%!%$%k$N%j%s%/:n@.(B
-# $B!&(BsmplComm,wintest,analyzer,resetTxt $B$N(B newenv$B<B9T(B
-# $B$r9T$$!"3F4D6-$G$N%S%k%I$,2DG=$J>uBV$K$9$k!#(B
+# クローン作成直後、このシェルスクリプトを実行して、
+# ・ファイルのパーミッションを適切なものに変更
+# ・toscomの試験用ファイルのリンク作成
+# ・smplComm,wintest,analyzer,resetTxt の newenv実行
+# を行い、各環境でのビルドが可能な状態にする。
 #
 
 echo "--- set 666 to all files ---"
