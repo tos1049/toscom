@@ -291,6 +291,7 @@ cd ..
 echo "--- resetTxtでも mpu実行のみ実施 ---"
 cd resetTxt
 ./mpu
+cd ..
 
 echo "======= アーカイブ作業 終了 ======="
 echo
