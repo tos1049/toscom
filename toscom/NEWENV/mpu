@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 # NEWENVのリリース用ファイルを揃える (z から呼ばれる)
 
