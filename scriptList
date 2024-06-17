@@ -1,0 +1,15 @@
+
+#
+# シェルスクリプトの一覧を作成する。
+# 本スクリプト単体で動かしても意味はなく、必要に応じて呼び出される。
+#
+
+SLtools="e i p z c w x"
+SLtoscom="xconvconf xconv xnameconf xname xt rt TEST/_test NEWENV/mpu NEWENV/newenv"
+SLbuildlib="collectLibFiles gcc_sample ready"
+
+SLsmplcomm="mpu newenv s1 s2"
+SLwintest="mpu newenv"
+SLanalyzer="mpu newenv"
+SLresettxt="mpu newenv"
+

@@ -4,35 +4,45 @@
 # 実行属性を付与するスクリプト
 #
 
+. scriptList
+
 echo "--- tools ---"
-chmod 755 p z c w
+echo "(${SLtools})"
+chmod 755 ${SLtools}
 
 echo "--- toscom ---"
+echo "(${SLtoscom})"
 cd toscom
-chmod 755 xnameconf xconv xname xt rt TEST/_test
-cd NEWENV
-chmod 755 mpu newenv
-cd ../BUILD/.lib
-chmod 755 collectLibFiles gcc_sample ready
+chmod 755 ${SLtoscom}
+
+echo "--- toscom/BUILD/.lib ---"
+echo "(${SLbuildlib})"
+cd BUILD/.lib
+chmod 755 ${SLbuildlib}
+
 cd ../../..
 
 echo "--- smplComm ---"
+echo "(${SLsmplcomm})"
 cd smplComm
-chmod 755 mpu newenv s1 s2
+chmod 755 ${SLsmplcomm}
 cd ..
 
 echo "--- wintest ---"
+echo "(${SLwintest})"
 cd wintest
-chmod 755 mpu newenv
+chmod 755 ${SLwintest}
 cd ..
 
 echo "--- analyzer ---"
+echo "(${SLanalyzer})"
 cd analyzer
-chmod 755 mpu newenv
+chmod 755 ${SLanalyzer}
 cd ..
 
 echo "--- resetTxt ---"
+echo "(${SLresettxt})"
 cd resetTxt
-chmod 755 mpu newenv
+chmod 755 ${SLresettxt}
 cd ..
 
