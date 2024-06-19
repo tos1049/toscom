@@ -5377,6 +5377,8 @@ typedef enum {
  * これにより、comモジュール使用者の意思で出力したデバッグ表示と区別が出来る
  * ようにしている。このログが不要な場合は com_noComDebugLog() を使用する。
  *
+ * またアサート機能の関数 com_assert*()についても COM_DEBUG_OFF時は動作しない。
+ *
  * プログラム開始当初から設定を反映させたいなら、com_initializeSpec()で
  * 本I/Fを呼ぶ必要がある。本I/F設定が makefileの設定より優先される。
  * (ビルド時に makefileの -DDEBUGPRINT で指定できる)
@@ -6205,47 +6207,56 @@ void com_testCode( int iArgc, char **iArgv );
  * 基本的にリリースするファイルでアサート関数が使われている状態にはしないよう
  * コードを記述するべきである。
  *
- * NDEBUG がマクロ定義されると、assert()は動作しないことから、
- * もし NDEBUG が定義されている場合、ここで記載したアサート関数も一切動作せず
- * 画面出力も一切行わなり。想定した動作をしない時は、マクロ宣言を確認すること。
+ * NDEBUG がマクロ定義されると、assert()は動作しないことに注意すること。
+ *
+ * makefileのデバッグスイッチ DEBUGPRINT が COM_DEBUG_OFF の場合は、
+ * 一切の画面出力も assert()実行も行わない。
+ * このデバッグスイッチは com_setDebugPrint() でプログラム内でも変更可能。
  *
  * 確認内容に応じて、幾つかI/Fが存在するが、以下は共通の引数説明になる。
  *   iLabel:  デバッグ文に出力する文字列(変数名等になるだろう)
  *            NULLの場合、期待値と結果値のみの出力になる。
- *   iExpected:  結果として期待する値(I/Fによって型が異なる)
+ *   iExpected:  結果として期待する値(I/Fによって型が異なる。無いこともある)
  *   iResult:    実際の結果値(I/Fによって型が異なる)
  *
  * I/Fによっては更に引数を持つものがあるが、それは以下の個別説明で触れる。
+ *
  *   com_assertEquals()
  *   com_assertNotEquals()
  *     iExpectedと iResultは long型。
  *     com_assertEquals()は iExpected と iResult が等しいことを確認。
  *     com_assertNotEquals()は iExpected と iResult が等しくないことを確認。
+ *
  *   com_assertEqualsU()
  *   com_assertNotEqualsU()
  *     iExpectedと iResultは ulong型。
  *     com_assertEqualsU()は iExpected と iResult が等しいことを確認。
  *     com_assertNotEqualsU()は iExpected と iResult が等しくないことを確認。
+ *
  *   com_assertEqualsF()
  *   com_assertNotEqualsF()
  *     iExpectedと iResultは float型。
  *     com_assertEqualsF()は iExpected と iResult が等しいことを確認。
  *     com_assertNotEqualsF()は iExpected と iResult が等しくないことを確認。
+ *
  *   com_assertEqualsD()
  *   com_assertNotEqualsD()
  *     iExpectedと iResultは double型。
  *     com_assertEqualsD()は iExpected と iResult が等しいことを確認。
  *     com_assertNotEqualsD()は iExpected と iResult が等しくないことを確認。
+ *
  *   com_assertString()
  *   com_assertStringLen()
  *     iExpectedと iResultは char*型
  *     どちらも iExpected と iResult が文字列として等しいことを確認。
- *     com_assertStringLen() は iLength を引数として持ち、先頭から指定した長さ
- *     の文字列を互いに比較する。
+ *     com_assertStringLen() は iLength を引数としてさらに持ち、
+ *     先頭から指定した長さの文字列を互いに比較する。
+ *
  *   com_assertTrue()
  *   com_assertFalse()
  *     iExpectedは引数として持たず、iResultは BOOL型。
  *     iResultが true(0以外) または false(0) かを確認する。
+ *
  *   com_assertNull()
  *   com_assertNotNull()
  *     iExpectedは引数として持たず、iResultは void*型。
