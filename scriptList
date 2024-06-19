@@ -4,7 +4,7 @@
 # 本スクリプト単体で動かしても意味はなく、必要に応じて呼び出される。
 #
 
-SLtools="c e i p w x z"
+SLtools="c e i l p w x z"
 SLtoscom="xconvconf xconv xnameconf xname xt rt TEST/_test NEWENV/mpu NEWENV/newenv"
 SLbuildlib="collectLibFiles gcc_sample ready"
 
