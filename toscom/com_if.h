@@ -6226,24 +6226,34 @@ void com_testCode( int iArgc, char **iArgv );
  *     iExpectedと iResultは long型。
  *     com_assertEquals()は iExpected と iResult が等しいことを確認。
  *     com_assertNotEquals()は iExpected と iResult が等しくないことを確認。
+ *     引数は long型だが、int,short,char型を指定しても問題ない。
+ *     ただし、unsignedが付いている場合は、こちらではなく
+ *     com_assertEqualsU() や com_assertNotEqualsU() を使用すること。
  *
  *   com_assertEqualsU()
  *   com_assertNotEqualsU()
  *     iExpectedと iResultは ulong型。
  *     com_assertEqualsU()は iExpected と iResult が等しいことを確認。
  *     com_assertNotEqualsU()は iExpected と iResult が等しくないことを確認。
+ *     引数は ulong型だが、uint,ushort,uchar型を指定しても問題ない。
+ *     ただし、unsignedが付いていない場合は、こちらではなく
+ *     com_assertEquals() や com_assertNotEquals() を使用すること。
  *
  *   com_assertEqualsF()
  *   com_assertNotEqualsF()
  *     iExpectedと iResultは float型。
  *     com_assertEqualsF()は iExpected と iResult が等しいことを確認。
  *     com_assertNotEqualsF()は iExpected と iResult が等しくないことを確認。
+ *     double型を確認したい場合は、こちらではなく
+ *     ccom_assertEqualsD() や com_assertNotEqualsD() を使用すること。
  *
  *   com_assertEqualsD()
  *   com_assertNotEqualsD()
  *     iExpectedと iResultは double型。
  *     com_assertEqualsD()は iExpected と iResult が等しいことを確認。
  *     com_assertNotEqualsD()は iExpected と iResult が等しくないことを確認。
+ *     float型を確認したい場合は、こちらではなく
+ *     ccom_assertEqualsF() や com_assertNotEqualsF() を使用すること。
  *
  *   com_assertString()
  *   com_assertStringLen()
@@ -6255,12 +6265,12 @@ void com_testCode( int iArgc, char **iArgv );
  *   com_assertTrue()
  *   com_assertFalse()
  *     iExpectedは引数として持たず、iResultは BOOL型。
- *     iResultが true(0以外) または false(0) かを確認する。
+ *     iResultが true(0以外) または false(0) かを確認。
  *
  *   com_assertNull()
  *   com_assertNotNull()
  *     iExpectedは引数として持たず、iResultは void*型。
- *     iResultが NULL または 非NULL かを確認する。
+ *     iResultが NULL または 非NULL かを確認。
  */
 
 /*
