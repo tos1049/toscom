@@ -16,6 +16,8 @@ LIB_*
 *.a
 chatlog.*
 toscom/com_test.c
+.tmpgrep*
+lresult*
 
 dispBin
 work_toscom
