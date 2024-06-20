@@ -18,6 +18,8 @@ else
   cat /dev/null > ${TMPTOTAL}
 fi
 
+echo "check: $(date)"
+
 function getFuncName() {
   local _line="$1"
   GETLINE=$(echo "${_line}" | awk -F ":" '{print $1}')
