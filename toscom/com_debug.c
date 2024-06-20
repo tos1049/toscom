@@ -1572,9 +1572,10 @@ static BOOL checkNDEBUG( void )
 }
 
 #define ASSERTSTART \
-    if( com_getDebugPrint() == COM_DEBUG_OFF ) {return;} \
-    dispAssertLine( iLabel ); \
-    do {} while(0)
+    do { \
+        if( com_getDebugPrint() == COM_DEBUG_OFF ) {return;} \
+        dispAssertLine( iLabel ); \
+    } while(0)
 
 void com_assertEqualsFunc(
         char *iLabel, long iExpected, long iResult, COM_FILEPRM )
