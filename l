@@ -24,6 +24,7 @@ function getFuncName() {
   local _line="$1"
   GETLINE=$(echo "${_line}" | awk -F ":" '{print $1}')
   #printf "%-5d : " "${GETLINE}"
+  # 関数名( の形になっている前提。関数名の前の * はあっても良い。
   GETFUNC=$(echo "${_line}" | grep -o -E "[^[:space:]]+\(")
   #echo "${GETFUNC}"
   while [[ "${GETFUNC}" =~ \* ]]; do
@@ -55,8 +56,6 @@ function calcAvr() {
   local _funcs=$2
   echo "scale=2; ${_lines} / ${_funcs}" | bc
 }
-
-GREPFUNC='[[:alnum:][:space:]_]+([*[:alnum:]_]+)\('
 
 function getFunctions() {
   local _target=$1
@@ -127,7 +126,6 @@ function calcTotalResult() {
     local _totalAvr=$(calcAvr ${_totalLines} ${_totalFuncs})
     printf "%6d %6d  %6.2f\n" ${_totalLines} ${_totalFuncs} ${_totalAvr}
   }
-
 }
 
 function removeTmpFiles() {
