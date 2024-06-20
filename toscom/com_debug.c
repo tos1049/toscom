@@ -1236,7 +1236,8 @@ COM_DEBUG_MODE_t com_getWatchFileInfo( void )
 
 static __thread BOOL gSkipFileInfo = false;
 
-void com_skipFileInfo( BOOL iMode ) {
+void com_skipFileInfo( BOOL iMode )
+{
 #ifdef NOTSKIP_FILEWATCH     // makefileでコンパイルオプションとして指定可能
     // スキップなしの場合、この関数は何もせずに終了
     COM_UNUSED( iMode );

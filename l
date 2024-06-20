@@ -4,6 +4,10 @@
 # 関数の平均ライン数を計算する
 #
 
+# CTRL+C で中断時も一時ファイルを削除するようにする。
+# (.tmpgrep4 が残っていると、結果出力のみのモードになるため)
+trap intruptFinish sigint
+
 GREPFUNC='\([[:alnum:]_]\+\)[[:space:]*]\+\([[:alnum:]_]\+\)('
 TMPPUBLIC=".tmpgrep1"
 TMPSTATIC=".tmpgrep2"
@@ -37,22 +41,21 @@ function getFuncName() {
   #echo "${GETFUNC}()"
 }
 
+function searchLine() {
+  local _target="$1"
+  local _topLine=$2
+  local _key=$3
+  local _endLine=$((_topLine + TRIMLINE))
+  local _grep=$(tail -n +${_topLine} ${_target} | grep -m 1 -n "^${_key}")
+  echo "${_grep}" | awk -F ":" '{print $1}'
+}
+
 function getLineCount() {
   local _target="$1"
   local _topLine=$2
-  local _startLine=${_topLine}
-  while
-    ((_startLine++))
-    local _line=$(sed -n "${_startLine}p" ${_target})
-    [[ ! ${_line} =~ ^\{ ]]
-  do true; done
-  local _endLine=${_startLine}
-  while
-    ((_endLine++))
-    local _line=$(sed -n "${_endLine}p" ${_target})
-    [[ ! ${_line} =~ ^\} ]]
-  do true; done
-  ((FUNCLINE = _endLine - _startLine - 1))
+  local _start=$(searchLine ${_target} ${_topLine} "{")
+  local _end=$(searchLine ${_target} ${_topLine} "}")
+  ((FUNCLINE = _end - _start - 1))
 }
 
 function calcAvr() {
@@ -72,8 +75,9 @@ function getFunctions() {
   fi
   grep -n "^${GREPFUNC}" ${_target} > ${TMPPUBLIC}
   grep -n "^static[[:space:]]*${GREPFUNC}" ${_target} > ${TMPSTATIC}
-  cat ${TMPPUBLIC} ${TMPSTATIC} | sort -g > ${TMPMERGE}
-  cat ${TMPMERGE} | {
+  #cat ${TMPPUBLIC} ${TMPSTATIC} | sort -g > ${TMPMERGE}
+  #cat ${TMPMERGE} | {
+  cat ${TMPPUBLIC} ${TMPSTATIC} | sort -g | {
     TOTALLINES=0
     FUNCCOUNT=0
     AVRLINES=0
@@ -137,6 +141,11 @@ function removeTmpFiles() {
   rm -fr ${TMPSTATIC}
   rm -fr ${TMPMERGE}
   if [ "${ONLYRESULT}" != "YES" ]; then rm -fr ${TMPTOTAL}; fi
+}
+
+function intruptFinish() {
+  removeTmpFiles
+  exit
 }
 
 checkSource

@@ -1124,7 +1124,8 @@ BOOL com_waitEvent( void )
     return true;
 }
 
-BOOL com_watchEvent( void ) {
+BOOL com_watchEvent( void )
+{
     BOOL  result = true;
     GET_CURRENT;
     long  drop = 0;
