@@ -5,17 +5,13 @@
 #
 
 # CTRL+C で中断時も一時ファイルを削除するようにする。
-# (.tmpgrep4 が残っていると、結果出力のみのモードになるため)
+# (.tmptotal が残っていると、結果出力のみのモードになるため)
 trap intruptFinish sigint
 
-GREPFUNC='\([[:alnum:]_]\+\)[[:space:]*]\+\([[:alnum:]_]\+\)('
-TMPPUBLIC=".tmpgrep1"
-TMPSTATIC=".tmpgrep2"
-TMPMERGE=".tmpgrep3"
-TMPTOTAL=".tmpgrep4"
+TMPTOTAL=".tmptotal"
 
-# .tmpgrep4 を敢えて作成することで、それを読み込んで結果出力する試験動作可能。
-# 動作確認後は手動で .tmpgrep4 を削除すること。
+# .tmptotal を敢えて作成することで、それを読み込んで結果出力する試験動作可能。
+# 動作確認後は手動で .tmptotal を削除すること。
 if [ -e ${TMPTOTAL} ]; then
   ONLYRESULT="YES"
 else
@@ -26,18 +22,12 @@ function getFuncName() {
   local _line="$1"
   GETLINE=$(echo "${_line}" | awk -F ":" '{print $1}')
   #printf "%-5d : " "${GETLINE}"
-  # staticがあったら、その分 1つ後のトークンを見ないと関数名にならない
-  if [[ "${_line}" =~ [0-9]+:static ]]; then
-    GETFUNC=$(echo "${_line}" | awk '{print $3}')
-    #echo -n "static "
-  else
-    GETFUNC=$(echo "${_line}" | awk '{print $2}')
-  fi
-  # 取得した関数名の冒頭に付いているかもしれない * と末尾の ( を削除
+  GETFUNC=$(echo "${_line}" | grep -o -E "[^[:space:]]+\(")
+  #echo "${GETFUNC}"
   while [[ "${GETFUNC}" =~ \* ]]; do
-    GETFUNC=${GETFUNC/\*/}
+    GETFUNC="${GETFUNC/\*/}"
   done
-  GETFUNC=${GETFUNC/\(/}
+  GETFUNC="${GETFUNC/\(/}"
   #echo "${GETFUNC}()"
 }
 
@@ -64,6 +54,8 @@ function calcAvr() {
   echo "scale=2; ${_lines} / ${_funcs}" | bc
 }
 
+GREPFUNC='[[:alnum:][:space:]_]+([*[:alnum:]_]+)\('
+
 function getFunctions() {
   local _target=$1
   echo
@@ -73,17 +65,14 @@ function getFunctions() {
     echo "not exist... ${_target}"
     return
   fi
-  grep -n "^${GREPFUNC}" ${_target} > ${TMPPUBLIC}
-  grep -n "^static[[:space:]]*${GREPFUNC}" ${_target} > ${TMPSTATIC}
-  #cat ${TMPPUBLIC} ${TMPSTATIC} | sort -g > ${TMPMERGE}
-  #cat ${TMPMERGE} | {
-  cat ${TMPPUBLIC} ${TMPSTATIC} | sort -g | {
+  grep -E -n "^([[:alnum:]_*]+[[:space:]]+)+([*[:alnum:]_]+)\(" ${_target} | {
     TOTALLINES=0
     FUNCCOUNT=0
     AVRLINES=0
     while read _grepline; do
       if [[ "${_grepline}" =~ typedef ]]; then continue; fi
       if [[ "${_grepline}" =~ \#define ]]; then continue; fi
+      #echo "${_grepline}"
       getFuncName "${_grepline}"
       getLineCount "$_target" "${GETLINE}"
       printf "%5d : %s()\n" ${FUNCLINE} ${GETFUNC}
@@ -95,6 +84,9 @@ function getFunctions() {
     printf "  total = %d lines (%d functions)\n" ${TOTALLINES} ${FUNCCOUNT}
     printf "  avrage = %5.2f\n" ${AVRLINES}
     echo "--------------------------------------------"
+    # ここの処理は本シェルのプロセスとは別プロセスで処理されるため、
+    # 本シェルプロセスの calcTotalResult()で集計が出来るように、
+    # ファイルごとの結果を一時ファイルに書き込む。
     echo "${TOTALLINES} ${FUNCCOUNT} ${_target}" >> ${TMPTOTAL}
   }
 }
@@ -137,9 +129,6 @@ function calcTotalResult() {
 }
 
 function removeTmpFiles() {
-  rm -fr ${TMPPUBLIC}
-  rm -fr ${TMPSTATIC}
-  rm -fr ${TMPMERGE}
   if [ "${ONLYRESULT}" != "YES" ]; then rm -fr ${TMPTOTAL}; fi
 }
 
