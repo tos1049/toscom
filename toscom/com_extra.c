@@ -902,14 +902,15 @@ com_regex_id_t com_regcomp( com_regcomp_t *iRegex )
     return newId;
 }
 
-BOOL com_regexec( com_regex_id_t iId, com_regexec_t *ioTarget )
+BOOL com_regexec( com_regex_id_t iId, com_regexec_t *ioRegexec )
 {
     if( iId < 0 || iId >= gRegexId ) {COM_PRMNG(false);}
-    if( COM_UNLIKELY(!ioTarget) ) {COM_PRMNG(false); }
-    if( COM_UNLIKELY(!(ioTarget->target)) ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioRegexec) ) {COM_PRMNG(false); }
+    if( COM_UNLIKELY(!(ioRegexec->target)) ) {COM_PRMNG(false);}
 
-    int result = regexec( &gRegexList[iId], ioTarget->target, ioTarget->nmatch,
-                          ioTarget->pmatch, (int)ioTarget->eflags );
+    int result = regexec( &gRegexList[iId], ioRegexec->target,
+                          ioRegexec->nmatch, ioRegexec->pmatch,
+                          (int)ioRegexec->eflags );
     return !result;
 }
 
@@ -937,20 +938,20 @@ void com_freeRegexec( com_regexec_t *ioRegexec )
 
 static __thread char gRegexAnlyzeBuf[COM_TEXTBUF_SIZE];
 
-char *com_analyzeRegmatch( com_regexec_t *iTarget, size_t iIndex )
+char *com_analyzeRegmatch( com_regexec_t *iRegexec, size_t iIndex )
 {
-    if( COM_UNLIKELY(!iTarget) ) {COM_PRMNG(NULL);}
-    if( iIndex >= iTarget->nmatch ) {
+    if( COM_UNLIKELY(!iRegexec) ) {COM_PRMNG(NULL);}
+    if( iIndex >= iRegexec->nmatch ) {
         com_error( COM_ERR_REGXP, 
-                   "index(%ld) over (max=%ld)", iIndex, iTarget->nmatch );
+                   "index(%ld) over (max=%ld)", iIndex, iRegexec->nmatch );
         return NULL;
     }
     gRegexAnlyzeBuf[0] = '\0';
-    regmatch_t  *target = &(iTarget->pmatch[iIndex]);
+    regmatch_t  *target = &(iRegexec->pmatch[iIndex]);
     if( target->rm_so >= 0 && target->rm_eo >= 0 ) {
         regoff_t  reglen = target->rm_eo - target->rm_so;
         (void)com_strncpy( gRegexAnlyzeBuf, sizeof(gRegexAnlyzeBuf),
-                           &(iTarget->target[target->rm_so]), (size_t)reglen );
+                           &(iRegexec->target[target->rm_so]), (size_t)reglen );
     }
     return gRegexAnlyzeBuf;
 }

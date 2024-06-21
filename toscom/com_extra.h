@@ -1092,7 +1092,7 @@ com_regex_id_t com_regcomp( com_regcomp_t *iRegex );
  *   検索マッチ成否を true/false で返す。
  * ---------------------------------------------------------------------------
  *   COM_ERR_DEBUGNG: [com_prmNG] iId < 0 || iId > 最終生成ID
- *                                !ioTarget   !ioTarget->target
+ *                                !ioRegexec   !ioRegexec->target
  * ===========================================================================
  *   スレッドに関する問題は発生しない。
  * ===========================================================================
@@ -1101,7 +1101,7 @@ com_regex_id_t com_regcomp( com_regcomp_t *iRegex );
  * iId には com_regcomp()で返された正規表現IDを指定する。
  * 複数のコンパイルを実施している時、どの正規表現マッチを実施するか識別する。
  *
- * com_regexec_t型のデータのアドレスを ioTargetに指定する。
+ * com_regexec_t型のデータのアドレスを ioRegexecに指定する。
  * regcomp()に渡すデータとなり、そのメンバーは以下のように指定する。
  *   .target  検索対象の文字列
  *   .eflags  regexec()にそのまま渡す処理フラグ値。下記から指定可能。
@@ -1156,7 +1156,7 @@ typedef struct {
     regmatch_t *pmatch;    // マッチした内容
 } com_regexec_t;
 
-BOOL com_regexec( com_regex_id_t iId, com_regexec_t *ioTarget );
+BOOL com_regexec( com_regex_id_t iId, com_regexec_t *ioRegexec );
 
 /*
  * 正規表現結果データ生成  com_makeRegexec()
@@ -1169,7 +1169,7 @@ BOOL com_regexec( com_regex_id_t iId, com_regexec_t *ioTarget );
  * ===========================================================================
  * com_regexec()で使用する com_regexec_t型のデータを生成する。
  *
- * oTarget は実際に設定したい対象のデータアドレスを指定する。
+ * oRegexec は実際に設定したい対象の実体データアドレスを指定する。
  * iTarget・iEflags・iNmatch・iPmatch はそのまま *oTarget に設定する内容。
  * 
  * com_regexec()の説明でも記載した通り iPmatch に指定するべき内容は
@@ -1183,7 +1183,7 @@ BOOL com_regexec( com_regex_id_t iId, com_regexec_t *ioTarget );
  * com_freeRegexec()でメモリ解放を実施しなければならない。
  */
 BOOL com_makeRegexec(
-        com_regexec_t *oTarget, const char *iTarget, long iEflags,
+        com_regexec_t *oRegexec, const char *iTarget, long iEflags,
         size_t iNmatch, regmatch_t *iPmatch );
 
 /*
@@ -1209,12 +1209,12 @@ void com_freeRegexec( com_regexec_t *ioRegexec );
  *   文字列が取得できなかった場合は空文字を返す。
  *   エラー発生時は NULLを返す。
  * ---------------------------------------------------------------------------
- *   COM_ERR_DEBUGNG: [com_prmNG] iTarget
- *   COM_ERR_REGXP:  iIndex >= iTarget->nmatch
+ *   COM_ERR_DEBUGNG: [com_prmNG] iRegexec
+ *   COM_ERR_REGXP:  iIndex >= iRegexec->nmatch
  * ===========================================================================
  *   マルチスレッドについては考慮済み。
  * ===========================================================================
- * iTarget->pmatch のうち iIndexで指定したデータを iTarget->target から
+ * iRegexec->pmatch のうち iIndexで指定したデータを iRegexec->target から
  * 文字列として取得し、そのアドレスを返す。
  *
  * この際のアドレスはスレッドごとに生成された文字列バッファになる。
@@ -1226,7 +1226,7 @@ void com_freeRegexec( com_regexec_t *ioRegexec );
  * 1以上を指定する場合は、正規表現コンパイル時に 正規表現で () を使って
  * グループ化をしていなければ、意味がないので注意すること。
  */
-char *com_analyzeRegmatch( com_regexec_t *iTarget, size_t iIndex );
+char *com_analyzeRegmatch( com_regexec_t *iRegexec, size_t iIndex );
 
 
 
