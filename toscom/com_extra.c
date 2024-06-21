@@ -958,7 +958,7 @@ char *com_analyzeRegmatch( com_regexec_t *iRegexec, size_t iIndex )
 
 static void freeRegex( void )
 {
-    for( long i = 0;  i < gRegexId;  i++ ) {
+    for( com_regex_id_t i = 0;  i < gRegexId;  i++ ) {
         regfree( &(gRegexList[i]) );
     }
     com_free( gRegexList );
