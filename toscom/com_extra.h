@@ -1120,6 +1120,11 @@ com_regex_id_t com_regcomp( com_regcomp_t *iRegex );
  *
  * 検索結果だけで良ければ .nmatch=0 .pmatch=NULL にしてしまっても問題無い。
  * (あるいは com_regcomp()の時点で REG_NOSUB を指定しても良い)
+ * ただし同じ文字列を対象にして、マッチングを複数回行いときは、最低でも
+ * .nmatch=1で、それを格納できる .pmatchが必要。
+ * そうして、検索を行ってマッチングした後は .target + .pmatch[0].rm_eo を
+ * 新たな .target として検索を実施する。これをマッチングが失敗するまで
+ * 次々繰り返すことで、同じ文字列に対する検索を複数回実施できる。
  *
  * com_makeRegexec()を使えば .pmatch をメモリから動的に確保も可能。
  *
