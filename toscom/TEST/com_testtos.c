@@ -2225,6 +2225,51 @@ void test_procPack( void )
     readPackFile();
 }
 
+#define NMATCH_MAX  4
+
+static void checkRegexec(
+        char *iLabel, com_regex_id_t iId, com_regexec_t *ioExec,
+        BOOL iExpected, char **iList )
+{
+    com_assertEquals( iLabel, iExpected, com_regexec( iId, ioExec ) );
+    for( size_t i = 0;  i < NMATCH_MAX;  i++ ) {
+        regmatch_t* tmp = &(ioExec->pmatch[i]);
+        com_printf( " %zu: (%ld:%ld)\n", i, tmp->rm_so, tmp->rm_eo );
+        com_assertString( "  ", iList[i], com_analyzeRegmatch(ioExec, i) );
+    }
+}
+
+void test_regex( void )
+{
+    startFunc( __func__ );
+    com_regcomp_t rcomp = { "((abc)+)([DE])", REG_EXTENDED | REG_ICASE };
+    com_regexec_t rexec1;
+    com_regexec_t rexec2;
+    com_regexec_t rexec3;
+    regmatch_t  tmppmatch[NMATCH_MAX];
+    char *expected1[] = { "ABCabcD", "ABCabc", "abc", "D" };
+    char *expected2[] = { "", "", "", "" };
+    char *expected3[] = { "ABCE", "ABC", "ABC", "E" };
+
+    com_regex_id_t  id = com_regcomp( &rcomp );
+    com_assertEquals( "com_regcomp()", 0, id );
+
+    com_assertTrue( "com_makeRegexec() 1", com_makeRegexec( &rexec1,
+                            "ABCabcDbcABCDEFABZ", 0, NMATCH_MAX, NULL ) );
+    com_assertTrue( "com_makeRegexec() 2", com_makeRegexec( &rexec2,
+                            "ABZDEFABXABYDEFABZ", 0, NMATCH_MAX, NULL ) );
+    com_assertTrue( "com_makeRegexec() 3", com_makeRegexec( &rexec3,
+                            "ABZDEFABCEBYDEFABZ", 0, NMATCH_MAX, tmppmatch ) );
+
+    checkRegexec( "com_regexec() 1", id, &rexec1, true,  expected1 );
+    checkRegexec( "com_regexec() 2", id, &rexec2, false, expected2 );
+    checkRegexec( "com_regexec() 3", id, &rexec3, true,  expected3 );
+
+    com_freeRegexec( &rexec1 );
+    com_freeRegexec( &rexec2 );
+    // rexec3 は解放不要なので、com_freeRegexec()は使わない
+}
+
 #endif // USING_COM_EXTRA
 
 
@@ -2985,6 +3030,7 @@ static void exam_extraFunctions( void )
     //test_searchPrime();             // 素数判定
     //test_dice();                    // ダイス判定
     //test_procPack();                // データ保存・読込
+    //test_regex();                   // 正規表現
 #endif // USING_COM_EXTRA
 }
 

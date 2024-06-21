@@ -871,11 +871,106 @@ BOOL com_readPackVar( com_packInf_t *ioInf, void *ioAddr, size_t *ioSize )
 
 
 
+// 正規表現関連 --------------------------------------------------------------
+
+static pthread_mutex_t  gMutexRegxp = PTHREAD_MUTEX_INITIALIZER;
+
+static regex_t  *gRegexList = NULL;
+static com_regex_id_t  gRegexId = 0;
+
+com_regex_id_t com_regcomp( com_regcomp_t *iRegex )
+{
+    if( COM_UNLIKELY(!iRegex) ) {COM_PRMNG(COM_REGXP_NG); }
+    if( COM_UNLIKELY(!(iRegex->regex)) ) {COM_PRMNG(COM_REGXP_NG); }
+
+    regex_t tmpreg;
+    int result = regcomp( &tmpreg, iRegex->regex, (int)iRegex->cflags );
+    if( result ) {
+        com_error( COM_ERR_REGXP, "regcomp() failed(%d)", result );
+        return COM_REGXP_NG;
+    }
+    long  newId = gRegexId;
+    com_skipMemInfo( true );
+    com_mutexLock( &gMutexRegxp, __func__ );
+    long addresult = com_realloct(
+                       &gRegexList, sizeof(gRegexList[0]), &gRegexId, 1,
+                       "regex comp list(%ld)", gRegexId );
+    com_mutexUnlock( &gMutexRegxp, __func__ );
+    com_skipMemInfo( false );
+    if( !addresult ) { return COM_REGXP_NG; }
+    gRegexList[newId] = tmpreg;
+    return newId;
+}
+
+BOOL com_regexec( com_regex_id_t iId, com_regexec_t *ioTarget )
+{
+    if( iId < 0 || iId >= gRegexId ) {COM_PRMNG(false);}
+    if( COM_UNLIKELY(!ioTarget) ) {COM_PRMNG(false); }
+    if( COM_UNLIKELY(!(ioTarget->target)) ) {COM_PRMNG(false);}
+
+    int result = regexec( &gRegexList[iId], ioTarget->target, ioTarget->nmatch,
+                          ioTarget->pmatch, (int)ioTarget->eflags );
+    return !result;
+}
+
+BOOL com_makeRegexec(
+        com_regexec_t *oRegexec, const char *iTarget, long iEflags,
+        size_t iNmatch, regmatch_t *iPmatch )
+{
+    if( COM_UNLIKELY(!oRegexec || !iTarget ) ) {COM_PRMNG(false); }
+    if( iNmatch && !iPmatch ) {
+        iPmatch = com_malloc( sizeof(regmatch_t) * iNmatch,
+                              "com_makeRegexec pmatch[%zu]", iNmatch );
+        if( !iPmatch ) {return false;}
+    }
+    *oRegexec = (com_regexec_t){ iTarget, iEflags, iNmatch, iPmatch };
+    return true;
+}
+
+void com_freeRegexec( com_regexec_t *ioRegexec )
+{
+    if( COM_UNLIKELY(!ioRegexec) ) {return;}
+    if( ioRegexec->nmatch && ioRegexec->pmatch ) {
+        com_free( ioRegexec->pmatch );
+    }
+}
+
+static __thread char gRegexAnlyzeBuf[COM_TEXTBUF_SIZE];
+
+char *com_analyzeRegmatch( com_regexec_t *iTarget, size_t iIndex )
+{
+    if( COM_UNLIKELY(!iTarget) ) {COM_PRMNG(NULL);}
+    if( iIndex >= iTarget->nmatch ) {
+        com_error( COM_ERR_REGXP, 
+                   "index(%ld) over (max=%ld)", iIndex, iTarget->nmatch );
+        return NULL;
+    }
+    gRegexAnlyzeBuf[0] = '\0';
+    regmatch_t  *target = &(iTarget->pmatch[iIndex]);
+    if( target->rm_so >= 0 && target->rm_eo >= 0 ) {
+        regoff_t  reglen = target->rm_eo - target->rm_so;
+        (void)com_strncpy( gRegexAnlyzeBuf, sizeof(gRegexAnlyzeBuf),
+                           &(iTarget->target[target->rm_so]), (size_t)reglen );
+    }
+    return gRegexAnlyzeBuf;
+}
+
+static void freeRegex( void )
+{
+    for( long i = 0;  i < gRegexId;  i++ ) {
+        regfree( &(gRegexList[i]) );
+    }
+    com_free( gRegexList );
+}
+
+
+
 // 初期化/終了処理 ///////////////////////////////////////////////////////////
 
 static com_dbgErrName_t  gErrorNameExtra[] = {
     { COM_ERR_READTXTNG,   "COM_ERR_READTXTNG" },
     { COM_ERR_SIGNALNG,    "COM_ERR_SIGNALNG" },
+    { COM_ERR_REGXP,       "COM_ERR_REGXP" },
     { COM_ERR_END,         "" }  // 最後は必ずこれで
 };
 
@@ -884,6 +979,7 @@ static void finalizeExtra( void )
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
     com_free( gMenuList );
     if( gSigOldAct.count ) {com_freeSortTable( &gSigOldAct );}
+    freeRegex();
     COM_DEBUG_AVOID_END( COM_PROC_ALL );
 }
 

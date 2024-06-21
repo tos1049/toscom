@@ -15,6 +15,7 @@
  *   ・COMEXRAND:  乱数関連I/F
  *   ・COMEXSIG:   シグナル関連I/F
  *   ・COMEXPACK:  データパッケージ関連I/F
+ *   ・COMEXREGXP: 正規表現関連I/F
  *
  *   なお、本ヘッダファイルで float.h と math.h をインクルードするので、
  *   倍精度変数と各種数学関数も副次的に使用可能となる。
@@ -25,6 +26,7 @@
 #pragma once
 
 #include <signal.h>
+#include <regex.h>
 
 /*
  *****************************************************************************
@@ -37,6 +39,7 @@ enum {
     COM_ERR_READTXTNG  = 930,        // 複数行テキスト読み込みNG
     COM_ERR_RANDOMIZE  = 931,        // 乱数生成NG
     COM_ERR_SIGNALNG   = 932,        // シグナル関連NG
+    COM_ERR_REGXP      = 934,        // 正規表現処理NG
 };
 
 /*
@@ -1026,6 +1029,204 @@ BOOL com_writePackDirect(
 BOOL com_readPack( com_packInf_t *ioInf, com_packElm_t *oElm, long iCount );
 BOOL com_readPackFix( com_packInf_t *ioInf, void *iData,  size_t iSize );
 BOOL com_readPackVar( com_packInf_t *ioInf, void *ioData, size_t *ioSize );
+
+
+
+/*
+ *****************************************************************************
+ * COMEXREGXP: 正規表現関連I/F
+ *****************************************************************************
+ */
+
+/* 正規表現ID */
+typedef long  com_regex_id_t;
+
+#define  COM_REGXP_NG  -1
+
+/*
+ * 正規表現コンパイル  com_regcomp()
+ *   コンパイルに成功したら、正規表現ID(0以上の値)を返す。
+ *   コンパイルに失敗したら、COM_REGXP_NG を返す。
+ * ---------------------------------------------------------------------------
+ *   COM_ERR_DEBUGNG: [com_prmNG] !iRegex  !iRegex->regex
+ *   COM_ERR_REGXP:  regcomp()でエラー
+ *                   コンパイル結果保持のためのメモリ確保失敗
+ *   com_realloct()によるエラー
+ * ===========================================================================
+ *   マルチスレッドについては考慮済み。
+ * ===========================================================================
+ * regcomp()を使って、正規表現文字列をコンパイルし、その結果を保持する。
+ * そして保持したデータのIDを 正規表現ID として返す。このIDは com_regexec()で
+ * どの正規表現コンパイル結果を使って検索するか指定するために使用する。
+ * コンパイル結果(regex_t型データ)は正規表現IDに紐づけられるので意識不要。
+ *
+ * com_regcomp_t型のデータのアドレスを iRegexで指定する。
+ * この構造体データのメンバーは下記のように設定する。
+ *   .regex   実際の正規表現の文字列
+ *   .cflags  regcomp()にそのまま渡す処理フラグ値。下記から指定可能。
+ *            複数指定したいときは | で繋いで指定する。
+ *               REG_EXTENED   regexにPOSIX拡張正規表現を使用
+ *               REG_ICASE     大文字小文字の違いを無視
+ *               REG_NEWLINE   オペレータに改行をマッチさせない
+ *               REG_NOSUB     regexec()の nmatch・pmatch を無視
+ *                             (マッチ成否のみ見る)
+ *
+ * この後、com_regexec()を使って、実際の正規表現マッチを実施する。
+ * その時に、本I/Fで返した正規表現IDを使って、どの検索をするのか指定する。
+ * 
+ * コンパイル結果は toscomの内部データとして、メモリを動的に確保して保持する。
+ * このメモリはプログラム終了時に自動解放するので、ユーザーは意識不要。
+ *
+ * COM_REGXP_NG を返したときは、正規表現の処理は中断するようにコードを書くこと。
+ * 
+ */
+typedef struct {
+    const char *regex;     // 実際の正規表現文字列
+    long        cflags;    // regcomp()に渡すフラグ(com_regcomp()の説明参照)
+} com_regcomp_t;
+
+com_regex_id_t com_regcomp( com_regcomp_t *iRegex );
+
+/*
+ * 正規表現実行  com_regexec()
+ *   検索マッチ成否を true/false で返す。
+ * ---------------------------------------------------------------------------
+ *   COM_ERR_DEBUGNG: [com_prmNG] iId < 0 || iId > 最終生成ID
+ *                                !ioTarget   !ioTarget->target
+ * ===========================================================================
+ *   スレッドに関する問題は発生しない。
+ * ===========================================================================
+ * regexec()を使って、実際の正規表現マッチを実施し、その結果を返す。
+ *
+ * iId には com_regcomp()で返された正規表現IDを指定する。
+ * 複数のコンパイルを実施している時、どの正規表現マッチを実施するか識別する。
+ *
+ * com_regexec_t型のデータのアドレスを ioTargetに指定する。
+ * regcomp()に渡すデータとなり、そのメンバーは以下のように指定する。
+ *   .target  検索対象の文字列
+ *   .eflags  regexec()にそのまま渡す処理フラグ値。下記から指定可能。
+ *            複数指定したいときは | で繋いで指定する。
+ *               REG_NOTBOL   行頭にマッチするオペレータは必ずマッチに失敗
+ *               REG_NOTEOL   行末にマッチするオペレータは必ずマッチに失敗
+ *   .nmatch  この次の .pmatchの要素数。
+ *            com_regcomp()で .cflagsに REG_NOSUB を指定時は内容は無視される。
+ *   .pmatch  検索結果を格納する配列変数のアドレス。 .nmatch が 0のときと
+ *            com_regcomp()で .cflagsに REG_NOSUB を指定時は内容は無視される。
+ *
+ * 手動であれば、例えば以下のように指定すれば良い。
+ *   enum { NMATCH = 5 };
+ *   pmatch_t  pmatch[NMATCH];
+ *   com_regexec_t  exec = { "検索対象文字列", 0, NMATCH, pmatch };
+ *
+ * 検索結果だけで良ければ .nmatch=0 .pmatch=NULL にしてしまっても問題無い。
+ * (あるいは com_regcomp()の時点で REG_NOSUB を指定しても良い)
+ *
+ * com_makeRegexec()を使えば .pmatch をメモリから動的に確保も可能。
+ *
+ * .pmatch に格納される情報は
+ *   .pmatch[0]  マッチした文字列全体
+ *   .pmatch[1]  1つ目のグループマッチした文字列
+ *   .pmatch[2]  2つ目のグループマッチした文字列
+ *   ....
+ * となる。グループマッチは正規表現で () を使ってグループ化したら実施する。
+ * 幾つグループ化しているかは明白だから、nmatch でそれが十分入る個数と、
+ * その個数を確保した .pmatch を渡す必要がある。
+ *
+ * 実際の .pmatch[] には 以下の情報が入っている。
+ *   .rm_so  マッチした文字列の先頭オフセット
+ *   .rm_eo  マッチした文字列の最終オフセット
+ * 例えば、以下のコードで文字列を出力できる。
+ *   com_regexec_t  exec = ～;   // 構造体の名前は exec とする
+ *   (中略)
+ *   for( size_t idx = 0;  idx < exec.nmatch;  idx++ ) {
+ *       regmatch_t *tmp = &(exec.pmatch[idx]);
+ *       for( regoff_t offset = tmp->rm_so; offset < tmp->rm_eo;  offset++ ) {
+ *           com_printf( "%c", exec.target[offset];
+ *       }
+ *       com_printLf();
+ *   }
+ * 正確に言うと .rm_eo はマッチした文字列の次の文字オフセットなことに注意。
+ * それでも上記のような for文で使うのには、そのほうが適しているし、
+ * 文字列長を計算したいときも .rm_eo から .rm_so を引くだけで良い。
+ */
+typedef struct {
+    const char *target;    // 検索対象の文字列
+    long        eflags;    // regexec()に渡すフラグ(com_regexec()の説明参照)
+    size_t      nmatch;    // マッチさせる数
+    regmatch_t *pmatch;    // マッチした内容
+} com_regexec_t;
+
+BOOL com_regexec( com_regex_id_t iId, com_regexec_t *ioTarget );
+
+/*
+ * 正規表現結果データ生成  com_makeRegexec()
+ *   処理成否を true/false で返す。
+ * ---------------------------------------------------------------------------
+ *   COM_ERR_DEBUGNG: [com_prmNG] ioRegexec || !iTarget
+ *   com_malloc()によるエラー
+ * ===========================================================================
+ *   スレッドに関する問題は発生しない。
+ * ===========================================================================
+ * com_regexec()で使用する com_regexec_t型のデータを生成する。
+ *
+ * oTarget は実際に設定したい対象のデータアドレスを指定する。
+ * iTarget・iEflags・iNmatch・iPmatch はそのまま *oTarget に設定する内容。
+ * 
+ * com_regexec()の説明でも記載した通り iPmatch に指定するべき内容は
+ *   regmatch_t  pmatch[iNmatchの内容];
+ * で定義したもの・・つまり上記であれば pmatch ということになる。
+ *
+ * iPmatch には 敢えて NULL を指定することが可能。
+ * iNmatch が 0ではない場合、com_malloc()を使って、その数のメモリを確保し
+ * 確保したメモリのアドレスを iPmatchの値として自動指定する。
+ * この方法でメモリを動的に確保している場合、処理をすべて終えたら、
+ * com_freeRegexec()でメモリ解放を実施しなければならない。
+ */
+BOOL com_makeRegexec(
+        com_regexec_t *oTarget, const char *iTarget, long iEflags,
+        size_t iNmatch, regmatch_t *iPmatch );
+
+/*
+ * 正規表現結果データ解放  com_freeRegexec()
+ * ---------------------------------------------------------------------------
+ *   COM_ERR_DEBUGNG: [com_prmNG] ioRegexec
+ *   com_free()によるエラー
+ * ===========================================================================
+ *   スレッドに関する問題は発生しない。
+ * ===========================================================================
+ * ioRegexec->pmatch を動的に確保しているものと想定し、com_free()で解放する。
+ * メモリを動的確保していない場合、落ちるので注意すること。
+ *
+ * com_makeRegexec()で iPmatchを NULL指定し、メモリを自動確保している場合に、
+ * このI/Fでそのメモリを開放できる。
+ */
+void com_freeRegexec( com_regexec_t *ioRegexec );
+
+/*
+ * 正規表現検索結果文字列取得
+ *   取得した文字列を指すアドレスを返す。
+ *   (継続して文字列を使いたいときは、本I/F使用後、別バッファにコピーすること)
+ *   文字列が取得できなかった場合は空文字を返す。
+ *   エラー発生時は NULLを返す。
+ * ---------------------------------------------------------------------------
+ *   COM_ERR_DEBUGNG: [com_prmNG] iTarget
+ *   COM_ERR_REGXP:  iIndex >= iTarget->nmatch
+ * ===========================================================================
+ *   マルチスレッドについては考慮済み。
+ * ===========================================================================
+ * iTarget->pmatch のうち iIndexで指定したデータを iTarget->target から
+ * 文字列として取得し、そのアドレスを返す。
+ *
+ * この際のアドレスはスレッドごとに生成された文字列バッファになる。
+ * もし複数回 本I/Fを呼んだ場合、そのたびに上書きされるので、
+ * 取得した文字列を継続して使いたいときは、I/F使用後 速やかに別バッファに、
+ * その文字列をコピーすることを強く推奨する。
+ *
+ * iIndex = 0 の場合は、マッチした文字列全体を取得できるが、
+ * 1以上を指定する場合は、正規表現コンパイル時に 正規表現で () を使って
+ * グループ化をしていなければ、意味がないので注意すること。
+ */
+char *com_analyzeRegmatch( com_regexec_t *iTarget, size_t iIndex );
 
 
 

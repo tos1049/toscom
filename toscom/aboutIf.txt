@@ -372,6 +372,12 @@ toscom grimoire Ver3.00
    com_readPackFix()           データパッケージ読込(固定長限定)
    com_readPackVar()           データパッケージ読込(可変長限定)
 
+   ********** COMEXREGXP:正規表現関連関連 **********
+  +com_regcomp()               正規表現コンパイル
+  +com_regexec()               正規表現実行
+  +com_makeRegexec()           正規表現結果データ生成
+  +com_freeRegexec()           正規表現結果データ解放
+  +com_analyzeRegmatch()       正規表現検索結果文字列取得
 
 
 ===== セレクト機能 (com_select.h) ============================================
