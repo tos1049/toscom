@@ -375,8 +375,8 @@ toscom grimoire Ver3.00
    ********** COMEXREGXP:正規表現関連関連 **********
   +com_regcomp()               正規表現コンパイル
   +com_regexec()               正規表現実行
-  +com_makeRegexec()           正規表現結果データ生成
-  +com_freeRegexec()           正規表現結果データ解放
+  +com_makeRegexec()           正規表現実行用データ生成
+  +com_freeRegexec()           正規表現実行用データ解放
   +com_analyzeRegmatch()       正規表現検索結果文字列取得
 
 

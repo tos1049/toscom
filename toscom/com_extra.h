@@ -1163,7 +1163,7 @@ typedef struct {
 BOOL com_regexec( com_regex_id_t iId, com_regexec_t *ioRegexec );
 
 /*
- * 正規表現結果データ生成  com_makeRegexec()
+ * 正規表現実行用データ生成  com_makeRegexec()
  *   処理成否を true/false で返す。
  * ---------------------------------------------------------------------------
  *   COM_ERR_DEBUGNG: [com_prmNG] ioRegexec || !iTarget
@@ -1191,7 +1191,7 @@ BOOL com_makeRegexec(
         size_t iNmatch, regmatch_t *iPmatch );
 
 /*
- * 正規表現結果データ解放  com_freeRegexec()
+ * 正規表現実行用データ解放  com_freeRegexec()
  * ---------------------------------------------------------------------------
  *   COM_ERR_DEBUGNG: [com_prmNG] ioRegexec
  *   com_free()によるエラー
