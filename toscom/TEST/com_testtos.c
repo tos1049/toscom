@@ -2234,8 +2234,11 @@ static void checkRegexec(
     com_assertEquals( iLabel, iExpected, com_regexec( iId, ioExec ) );
     for( size_t i = 0;  i < NMATCH_MAX;  i++ ) {
         regmatch_t* tmp = &(ioExec->pmatch[i]);
+        size_t len;
         com_printf( " %zu: (%ld:%ld)\n", i, tmp->rm_so, tmp->rm_eo );
-        com_assertString( "  ", iList[i], com_analyzeRegmatch(ioExec, i) );
+        com_assertString( "  ", iList[i],
+                          com_analyzeRegmatch( ioExec, i, &len) );
+        com_assertEqualsU( "len", strlen(iList[i]), len );
     }
 }
 

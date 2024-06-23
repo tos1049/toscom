@@ -938,8 +938,10 @@ void com_freeRegexec( com_regexec_t *ioRegexec )
 
 static __thread char gRegexAnlyzeBuf[COM_TEXTBUF_SIZE];
 
-char *com_analyzeRegmatch( com_regexec_t *iRegexec, size_t iIndex )
+char *com_analyzeRegmatch(
+        com_regexec_t *iRegexec, size_t iIndex, size_t *oSize )
 {
+    COM_SET_IF_EXIST( oSize, 0 );
     if( COM_UNLIKELY(!iRegexec) ) {COM_PRMNG(NULL);}
     if( iIndex >= iRegexec->nmatch ) {
         com_error( COM_ERR_REGXP, 
@@ -952,8 +954,15 @@ char *com_analyzeRegmatch( com_regexec_t *iRegexec, size_t iIndex )
         regoff_t  reglen = target->rm_eo - target->rm_so;
         (void)com_strncpy( gRegexAnlyzeBuf, sizeof(gRegexAnlyzeBuf),
                            &(iRegexec->target[target->rm_so]), (size_t)reglen );
+        COM_SET_IF_EXIST( oSize, (size_t)reglen );
     }
     return gRegexAnlyzeBuf;
+}
+
+regex_t *com_getRegex( com_regex_id_t iId )
+{
+    if( iId < 0 || iId >= gRegexId ) {COM_PRMNG(NULL);}
+    return &(gRegexList[iId]);
 }
 
 static void freeRegex( void )
