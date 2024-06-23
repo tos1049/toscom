@@ -854,6 +854,47 @@ com_selectId_t com_createSocket(
 
 
 /*
+ * TCP接続受付  com_acceptSocket()
+ *   対向からの接続要求を受け入れ、生成された通信用ソケットの管理IDを返す。
+ *   accept()で処理NG時は COM_NO_SOCK を返す。
+ * ---------------------------------------------------------------------------
+ *   COM_ERR_DEBUGNG: [com_prmNG] iListen不正 || listenソケットでない管理ID
+ *   COM_ERR_ACCEPTNG: accept()失敗
+ *   イベント情報追加のための com_reallocによるエラー
+ * ===========================================================================
+ *   マルチスレッドの影響は考慮されていない。
+ * ===========================================================================
+ * iListenで指定した管理IDの listenソケットに接続要求が来た時、それを受け入れ
+ * TCP接続を確立する。確立して通信ソケットが生成できたら、その管理IDを返す。
+ * 以後、その管理IDを使ってデータ送受信を行える。
+ *
+ * iListenに指定できるのは、COM_SOCK_TCP_SERVERを指定して com_createSocket()で
+ * 生成したソケットの管理IDのみ。そうではない管理IDを指定するとエラーになる。
+ *
+ * iNonBlockの値により、listenソケットに対し fcntl()で以下の設定をする。
+ *  ・true:   F_SETFL, O_NONBLOCK  (非停止モード＝非同期)
+ *  ・false:  F_SETFL, O_SYNC      (同期モード)
+ * accept()が負数を返すとどちらの設定でも COM_NO_SOCK を返すが、
+ * iNonBlockが true時は、errnoが EAGAIN または EWOULDBLOCK の場合、
+ * COM_ERR_ACCEPTNG のエラーは出さず、リトライを期待するので、errnoのチェックを
+ * 必ず実施すること。(com_receiveSocket()と同じような扱いとなる)
+ *
+ * iEventFuncは 新たに生成される通信用ソケットのイベント関数指定になる。
+ * NULL指定でもよく、その場合は listenソケットのイベント関数を流用する。
+ * それとは別の関数にしたい場合に備えて、この引数は用意されている。
+ *
+ * com_waitEvent()や com_watchEvent()を使う場合、iEventFunc=NULLで動作となる。
+ * ただイベント関数内で 受信/アクセプト/切断の何が起きたのか区別出来るので、
+ * listenソケットと同じイベント関数でも困ることはない。
+ *
+ * デバッグ出力が ONの場合、accept()の結果をログ出力する。
+ * その ON/OFF は com_setDebugSelect() で可能。
+ */
+com_selectId_t com_acceptSocket(
+        com_selectId_t iListen, BOOL iNonBlock, com_sockEventCB_t iEventFunc );
+
+
+/*
  * ソケットID取得  com_getSockId()
  *   指定した管理IDで保持しているソケットIDを返す。
  *   その管理IDが標準入力用の場合は 0 を返す。
@@ -1033,47 +1074,6 @@ typedef enum {
 COM_RECV_RESULT_t com_receiveSocket(
         com_selectId_t iId, void *oData, size_t iDataSize,
         BOOL iNonBlock, ssize_t *oLen, com_sockaddr_t *oFrom );
-
-
-/*
- * TCP接続受付  com_acceptSocket()
- *   対向からの接続要求を受け入れ、生成された通信用ソケットの管理IDを返す。
- *   accept()で処理NG時は COM_NO_SOCK を返す。
- * ---------------------------------------------------------------------------
- *   COM_ERR_DEBUGNG: [com_prmNG] iListen不正 || listenソケットでない管理ID
- *   COM_ERR_ACCEPTNG: accept()失敗
- *   イベント情報追加のための com_reallocによるエラー
- * ===========================================================================
- *   マルチスレッドの影響は考慮されていない。
- * ===========================================================================
- * iListenで指定した管理IDの listenソケットに接続要求が来た時、それを受け入れ
- * TCP接続を確立する。確立して通信ソケットが生成できたら、その管理IDを返す。
- * 以後、その管理IDを使ってデータ送受信を行える。
- *
- * iListenに指定できるのは、COM_SOCK_TCP_SERVERを指定して com_createSocket()で
- * 生成したソケットの管理IDのみ。そうではない管理IDを指定するとエラーになる。
- *
- * iNonBlockの値により、listenソケットに対し fcntl()で以下の設定をする。
- *  ・true:   F_SETFL, O_NONBLOCK  (非停止モード＝非同期)
- *  ・false:  F_SETFL, O_SYNC      (同期モード)
- * accept()が負数を返すとどちらの設定でも COM_NO_SOCK を返すが、
- * iNonBlockが true時は、errnoが EAGAIN または EWOULDBLOCK の場合、
- * COM_ERR_ACCEPTNG のエラーは出さず、リトライを期待するので、errnoのチェックを
- * 必ず実施すること。(com_receiveSocket()と同じような扱いとなる)
- *
- * iEventFuncは 新たに生成される通信用ソケットのイベント関数指定になる。
- * NULL指定でもよく、その場合は listenソケットのイベント関数を流用する。
- * それとは別の関数にしたい場合に備えて、この引数は用意されている。
- *
- * com_waitEvent()や com_watchEvent()を使う場合、iEventFunc=NULLで動作となる。
- * ただイベント関数内で 受信/アクセプト/切断の何が起きたのか区別出来るので、
- * listenソケットと同じイベント関数でも困ることはない。
- *
- * デバッグ出力が ONの場合、accept()の結果をログ出力する。
- * その ON/OFF は com_setDebugSelect() で可能。
- */
-com_selectId_t com_acceptSocket(
-        com_selectId_t iListen, BOOL iNonBlock, com_sockEventCB_t iEventFunc );
 
 
 /*

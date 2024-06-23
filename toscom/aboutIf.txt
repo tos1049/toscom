@@ -404,6 +404,7 @@ toscom grimoire Ver3.00
 
    ********** COMSELSOCK:ソケット関連 **********
    com_createSocket()          ソケット生成    <socket/setsockopt/bind/connect>
+   com_acceptSocket()          TCP接続受付                             <accept>
    com_getSockId()             ソケットID取得
    com_getSrcInf()             アドレス情報取得(自側)
    com_getDstInf()             アドレス情報取得(対向)
@@ -411,7 +412,6 @@ toscom grimoire Ver3.00
    com_sendSocket()            データ送信                              <sendto>
    com_cksumRfc()              チェックサム計算
    com_receiveSocket()         データ受信                            <recvfrom>
-   com_acceptSocket()          TCP接続受付                             <accept>
    com_filterSocket()          ソケットフィルター設定
 
    ********** COMSELTIMER:タイマー関連 **********
