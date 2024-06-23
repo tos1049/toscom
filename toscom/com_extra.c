@@ -880,8 +880,8 @@ static com_regex_id_t  gRegexId = 0;
 
 com_regex_id_t com_regcomp( com_regcomp_t *iRegex )
 {
-    if( COM_UNLIKELY(!iRegex) ) {COM_PRMNG(COM_REGXP_NG); }
-    if( COM_UNLIKELY(!(iRegex->regex)) ) {COM_PRMNG(COM_REGXP_NG); }
+    if( COM_UNLIKELY(!iRegex) ) {COM_PRMNG(COM_REGXP_NG);}
+    if( COM_UNLIKELY(!(iRegex->regex)) ) {COM_PRMNG(COM_REGXP_NG);}
 
     regex_t tmpreg;
     int result = regcomp( &tmpreg, iRegex->regex, (int)iRegex->cflags );
@@ -897,7 +897,7 @@ com_regex_id_t com_regcomp( com_regcomp_t *iRegex )
                        "regex comp list(%ld)", gRegexId );
     com_mutexUnlock( &gMutexRegxp, __func__ );
     com_skipMemInfo( false );
-    if( !addresult ) { return COM_REGXP_NG; }
+    if( !addresult ) {return COM_REGXP_NG;}
     gRegexList[newId] = tmpreg;
     return newId;
 }
@@ -918,7 +918,7 @@ BOOL com_makeRegexec(
         com_regexec_t *oRegexec, const char *iTarget, long iEflags,
         size_t iNmatch, regmatch_t *iPmatch )
 {
-    if( COM_UNLIKELY(!oRegexec || !iTarget ) ) {COM_PRMNG(false); }
+    if( COM_UNLIKELY(!oRegexec || !iTarget) ) {COM_PRMNG(false);}
     if( iNmatch && !iPmatch ) {
         iPmatch = com_malloc( sizeof(regmatch_t) * iNmatch,
                               "com_makeRegexec pmatch[%zu]", iNmatch );
