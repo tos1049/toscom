@@ -1329,8 +1329,12 @@ void com_switchEventBuffer( void *iBuf, size_t iBufSize );
  *  ・com_acceptSocket()/com_waitEvent/com_watchEvent()で生成されたソケット
  *  ・com_registerTimer()で登録された停止していないタイマー
  *  ・com_registerStdin()で登録された標準入力(キーボードからの入力)
+ *
  * 個別に監視したい時は、それぞれ別のI/Fがあるので、それを使用すること。
- * (ただし標準入力は個別監視はできない)
+ * 個別に監視する際に使用するI/Fは以下で、非同期監視をすることになるだろう。
+ *  ・com_receiveSocket()   ソケットの個別受信監視(iNonBlockを trueに設定)
+ *  ・com_checkTimer()      タイマーの個別監視
+ * 標準入力は個別監視はできない。
  *
  * 概ね下記のようなイメージでの使用を想定している。
  *     while( com_waitEvent() ) { }
