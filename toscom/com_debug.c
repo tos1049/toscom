@@ -145,7 +145,7 @@ void com_dispTitle( const char *iAdd )
 static pthread_mutex_t  gMutexOut = PTHREAD_MUTEX_INITIALIZER;
 static char  gLogBuff[COM_DATABUF_SIZE];    // ログ出力用共通バッファ
 
-#define COM_MAKELOG( ... ) \
+#define MAKELOG( ... ) \
     snprintf( gLogBuff, sizeof(gLogBuff), __VA_ARGS__ )
 
 static char  gWriteBuf[COM_DATABUF_SIZE];  // 書き込み用一時バッファ
@@ -327,7 +327,7 @@ void com_printBack( const char *iFormat, ... )
     size_t  back = strlen( gLogBuff );
     for( size_t i = 0;  i < back;  i++ ) {PRINTOUT( "\b" );}
     // ログ出力の方にのみ改行を入れる
-    COM_MAKELOG( "\n<b%zu>", back );
+    MAKELOG( "\n<b%zu>", back );
     PRINTLOG( gLogBuff );
     DBGOUT_TAIL;
 }
@@ -584,7 +584,7 @@ static void dispFunc( BOOL iCom, COM_FILEPRM, const char *iFormat, va_list iAp )
 {
     if( gPrintDebugMode == COM_DEBUG_OFF ) {return;}
     getLockAndForm( __func__, gFuncBuff, sizeof(gFuncBuff), iFormat, iAp );
-    COM_MAKELOG( "%s() %s   <%s:line %ld>", iFUNC, gFuncBuff, iFILE, iLINE );
+    MAKELOG( "%s() %s   <%s:line %ld>", iFUNC, gFuncBuff, iFILE, iLINE );
     debugCom( iCom );
     com_mutexUnlock( &gMutexOut, __func__ );
 }
@@ -617,7 +617,7 @@ static void dispDump(
 {
     if( gPrintDebugMode == COM_DEBUG_OFF ) {return;}
     getLockAndForm( __func__, gLogBuff, sizeof(gLogBuff), iFormat, iAp );
-    if( !iFormat ) {COM_MAKELOG( "dump %8p (size=%zu)", iAddr, iSize );}
+    if( !iFormat ) {MAKELOG( "dump %8p (size=%zu)", iAddr, iSize );}
     debugCom( iCom );
     if( iSize > 0 ) {
         size_t  cnt;  // for文外でも使うので、for文の外で定義
@@ -711,7 +711,7 @@ void com_outputErrorCount( void )
         dbgErrCount_t* tmp = gErrorTable.table[i].data;
         if( !tmp->count ) {continue;}
         COM_CLEAR_BUF( gLogBuff );
-        COM_MAKELOG( " %10ld [%03ld:%s]\n", tmp->count, tmp->code, tmp->name );
+        MAKELOG( " %10ld [%03ld:%s]\n", tmp->count, tmp->code, tmp->name );
         PRINT( gLogBuff );
     }
     COM_DEBUG_UNLOCKON( &gMutexError, __func__ );
@@ -787,7 +787,7 @@ static void countError( long iCode )
 }
 
 // 出力書式文字列のエラーログ編集処理マクロ
-#define COM_SET_ERRORLOG \
+#define SET_ERRORLOG \
     do {\
         va_list  ap; \
         COM_CLEAR_BUF( gErrorLogBuf ); \
@@ -820,7 +820,7 @@ static void outputErrorMessage( COM_FILEPRM )
     dispMode = gPrintDebugMode;
     if( dispMode == COM_DEBUG_OFF ) {return;}
     COM_CLEAR_BUF( gLogBuff );
-    COM_MAKELOG( " in %s:line %ld %s()\n", COM_FILEVAR );
+    MAKELOG( " in %s:line %ld %s()\n", COM_FILEVAR );
     if( !gErrDisp ) {dispMode = COM_DEBUG_SILENT;}
     // gPrintDebugModeが COM_DEBUG_SILENT なら gErrDispが trueでも そのまま
     branchErrorOutput( gLogBuff, dispMode );
@@ -838,7 +838,7 @@ void com_errorFunc(
 {
     if( gNotProcError ) {return;}
     COM_DEBUG_LOCKOFF( &gMutexError, __func__ );
-    COM_SET_ERRORLOG;
+    SET_ERRORLOG;
     COM_HOOKERR_ACTION_t hookAct = hookExec( iCode, gErrorLogBuf, COM_FILEVAR );
     if( hookAct == COM_HOOKERR_SKIP ) {
         setErrorInf( iCode );
@@ -1032,9 +1032,9 @@ static void dispWatchInfo(
 {
     PRINTCOM( gLogBuff );
     if( iLabel ) {
-        COM_MAKELOG( "%.2s          %s\n", iPre, iLabel );
+        MAKELOG( "%.2s          %s\n", iPre, iLabel );
         PRINTCOM( gLogBuff );
-        COM_MAKELOG( "%.2s   %s() in %s line %ld\n", iPre,iFUNC,iFILE,iLINE );
+        MAKELOG( "%.2s   %s() in %s line %ld\n", iPre,iFUNC,iFILE,iLINE );
         PRINTCOM( gLogBuff );
     }
 }
@@ -1078,7 +1078,7 @@ static void dispMemInfo(
 {
     COM_CLEAR_BUF( gLogBuff );
     // iTypeだけは iIndo->typeと異なる可能性があるため、別入力
-    COM_MAKELOG( "%s%08ld com_%-12s %12p %10zu (%10zu)\n",
+    MAKELOG( "%s%08ld com_%-12s %12p %10zu (%10zu)\n",
                  iPre, oInfo->seqno, com_getMemOperator( iType ),
                  oInfo->ptr, oInfo->size, gMemUsing );
     dispWatchInfo( iMode, iPre, oInfo->label, COM_FILEVAR );
@@ -1258,7 +1258,7 @@ static void dispFileInfo(
 
     COM_CLEAR_BUF( gLogBuff );
     // iTypeだけは iIndo->typeと異なる可能性があるため、別入力
-    COM_MAKELOG( "%s%08ld com_f%-7s %12p (%5ld)\n",
+    MAKELOG( "%s%08ld com_f%-7s %12p (%5ld)\n",
                  iPre, oInfo->seqno, type[iType], oInfo->ptr, gFileInfoCount );
     dispWatchInfo( iMode, iPre, oInfo->label, COM_FILEVAR );
 }
