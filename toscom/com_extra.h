@@ -1038,6 +1038,58 @@ BOOL com_readPackVar( com_packInf_t *ioInf, void *ioData, size_t *ioSize );
  *****************************************************************************
  */
 
+/*
+ * 正規表現は regex.h を利用して実現している。
+ * その使用パターンはだいたい以下のようになる。
+ *
+ * iRegexp が正規表現の文字列、iLineが検索対象の文字列、
+ * oMatch と iMatchSize はマッチした文字列を格納するバッファとなる。
+ *
+ * static BOOL getMatchedString(
+ *     const char *iRegexp, const char *iLine, char *oMatch, size_t iMatchSize )
+ * {
+ *     // 正規表現のコンパイル
+ *     com_regcomp_t compInf = { iRegexp, REG_EXTENDED };
+ *     com_regex_id_t regexId = com_regcomp( &compInf );
+ *     if( regexId == COM_REGXP_NG ) {return false;}
+ *
+ *     // 正規表現実行用データ作成
+ *     com_regexec_t execInf;   
+ *     if( !com_makeRegexec( &execInf, iLine, 0, 5, NULL ) ) {return false;}
+ *
+ *     // マッチング実施
+ *     BOOL result = com_regexec( regexId, &execInf );
+ *     if( result && oMatch ) {
+ *         // マッチしていたら、結果の文字列を取得
+ *         size_t matchSize = 0;
+ *         char* matched = com_analyzeRegmatch( &execInf, 0, &matchSize );
+ *         com_strncpy( oMatch, iMatchSize, matched, matchSize );
+ *     }
+ *     com_freeRegexec( &execInf );
+ *     return result;
+ * }
+ *
+ * ただ、上記だと同じ正規表現文字列を再度使っても、新たにコンパイルしてしまう。
+ * 一度コンパイルした結果は保持されているので、それを再利用できるようにする方が
+ * 望ましい。
+ *
+ * もし検索成否が欲しいだけであれば、下記のように もう少しシンプルに出来る。
+ *
+ * static BOOL getOnlyResult( const char *iRegexp, const char *iLine )
+ * {
+ *     // 正規表現のコンパイル
+ *     com_regcomp_t compInf = { iRegexp, REG_EXTENDED | REG_NOSUB };
+ *     com_regex_id_t regexId = com_regcomp( &compInf );
+ *     if( regexId == COM_REGXP_NG ) {return false;}
+ *
+ *     // 正規表現実行用データ作成
+ *     com_regexec_t execInf = { iLine, 0, 0, NULL };
+ *
+ *     // マッチング実施
+ *     return com_regexec( regexId, &execInf );
+ * }
+ */
+
 /* 正規表現ID */
 typedef long  com_regex_id_t;
 
@@ -1116,18 +1168,21 @@ com_regex_id_t com_regcomp( com_regcomp_t *iRegex );
  *
  * 手動であれば、例えば以下のように指定すれば良い。
  *   enum { NMATCH = 5 };
- *   pmatch_t  pmatch[NMATCH];
- *   com_regexec_t  exec = { "検索対象文字列", 0, NMATCH, pmatch };
+ *   pmatch_t  pmatchInf[NMATCH];
+ *   com_regexec_t  exec = { "検索対象文字列", 0, NMATCH, pmatchInf };
  *
  * 検索結果だけで良ければ .nmatch=0 .pmatch=NULL にしてしまっても問題無い。
  * (あるいは com_regcomp()の時点で REG_NOSUB を指定しても良い)
- * ただし同じ文字列を対象にして、マッチングを複数回行いときは、最低でも
- * .nmatch=1で、それを格納できる .pmatchが必要。
- * そうして、検索を行ってマッチングした後は .target + .pmatch[0].rm_eo を
+ *
+ * 同じ文字列を対象にして、マッチングを複数回行いときは、最低でも
+ * .nmatch=1で、それを格納できる .pmatchが必要
+ * (単純に pmatch_t pmatchInf; と定義し .pmatch には &pmatchInf を与えれば良い)
+ * そうして、検索を行ってマッチングした後は .target に .pmatch[0].rm_eo を加え
  * 新たな .target として検索を実施する。これをマッチングが失敗するまで
  * 次々繰り返すことで、同じ文字列に対する検索を複数回実施できる。
  *
- * com_makeRegexec()を使えば .pmatch をメモリから動的に確保も可能。
+ * com_makeRegexec()を使えば .pmatch をメモリから動的に確保し、
+ * com_freeRegexec()で確保したメモリの解放することも可能。
  *
  * .pmatch に格納される情報は
  *   .pmatch[0]  マッチした文字列全体
@@ -1189,6 +1244,11 @@ BOOL com_regexec( com_regex_id_t iId, com_regexec_t *ioRegexec );
  * 確保したメモリのアドレスを iPmatchの値として自動指定する。
  * この方法でメモリを動的に確保している場合、処理をすべて終えたら、
  * com_freeRegexec()でメモリ解放を実施しなければならない。
+ *
+ * 本I/Fを使用することは義務ではない。
+ * com_regexec()の説明記述には、ローカル変数を定義して、
+ * メモリの動的確保をせずに com_regexec_t型のデータを作成するパターンも
+ * 例示している。この方法なら com_freeRegexec()等でメモリ解放する必要もない。
  */
 BOOL com_makeRegexec(
         com_regexec_t *oRegexec, const char *iTarget, long iEflags,
