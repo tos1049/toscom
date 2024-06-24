@@ -1069,10 +1069,6 @@ BOOL com_readPackVar( com_packInf_t *ioInf, void *ioData, size_t *ioSize );
  *     return result;
  * }
  *
- * ただ、上記だと同じ正規表現文字列を再度使っても、新たにコンパイルしてしまう。
- * 一度コンパイルした結果は保持されているので、それを再利用できるようにする方が
- * 望ましい。
- *
  * もし検索成否が欲しいだけであれば、下記のように もう少しシンプルに出来る。
  *
  * static BOOL getOnlyResult( const char *iRegexp, const char *iLine )
@@ -1088,6 +1084,12 @@ BOOL com_readPackVar( com_packInf_t *ioInf, void *ioData, size_t *ioSize );
  *     // マッチング実施
  *     return com_regexec( regexId, &execInf );
  * }
+ *
+ * ただ、いずれも同じ正規表現文字列を再度使っても、新たにコンパイルして、
+ * どんどん内部データとして保持を続けてしまう。コンパイルした結果は保持されて
+ * いるので、それを再利用できるようにする方が望ましい。
+ * そうした作りにしたい場合は、コンパイルと実行で処理を分ける必要がある。
+ * (先にコンパイルだけ実施し、以後は取得した 正規表現ID を使って検索実行する)
  */
 
 /* 正規表現ID */
@@ -1241,8 +1243,8 @@ BOOL com_regexec( com_regex_id_t iId, com_regexec_t *ioRegexec );
  *
  * iPmatch には 敢えて NULL を指定することが可能。
  * iNmatch が 0ではない場合、com_malloc()を使って、その数のメモリを確保し
- * 確保したメモリのアドレスを iPmatchの値として自動指定する。
- * この方法でメモリを動的に確保している場合、処理をすべて終えたら、
+ * 確保したメモリのアドレスを iPmatchの値として自動設定する。
+ * メモリを動的に確保している場合、処理をすべて終えたら、
  * com_freeRegexec()でメモリ解放を実施しなければならない。
  *
  * 本I/Fを使用することは義務ではない。
@@ -1267,6 +1269,9 @@ BOOL com_makeRegexec(
  *
  * com_makeRegexec()で iPmatchを NULL指定し、メモリを自動確保している場合に、
  * このI/Fでそのメモリを開放できる。
+ *
+ * com_makeRegexec()を使わず手動でメモリ確保していたものの解放にも使用可能だが
+ * 解放するのは ioRegexec->pmatch だけであることには注意すること。
  */
 void com_freeRegexec( com_regexec_t *ioRegexec );
 
