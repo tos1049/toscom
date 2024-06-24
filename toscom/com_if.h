@@ -748,11 +748,15 @@ void *com_reallocfFunc(
  *
  * ioCount はそのテーブルの要素数の格納先アドレスを指定する。
  * テーブル拡縮が正しく行われれば、拡縮後の新たな値に更新する。
+ * (つまり現在の要素数を保持していない場合、本I/Fは使えない)
  *
- * iResize は要素数変分を指定する。負数を指定して縮小することも可能。
- * テーブルサイズを拡大する(iResize > 0)場合、その拡張に成功して新たに
- * 追加されたエリアの内容を 0クリアする。
- * iResizeが 0 の場合、何もせずに trueを返す。
+ * iResize は要素数変分を指定する。
+ * ・iResize > 0 の場合、テーブル拡大となる。その拡張に成功した時は、
+ *   新たに追加されたエリアの内容を 0クリアする。
+ * ・iResizeが 0 の場合、何もせずに trueを返す。
+ * ・iResize < 0 の場合、テーブル縮小となる。現在の個数(*ioCount)を超えるような
+ *   負数を指定した場合、*ioCountを負数にした値を設定したとみなす。
+ *   (以下に述べるように、その場合は全削除してメモリ解放を実施する)
  *
  * 最終的な個数が 0 になる場合( *ioCount + iResize が 0 になる場合)、
  * *ioAddr に対する com_free()を実施する。従って *ioAddrは NULLになって返る。
@@ -6210,9 +6214,10 @@ void com_testCode( int iArgc, char **iArgv );
  * 標準関数の assert()を使用するチェックのため、条件未達の場合は落ちることに
  * 注意すること。
  * 基本的にリリースするファイルでアサート関数が使われている状態にはしないよう
- * コードを記述するべきである。
+ * コードを記述するべきである。(落ちても良いのなら別だが・・)
  *
- * NDEBUG がマクロ定義されると、assert()は動作しないことに注意すること。
+ * NDEBUG がマクロ定義されると、assert()は動作しないことから、
+ * コンパイル時に I/F記述自体を削除して何も動作しないようにする。
  *
  * makefileのデバッグスイッチ DEBUGPRINT が COM_DEBUG_OFF の場合は、
  * 一切の画面出力も assert()実行も行わない。
@@ -6279,7 +6284,7 @@ void com_testCode( int iArgc, char **iArgv );
  */
 
 /*
- * 各I/Fのプロタイプ宣言形式 (以下を使用すること)
+ * プロトタイプ形式 (この形で使用すること)
  *
  *  void com_assertEquals( char *iLabel, long iExpected, long iResult );
  *  void com_assertNotEquals( char *iLabel, long iExpected, long iResult );
