@@ -114,6 +114,10 @@
  *                     自分が指定したバッファをそのまま返す。
  *                     これがNGを返したときは "<strerror_r NG>"を返す。
  *
+ *    --- テスト関連I/F ---
+ *      com_assert*()  assert()を使うに当たり、検証内容を出力する処理を追加。
+ *                     検証対象の型によって、I/Fが異なる。
+ *
  *   処理差分を利用したくない場合、標準関数を使用する方法を検討する。
  *   しかしメモリ捕捉/解放とファイルオープン/クローズは例外なく上記を使うこと。
  *   そうしなければデバッグ機能によるリソース監視が正しく出来なくなる。
@@ -3074,8 +3078,8 @@ double com_strtod( const char *iString, BOOL iError );
 /*
  * atoi()代替I/F  com_atoi()
  * atol()代替I/F  com_atol()
- *                com_atoul()
  * atof()代替I/F  com_atof()
+ * 代替はないが準備   com_atou()・com_atoul()・com_atod()
  *   変換結果を返す。
  * ---------------------------------------------------------------------------
  *   COM_ERR_DEBUGNG [com_prmNG] !iString
@@ -3086,12 +3090,24 @@ double com_strtod( const char *iString, BOOL iError );
  * 文字列数値変換を実施し、その結果を返す。基数は 10固定ということになる。
  * 呼んだ直後の errnoを見れば変換NGを検出可能。
  *
+ * atou() は標準関数に存在しないが、com_atou() は準備する。
  * atoul() は標準関数には存在しないが、com_atoul() は準備する。
+ * atod() は標準関数には存在しないが、com_atod() は準備する。
+ *
+ * 以下のI/Fはそれぞれの形の最大・最小を超える場合、値を補正するで注意すること。
+ * この補正が起きた場合、errno に ERANGE を設定する。
+ *   com_atoi()
+ *   ・INT_MAXを上回る場合は INT_MAXに補正
+ *   ・INT_MINを下回る場合は INT_MINに補正
+ *   com_atou()
+ *   ・UINT_MAXを上回る場合は UINT_MAXに補正
  */
-int   com_atoi( const char *iString );
-long  com_atol( const char *iString );
-ulong com_atoul( const char *iString );
+int com_atoi( const char *iString );
+long com_atol( const char *iString );
 float com_atof( const char *iString );
+uint com_atou( const char *iString );
+ulong com_atoul( const char *iString );
+double com_atod( const char *iString );
 
 /*
  * 文字列-バイナリ数値列変換  com_strtooct()

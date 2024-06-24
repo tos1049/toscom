@@ -161,8 +161,10 @@ toscom grimoire Ver3.00
    com_strtod()                文字列-数値変換                         <strtod>
    com_atoi()                  文字列-数値変換                           <atoi>
    com_atol()                  文字列-数値変換                           <atol>
-  +com_atoul()                 文字列-数値変換                           
    com_atof()                  文字列-数値変換                           <atof>
+  +com_atou()                  文字列-数値変換
+  +com_atoul()                 文字列-数値変換
+  +com_atod()                  文字列-数値変換
    com_strtooct()              文字列-バイナリ数値列変換
 
    com_ltostr()                数値-文字列変換(long型)

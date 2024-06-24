@@ -1043,44 +1043,56 @@ static void checkConvertErrno( int iErrno, int iAssert )
     com_assertEquals( "errno", iAssert, iErrno );
 }
 
+#define DISPCONVERTS( TYPE, FUNC, FORMAT, ASSERT, LABEL ) \
+    TYPE value = FUNC( iSource, iBase, iCheck ); \
+    int err = errno; \
+    com_printf( "%s -> " FORMAT "  errno = %d", iSource, value, err ); \
+    checkConvertErrno( err, iAssert ); \
+    ASSERT( LABEL, iConvert, value );
+
 static void dispConvertResult(
         char *iSource, int iBase, BOOL iCheck, ulong iConvert, int iAssert )
 {
-    uint value = (uint)com_strtoul( iSource, iBase, iCheck );
-    // エラーメッセージが出力される言葉目視で確認
-    int err = errno;
-    com_printf( "%s -> %-8x  errno = %d", iSource, value, err );
-    checkConvertErrno( err, iAssert );
-    com_assertEqualsU( "com_strtoul()", iConvert, value );
+    DISPCONVERTS( ulong, com_strtoul, "%-8lx",
+                 com_assertEqualsU, "com_strtoul()" );
 }
 
 static void dispConvertResult2(
         char *iSource, int iBase, BOOL iCheck, long iConvert, int iAssert )
 {
-    int value = (int)com_strtol( iSource, iBase, iCheck );
-    // エラーメッセージが出力される言葉目視で確認
-    int err = errno;
-    com_printf( "%s -> %-8d  errno = %d", iSource, value, err );
-    checkConvertErrno( err, iAssert );
-    com_assertEquals( "com_strtol()", iConvert, value );
+    DISPCONVERTS( long, com_strtol, "%-8ld",
+                 com_assertEquals, "com_strtol()" );
 }
+
+#define DISPCONVERTA( TYPE, FUNC, FORMAT, ASSERT, LABEL ) \
+    TYPE value = FUNC( iSource ); \
+    int err = errno; \
+    com_printf( "%s -> " FORMAT "  errno = %d", iSource, value, err ); \
+    checkConvertErrno( err, iAssert ); \
+    ASSERT( LABEL, iConvert, value );
 
 static void dispConvertResult3( char *iSource, int iConvert, int iAssert )
 {
-    int value = com_atoi( iSource );
-    int err = errno;
-    com_printf( "%s -> %-8d  errno = %d", iSource, value, err );
-    checkConvertErrno( err, iAssert );
-    com_assertEquals( "com_atoi()", iConvert, value );
+    DISPCONVERTA( int, com_atoi, "%-8d",
+                 com_assertEquals, "com_atoi()" );
 }
 
 static void dispConvertResult4( char *iSource, float iConvert, int iAssert )
 {
-    float value = com_atof( iSource );
-    int err = errno;
-    com_printf( "%s -> %f  errno = %d", iSource, value, err );
-    checkConvertErrno( err, iAssert );
-    com_assertEqualsF( "com_atof()", iConvert, value );
+    DISPCONVERTA( float, com_atof, "%f",
+                  com_assertEqualsF, "com_atof()" );
+}
+
+static void dispConvertResult5( char *iSource, uint iConvert, int iAssert )
+{
+    DISPCONVERTA( uint, com_atou, "%-8u",
+                  com_assertEqualsU, "com_atou()" );
+}
+
+static void dispConvertResult6( char *iSource, ulong iConvert, int iAssert )
+{
+    DISPCONVERTA( ulong, com_atoul, "%lu",
+                  com_assertEqualsU, "com_atoul()" );
 }
 
 void test_strtoul( void )
@@ -1099,18 +1111,30 @@ void test_strtoul( void )
     dispConvertResult2( text1, 16, true,      0xabcdef,   EINVAL );
     dispConvertResult2( text1, 16, false,     0xabcdef,   EINVAL );
     dispConvertResult2( text2, 16, true,      0x1a2b3c,   0 );
-    dispConvertResult2( "FFFFFFFF", 16, true, -1,         0 );
+    dispConvertResult2( "FFFFffffFFFFffff", 16, true, LONG_MAX, ERANGE );
 
     com_printf( "--- com_atoi() ---\n" );
     dispConvertResult3( "123456", 123456, 0 );
     dispConvertResult3( "090807", 90807,  0 );
+    dispConvertResult3( "-2147483648", -2147483648,  0 );
     dispConvertResult3( "0x1234", 0,      EINVAL );
     dispConvertResult3( "12abcd", 12,     EINVAL );
+    dispConvertResult3( "9999999999", 2147483647, ERANGE );
+    dispConvertResult3( "-9999999999", -2147483648, ERANGE );
 
     com_printf( "--- com_atof() ---\n" );
     dispConvertResult4( "123.45678", 123.45678F, 0 );
     dispConvertResult4( "123.DUMMY", 123.0F,     EINVAL );
     dispConvertResult4( "0x234.abc", 564.67090F,  0 );
+
+    com_printf( "--- com_atou() ---\n" );
+    dispConvertResult5( "4294967295", 4294967295, 0 );
+    dispConvertResult5( "9999999999", 4294967295, ERANGE );
+
+    com_printf( "--- com_atoul() ---\n" );
+    dispConvertResult6( "9999999999999", 9999999999999, 0 );
+    dispConvertResult6( "0xabcdefabcdef", 0, EINVAL );
+
 }
 
 ///// test_hash() ////////////////////////////////////////////////////////////

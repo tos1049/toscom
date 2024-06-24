@@ -831,12 +831,25 @@ long com_strtol( const char *iString, int iBase, BOOL iError )
     return result;
 }
 
+// 前処理で errnoが既に設定されている場合、それを上書きはしないようにする
+#define SET_ERRNO( ERRNO ) \
+    do { \
+        if( !errno ) { errno = (ERRNO); } \
+    } while(0) 
+
 int com_atoi( const char *iString )
 {
     long  result = com_strtol( iString, 10, false );
-    if( result > INT_MAX ) {result = INT_MAX;}
-    if( result < INT_MIN ) {result = INT_MIN;}
+    if( result > INT_MAX ) {result = INT_MAX; SET_ERRNO(ERANGE);}
+    if( result < INT_MIN ) {result = INT_MIN; SET_ERRNO(ERANGE);}
     return (int)result;
+}
+
+uint com_atou( const char *iString )
+{
+    ulong  result = com_strtoul( iString, 10, false );
+    if( result > UINT_MAX ) {result = UINT_MAX; SET_ERRNO(ERANGE);}
+    return (uint)result;
 }
 
 long com_atol( const char *iString )
@@ -875,6 +888,11 @@ double com_strtod( const char *iString, BOOL iError )
 float com_atof( const char *iString )
 {
     return com_strtof( iString, false );
+}
+
+double com_atod( const char *iString )
+{
+    return com_strtod( iString, false );
 }
 
 static size_t checkOctStrings( const char *iString )
