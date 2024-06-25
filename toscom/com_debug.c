@@ -887,14 +887,14 @@ typedef struct watchInfo {
 
 // デバッグ監視情報グループ
 typedef struct {
-    watchInfo_t*  top;       // 先頭データ
-    watchInfo_t*  last;      // 最終データ
-    watchInfo_t*  ptr;       // ptrリスト(ptrでソートしたデータ)
-    long          seqno;     // シーケンス番号
-    long          count;     // 現存データ数
-    size_t        using;     // 使用量
-    size_t        usingMax;  // 最大使用量
-    long          err;       // エラー
+    watchInfo_t*   top;       // 先頭データ
+    watchInfo_t*   last;      // 最終データ
+    watchInfo_t**  ptrList;   // ptrリスト(ptrでソートしたデータ)
+    long           seqno;     // シーケンス番号
+    size_t         count;     // 現存データ数
+    size_t         using;     // 使用量
+    size_t         usingMax;  // 最大使用量
+    long           err;       // エラー
 } watchGroup_t;
 
 // 監視情報のためのメモリ捕捉が失敗した場合、このフラグを trueにし、
@@ -929,39 +929,86 @@ static inline long increaseSeqno( watchGroup_t *ioGrp )
     return ioGrp->seqno;
 }
 
-static void sortInsert( watchGroup_t *ioGrp, watchInfo_t *ioNew )
+// 監視情報を watchGroup_t型に集約。
+// これに伴い .top から始まる線形リストは追加時は末尾追加のみの双方向リストに
+// 変更している。
+// 更に .ptrList に 各要素の .ptr でソートした要素リストを作成するように修正。
+// 以後 .ptrの検索をしたい時は .ptrList の方で検索して、要素のアドレスを受け
+// そのアドレスで処理を進めることとした。
+
+#define IDXVAL( INDEX )   (const void*)ioGrp->ptrList[*oIdx + INDEX]->ptr
+
+// ioGrp->count は既に変更後の値であり、
+// ioGrp->ptrListの要素数とは一致しない。そのため、iSizeで要素数を受け取る
+//
+static BOOL binsearch(
+        watchGroup_t *ioGrp, const void *iPtr, size_t *oIdx, size_t iSize )
 {
-    watchInfo_t*  tmp = ioGrp->top;
-    watchInfo_t*  fwd = NULL;
-    while( tmp ) {
-        if( tmp->seqno == ioNew->seqno ) {
-            ioNew->seqno = increaseSeqno( ioGrp );  // 使用中なら+1
-            // 一巡した場合は、先頭から場所を再検索
-            if( ioNew->seqno == 1 ) {tmp = ioGrp->top;  fwd = NULL;  continue;}
+    if( !(ioGrp->ptrList) ) {*oIdx = 0; return false;}
+    size_t binMin = 0;
+    size_t binMax = iSize - 1;
+    *oIdx = iSize / 2;
+    while(1) {
+        if( iPtr > IDXVAL(0) ) {
+            if( binMin == iSize - 1) {break;}
+            binMin = *oIdx + 1;
         }
-        else if( tmp->seqno > ioNew->seqno ) {
-            // 先頭以降に追加 (自分の次に小さなシーケンス番号の先に追加)
-            if( fwd ) {COM_RELAY( ioNew->next, fwd->next, ioNew );}
-            // 先頭に追加
-            else {COM_RELAY( ioNew->next, ioGrp->top, ioNew );}
-            return;
+        else if( iPtr < IDXVAL(0) ) {
+            if( binMax == 0 ) {break;}
+            binMax = *oIdx - 1;
         }
-        COM_RELAY( fwd, tmp, tmp->next );  // 次データに移動
+        else {return true;}
+        if( binMin > binMax ) {break;}
+        *oIdx = binMin + (binMax - binMin) / 2;
     }
-    fwd->next = ioNew;  // ループを抜けた場合は、一番最後に追加
+    while( (*oIdx > 0) && (IDXVAL(0) > iPtr) ) {(*oIdx)--;}
+    while( (*oIdx < ioGrp->count - 1) && IDXVAL(0) < iPtr ) {
+        (*oIdx)++;
+    }
+    return false;
 }
 
-// TODO かもしれないこと
-//  現在の監視情報は線形チェーン構造のデータで保持している。
-//  もし監視情報の数が10000オーダーを超える場合、これは大幅な処理能力低下の
-//  一因となる危険がある。本当は iPtrをキーにしたハッシュ登録でもすればよいが、
-//  toscomのハッシュ検索テーブルは com_malloc()を使っている影響で、監視処理の
-//  処理にそのままは使えない。
-//  またハッシュ登録にした場合、検索は高速化が期待できるが、浮き情報を
-//  シーケンス番号順で並べて出力する、ということが極端に苦手になる。
-//  当分は線形チェーン構造のままとするが、デバッグ情報を取得する必要性に
-//  駆られたとき、そのデータ構造を見直すべき状況になることはあり得る。
+static BOOL reallocInner( watchGroup_t *ioGrp )
+{
+    if( !(ioGrp->count) ) {
+        free( ioGrp->ptrList );
+        ioGrp->ptrList = NULL;
+        return true;
     }
+    void* tmp = realloc( ioGrp->ptrList, sizeof(void*) * ioGrp->count );
+    if( tmp ) {ioGrp->ptrList = tmp;  return true;}
+    com_error( COM_ERR_DEBUGNG, "##### watch list realloc failure #####" );
+    return false;
+}
+
+static void addWatchTable( watchGroup_t *ioGrp, watchInfo_t *iNew )
+{
+    size_t  index = 0;
+    if( binsearch( ioGrp, iNew->ptr, &index, ioGrp->count - 1 ) ) {
+        com_error( COM_ERR_DEBUGNG,
+              "##### same address(%p) already registered #####", iNew->ptr );
+        return;
+    }
+    if( !reallocInner( ioGrp ) ) {return;}
+    if( index < ioGrp->count - 1 ) {
+        watchInfo_t**  base = ioGrp->ptrList + index;
+        memmove( base + 1, base,
+                 sizeof(watchInfo_t*) * (ioGrp->count - index - 1) );
+    }
+    ioGrp->ptrList[index] = iNew;
+}
+
+static void addWatchList( watchGroup_t *ioGrp, watchInfo_t *ioNew )
+{
+    if( ioGrp->top ) {
+        ioNew->prev = ioGrp->last;
+        (ioGrp->last)->next = ioNew;
+    }
+    else { ioGrp->top = ioNew; }
+    ioGrp->last = ioNew;
+    (ioGrp->count)++;
+    addWatchTable( ioGrp, ioNew );
+}
 
 static BOOL addWatchInfo(
         watchGroup_t *ioGrp, watchInfo_t **oNew, long iType,
@@ -975,13 +1022,10 @@ static BOOL addWatchInfo(
         if( newInfo ) {free( newInfo );}
         return false;
     }
-    (ioGrp->count)++;
     *newInfo = (watchInfo_t){ iType, increaseSeqno(ioGrp),
                               iPtr, iSize, "", NULL, NULL, "", 0, "" };
     setWatchInfo( newInfo, iLabel, COM_FILEVAR );
-
-    if( ioGrp->top ) {sortInsert( ioGrp, newInfo );}
-    else {ioGrp->top = newInfo;}
+    addWatchList( ioGrp, newInfo );
     *oNew = newInfo;
     return true;
 }
@@ -994,30 +1038,77 @@ static void updateUsing( watchGroup_t *ioGrp, size_t iAdd )
 
 enum { NO_DEBUG_INFO = -1 };
 
-static long checkWatchInfo( const watchGroup_t *iGrp, const void *iPtr )
+static BOOL searchWatchList(
+        watchGroup_t *iGrp, const void *iPtr, watchInfo_t **oCur )
 {
-    for( const watchInfo_t* tmp = iGrp->top;  tmp;  tmp = tmp->next ) {
-        if( tmp->ptr == iPtr ) {return tmp->seqno;}
+    size_t  index = 0;
+    if( binsearch( iGrp, iPtr, &index, iGrp->count ) ) {
+        *oCur = iGrp->ptrList[index];
+        return true;
     }
+    *oCur = NULL;
+    return false;
+}
+
+static long checkWatchInfo( watchGroup_t *iGrp, const void *iPtr )
+{
+    watchInfo_t* tmp;
+    if( searchWatchList( iGrp, iPtr, &tmp ) ) {return tmp->seqno;}
     return NO_DEBUG_INFO;
+}
+
+static long getSeqno( watchGroup_t *iGrp, const void *iPtr )
+{
+    long  result = checkWatchInfo( iGrp, iPtr );
+    if( result == NO_DEBUG_INFO ) {return 0;}
+    return result;
+}
+
+static void deleteWatchTable( watchGroup_t *ioGrp, watchInfo_t *iCur )
+{
+    size_t  index = 0;
+    if( !binsearch( ioGrp, iCur->ptr, &index, ioGrp->count + 1 ) ) {
+        com_error( COM_ERR_DEBUGNG,
+              "##### address(%p) not registered #####", iCur->ptr );
+        return;
+    }
+    if( index < ioGrp->count ) {
+        watchInfo_t**  base = ioGrp->ptrList + index;
+        memmove( base, base + 1,
+                 sizeof(watchInfo_t*) * (ioGrp->count - index) );
+    }
+    ioGrp->ptrList[ioGrp->count] = NULL;
+    (void)reallocInner( ioGrp );
+}
+
+static void deleteWatchList( watchGroup_t *ioGrp, watchInfo_t *ioCur )
+{
+    if( !(ioCur->prev) ) {
+        ioGrp->top = ioCur->next;
+        if( ioCur->next ) { ioCur->next->prev = NULL; }
+    }
+    else {
+        ioCur->prev->next = ioCur->next;
+    }
+    if ( ioGrp->last == ioCur ) {
+        if( !(ioCur->prev) ) { ioGrp->last = NULL; }
+        else { ioGrp->last = ioCur->prev; }
+    }
+    else { ioCur->next->prev = ioCur->prev; }
+    (ioGrp->count)--;
+    deleteWatchTable( ioGrp, ioCur );
 }
 
 static BOOL deleteWatchInfo(
         watchGroup_t *ioGrp, const void *iPtr, watchInfo_t *oTarget )
 {
-    watchInfo_t*  fwd = NULL;
-    for( watchInfo_t* tmp = ioGrp->top;  tmp;  tmp = tmp->next ) {
-        if( tmp->ptr == iPtr ) {
-            // 削除対象のデータをコピーして通知
-            COM_SET_IF_EXIST( oTarget, *tmp );
-            watchInfo_t* next = tmp->next;
-            if( !fwd ) {ioGrp->top = next;}
-            else {fwd->next = next;}
-            free( tmp );
-            (ioGrp->count)--;
-            return true;
-        }
-        fwd = tmp;
+    watchInfo_t*  tmp = NULL; 
+    if( searchWatchList( ioGrp, iPtr, &tmp ) ) {
+        // 削除対象のデータをコピーして通知
+        COM_SET_IF_EXIST( oTarget, *tmp );
+        deleteWatchList( ioGrp, tmp );
+        free( tmp );
+        return true;
     }
     return false;
 }
@@ -1157,9 +1248,7 @@ void com_addMemInfo(
     com_setFuncTrace( false );
     COM_SET_FORMAT( gLogBuff );
     watchInfo_t*  new = NULL;
-    if( addWatchInfo( &gMemGrp, &new, iType, iPtr, iSize, gLogBuff,
-                      COM_FILEVAR ) )
-    {
+    if( addWatchInfo( &gMemGrp,&new,iType,iPtr,iSize,gLogBuff,COM_FILEVAR ) ) {
         updateUsing( &gMemGrp, iSize );
         if( gSkipMemInfo && !gForceLog ) {gSkipMemInfoCount++;}
         else {dispMemInfo( "++M", iType, new, gWatchMemInfoMode, COM_FILEVAR );}
@@ -1167,13 +1256,14 @@ void com_addMemInfo(
     com_setFuncTrace( true );
 }
 
-BOOL com_checkMemInfo( const void *iPtr )
+long com_checkMemInfo( const void *iPtr )
 {
-    if( !gWatchMemInfoMode ) {return true;}
+    if( !gWatchMemInfoMode ) {return 0;}
+
     com_setFuncTrace( false );
-    BOOL  result = (checkWatchInfo( &gMemGrp, iPtr ) != NO_DEBUG_INFO );
+    long  seqno = getSeqno( &gMemGrp, iPtr );
     com_setFuncTrace( true );
-    return result;
+    return seqno;
 }
 
 void com_deleteMemInfo( COM_FILEPRM, COM_MEM_OPR_t iType, const void *iPtr )
@@ -1202,7 +1292,7 @@ void com_listMemInfo( void )
     com_setFuncTrace( false );
     com_dbgCom( "\n### Using Memory MAX = %zu ###\n", gMemGrp.usingMax );
     if( !gMemGrp.count ) {com_setFuncTrace( true );  return;}
-    com_printf( "\n### not freed memory list (%ld) ###\n", gMemGrp.count );
+    com_printf( "\n### not freed memory list (%zu) ###\n", gMemGrp.count );
     if( gMemoryFailure ) {com_printf( "### but not enough memory ###\n" );}
     for( watchInfo_t* tmp = gMemGrp.top;  tmp;  tmp = tmp->next ) {
         // 強制画面出力する
@@ -1270,7 +1360,7 @@ static void dispFileInfo(
 
     COM_CLEAR_BUF( gLogBuff );
     // iTypeだけは iIndo->typeと異なる可能性があるため、別入力
-    MAKELOG( "%s%08ld com_f%-7s %12p (%5ld)\n",
+    MAKELOG( "%s%08ld com_f%-7s %12p (%5zu)\n",
                  iPre, oInfo->seqno, type[iType], oInfo->ptr, gFileGrp.count );
     dispWatchInfo( iMode, iPre, oInfo->label, COM_FILEVAR );
 }
@@ -1290,13 +1380,14 @@ void com_addFileInfo(
     com_setFuncTrace( true );
 }
 
-BOOL com_checkFileInfo( const FILE *iFp )
+long com_checkFileInfo( const FILE *iFp )
 {
-    if( !gWatchFileInfoMode ) {return true;}
+    if( !gWatchFileInfoMode ) {return 0;}
+
     com_setFuncTrace( false );
-    BOOL  result = (checkWatchInfo( &gFileGrp, iFp ) != NO_DEBUG_INFO );
+    long  seqno = getSeqno( &gFileGrp, iFp );
     com_setFuncTrace( true );
-    return result;
+    return seqno;
 }
 
 void com_deleteFileInfo( COM_FILEPRM, COM_FILE_OPR_t iType, const FILE *iFp )
@@ -1324,7 +1415,7 @@ void com_listFileInfo( void )
 
     if( !gFileGrp.count ) {return;}
     com_setFuncTrace( false );
-    com_printf( "\n### not closed file list (%ld) ###\n", gFileGrp.count );
+    com_printf( "\n### not closed file list (%zu) ###\n", gFileGrp.count );
     if( gMemoryFailure ) {com_printf( "### but not enough memory ###\n" );}
     for( watchInfo_t* tmp = gFileGrp.top;  tmp;  tmp = tmp->next ) {
         // 強制画面出力する
