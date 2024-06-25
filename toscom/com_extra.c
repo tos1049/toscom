@@ -168,6 +168,7 @@ static size_t inputProc(
 // inputProc()を呼び、その結果を result に入れるマクロ
 #define INPUT( DATA, SIZE, VAL, FLAG ) \
     size_t  result = 0; \
+    memset( DATA, 0, SIZE ); \
     do { \
         va_list  ap; \
         va_start( ap, iFormat ); \
@@ -192,7 +193,6 @@ size_t com_input(
         const com_actFlag_t *iFlag, const char *iFormat, ... )
 {
     if( COM_UNLIKELY(!oData) ) {COM_PRMNG(0);}
-    COM_CLEAR_BUF( gKeyBuff );
     *oData = gKeyBuff;
     INPUT( gKeyBuff, sizeof(gKeyBuff), iVal, iFlag );
     return result;
