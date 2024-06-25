@@ -79,7 +79,6 @@
     個々の説明は com_if.h 等のヘッダファイルに記載しています。
 
   Hello, World
-
     まずは main.cの main()で自分独自の処理関数を呼べば良いようにしているので
     お試しなら main()内に、例えば以下のように書いてみるとよいでしょう。
         com_printf( "Hello, World\n" );
@@ -94,7 +93,6 @@
     これは main.cの main()で呼んでいる com_getOption()の働きです。
 
   メモリ監視機能の御紹介
-
     試しに main()に以下のように記述して(メモリ捕捉だけして、わざと解放しない)
         char* memtest = com_malloc( 30, "malloc test" );
         memset( memtest, 0xff, 30 );  // 変数の未使用警告対策
@@ -109,7 +107,6 @@
     逆に標準関数の malloc() や free()ではこの機能は動作しません。
 
   ファイル監視機能の御紹介
-
     試しに main()に以下のように記述して(オープンだけして、わざとクローズしない)
         FILE* fp = com_fopen( "makefile", "r" );
         fgetc( fp );    // 変数fpの未使用警告対策
