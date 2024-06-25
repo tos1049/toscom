@@ -1846,13 +1846,13 @@ typedef struct {
     size_t       size;
 } hashData_t;
 
-typedef struct hashUnit_ {
+typedef struct hashUnit {
     hashData_t        key;
     hashData_t        data;
-    struct hashUnit_*  next;
+    struct hashUnit*  next;
 } hashUnit_t;
 
-typedef struct hashMng_ {
+typedef struct hashMng {
     size_t            tableSize;
     com_calcHashKey   func;
     hashUnit_t**  table;

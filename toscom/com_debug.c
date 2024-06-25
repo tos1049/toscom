@@ -872,24 +872,37 @@ char *com_strerror( int iErrno )
 // デバッグ監視機能共通処理 --------------------------------------------------
 
 // デバッグ監視共通データ
-typedef struct watchInfo_ {
+typedef struct watchInfo {
     long          type;
     long          seqno;
     const void*   ptr;
     size_t        size;
     char          label[COM_DEBUGINFO_LABEL]; // マクロ宣言は com_custom.h
-    struct watchInfo_*  next;
+    struct watchInfo*  prev;
+    struct watchInfo*  next;
     char          file[COM_DEBUGINFO_LABEL];  // 呼び元ファイル名
     long          line;                       // 呼び元ライン数
     char          func[COM_DEBUGINFO_LABEL];  // 呼び元関数名
 } watchInfo_t;
+
+// デバッグ監視情報グループ
+typedef struct {
+    watchInfo_t*  top;       // 先頭データ
+    watchInfo_t*  last;      // 最終データ
+    watchInfo_t*  ptr;       // ptrリスト(ptrでソートしたデータ)
+    long          seqno;     // シーケンス番号
+    long          count;     // 現存データ数
+    size_t        using;     // 使用量
+    size_t        usingMax;  // 最大使用量
+    long          err;       // エラー
+} watchGroup_t;
 
 // 監視情報のためのメモリ捕捉が失敗した場合、このフラグを trueにし、
 // その旨のエラー表示はするが、監視機能自体はその後も動作させる。
 // ただ情報の欠落は発生するため、その信頼度は落ちる。
 static BOOL  gMemoryFailure = false;
 
-static void setLabel( const char *iLabel, char *oTarget, size_t iSize )
+static inline void setLabel( const char *iLabel, char *oTarget, size_t iSize )
 {
     if( !iLabel ) {return;}
     (void)com_strncpy( oTarget, iSize, iLabel, strlen(iLabel) );
@@ -898,38 +911,39 @@ static void setLabel( const char *iLabel, char *oTarget, size_t iSize )
     while( (tmp = strstr( oTarget, "\n" )) ) {*tmp = ' ';}
 }
 
-static void setWatchInfo(
+#define SET_LABEL( LABEL, TARGET ) \
+    setLabel( (LABEL), (TARGET), sizeof(TARGET) )
+
+static inline void setWatchInfo(
         watchInfo_t *oTarget, const char *iLabel, COM_FILEPRM )
 {
-    setLabel( iLabel, oTarget->label, sizeof(oTarget->label) );
-    setLabel( iFILE,  oTarget->file, sizeof(oTarget->file) );
+    SET_LABEL( iLabel, oTarget->label );
+    SET_LABEL( iFILE,  oTarget->file );
     oTarget->line = iLINE;
-    setLabel( iFUNC,  oTarget->func, sizeof(oTarget->func) );
+    SET_LABEL( iFUNC,  oTarget->func );
 }
 
-static long increaseSeqno( long *ioSeqno )
+static inline long increaseSeqno( watchGroup_t *ioGrp )
 {
-    *ioSeqno = ( *ioSeqno + 1 ) % (COM_DEBUG_SEQNO_MAX + 1);
-    if( *ioSeqno == 0 ) {*ioSeqno = 1;}
-    return *ioSeqno;
+    ioGrp->seqno = (ioGrp->seqno % COM_DEBUG_SEQNO_MAX) + 1;
+    return ioGrp->seqno;
 }
 
-static void sortInsert(
-        watchInfo_t **ioTop, long *ioSeqno, watchInfo_t *ioNew )
+static void sortInsert( watchGroup_t *ioGrp, watchInfo_t *ioNew )
 {
-    watchInfo_t*  tmp = *ioTop;
+    watchInfo_t*  tmp = ioGrp->top;
     watchInfo_t*  fwd = NULL;
     while( tmp ) {
         if( tmp->seqno == ioNew->seqno ) {
-            ioNew->seqno = increaseSeqno( ioSeqno );  // 使用中なら+1
+            ioNew->seqno = increaseSeqno( ioGrp );  // 使用中なら+1
             // 一巡した場合は、先頭から場所を再検索
-            if( ioNew->seqno == 1 ) {tmp = *ioTop;  fwd = NULL;  continue;}
+            if( ioNew->seqno == 1 ) {tmp = ioGrp->top;  fwd = NULL;  continue;}
         }
         else if( tmp->seqno > ioNew->seqno ) {
             // 先頭以降に追加 (自分の次に小さなシーケンス番号の先に追加)
             if( fwd ) {COM_RELAY( ioNew->next, fwd->next, ioNew );}
             // 先頭に追加
-            else {COM_RELAY( ioNew->next, *ioTop, ioNew );}
+            else {COM_RELAY( ioNew->next, ioGrp->top, ioNew );}
             return;
         }
         COM_RELAY( fwd, tmp, tmp->next );  // 次データに移動
@@ -949,53 +963,57 @@ static void sortInsert(
 //  駆られたとき、そのデータ構造を見直すべき状況になることはあり得る。
 
 static BOOL addWatchInfo(
-        watchInfo_t **ioTop, watchInfo_t **oNew, long iType,
-        long *ioSeqno, long *ioCount, const void *iPtr, size_t iSize,
-        const char *iLabel, COM_FILEPRM )
+        watchGroup_t *ioGrp, watchInfo_t **oNew, long iType,
+        const void *iPtr, size_t iSize, const char *iLabel, COM_FILEPRM )
 {
     watchInfo_t*  newInfo = malloc( sizeof(watchInfo_t) );
-    if( !newInfo || *ioCount == COM_DEBUG_SEQNO_MAX ) {
+    if( !newInfo || ioGrp->count == COM_DEBUG_SEQNO_MAX ) {
         com_error( COM_ERR_DEBUGNG,
                    "##### fail to create new watchInfo(%s) #####", iLabel );
         gMemoryFailure = true;
         if( newInfo ) {free( newInfo );}
         return false;
     }
-    (*ioCount)++;
-    *newInfo = (watchInfo_t){ iType, increaseSeqno(ioSeqno),
-                              iPtr, iSize, "", NULL, "", 0, "" };
+    (ioGrp->count)++;
+    *newInfo = (watchInfo_t){ iType, increaseSeqno(ioGrp),
+                              iPtr, iSize, "", NULL, NULL, "", 0, "" };
     setWatchInfo( newInfo, iLabel, COM_FILEVAR );
 
-    if( *ioTop ) {sortInsert( ioTop, ioSeqno, newInfo );}
-    else {*ioTop = newInfo;}
+    if( ioGrp->top ) {sortInsert( ioGrp, newInfo );}
+    else {ioGrp->top = newInfo;}
     *oNew = newInfo;
     return true;
 }
 
+static void updateUsing( watchGroup_t *ioGrp, size_t iAdd )
+{
+    ioGrp->using += iAdd;
+    if( ioGrp->using > ioGrp->usingMax ) { ioGrp->usingMax = ioGrp->using; }
+}
+
 enum { NO_DEBUG_INFO = -1 };
 
-static long checkWatchInfo( const watchInfo_t *iTop, const void *iPtr )
+static long checkWatchInfo( const watchGroup_t *iGrp, const void *iPtr )
 {
-    for( const watchInfo_t* tmp = iTop;  tmp;  tmp = tmp->next ) {
+    for( const watchInfo_t* tmp = iGrp->top;  tmp;  tmp = tmp->next ) {
         if( tmp->ptr == iPtr ) {return tmp->seqno;}
     }
     return NO_DEBUG_INFO;
 }
 
 static BOOL deleteWatchInfo(
-        watchInfo_t **ioTop, long *ioCount, const void *iPtr,
-        watchInfo_t *oTarget )
+        watchGroup_t *ioGrp, const void *iPtr, watchInfo_t *oTarget )
 {
     watchInfo_t*  fwd = NULL;
-    for( watchInfo_t* tmp = *ioTop;  tmp;  tmp = tmp->next ) {
+    for( watchInfo_t* tmp = ioGrp->top;  tmp;  tmp = tmp->next ) {
         if( tmp->ptr == iPtr ) {
             // 削除対象のデータをコピーして通知
             COM_SET_IF_EXIST( oTarget, *tmp );
             watchInfo_t* next = tmp->next;
-            if( !fwd ) {*ioTop = next;}
+            if( !fwd ) {ioGrp->top = next;}
             else {fwd->next = next;}
             free( tmp );
-            (*ioCount)--;
+            (ioGrp->count)--;
             return true;
         }
         fwd = tmp;
@@ -1055,12 +1073,8 @@ COM_DEBUG_MODE_t com_getWatchMemInfo( void )
     return gWatchMemInfoMode;
 }
 
-static watchInfo_t*  gMemInfoTop = NULL;
-static long  gMemInfoSeqno = 0;
-static long  gMemInfoCount = 0;
-
-static size_t  gMemUsing = 0;
-static size_t  gMemUsingMax = 0;
+// メモリ監視情報グループ
+static watchGroup_t  gMemGrp;
 
 static char*  gMemOperator[] = {
     "free", "malloc", "realloc", "strdup", "strndup", "scanDir",
@@ -1080,7 +1094,7 @@ static void dispMemInfo(
     // iTypeだけは iIndo->typeと異なる可能性があるため、別入力
     MAKELOG( "%s%08ld com_%-12s %12p %10zu (%10zu)\n",
                  iPre, oInfo->seqno, com_getMemOperator( iType ),
-                 oInfo->ptr, oInfo->size, gMemUsing );
+                 oInfo->ptr, oInfo->size, gMemGrp.using );
     dispWatchInfo( iMode, iPre, oInfo->label, COM_FILEVAR );
 }
 
@@ -1142,12 +1156,10 @@ void com_addMemInfo(
     com_setFuncTrace( false );
     COM_SET_FORMAT( gLogBuff );
     watchInfo_t*  new = NULL;
-    if( addWatchInfo( &gMemInfoTop, &new, iType,
-                      &gMemInfoSeqno, &gMemInfoCount, iPtr, iSize, gLogBuff,
+    if( addWatchInfo( &gMemGrp, &new, iType, iPtr, iSize, gLogBuff,
                       COM_FILEVAR ) )
     {
-        gMemUsing += iSize;
-        if( gMemUsing > gMemUsingMax ) {gMemUsingMax = gMemUsing;}
+        updateUsing( &gMemGrp, iSize );
         if( gSkipMemInfo && !gForceLog ) {gSkipMemInfoCount++;}
         else {dispMemInfo( "++M", iType, new, gWatchMemInfoMode, COM_FILEVAR );}
     }
@@ -1158,7 +1170,7 @@ BOOL com_checkMemInfo( const void *iPtr )
 {
     if( !gWatchMemInfoMode ) {return true;}
     com_setFuncTrace( false );
-    BOOL  result = (checkWatchInfo( gMemInfoTop, iPtr ) != NO_DEBUG_INFO );
+    BOOL  result = (checkWatchInfo( &gMemGrp, iPtr ) != NO_DEBUG_INFO );
     com_setFuncTrace( true );
     return result;
 }
@@ -1170,13 +1182,13 @@ void com_deleteMemInfo( COM_FILEPRM, COM_MEM_OPR_t iType, const void *iPtr )
     com_setFuncTrace( false );
     watchInfo_t  tmp;
     memset( &tmp, 0, sizeof(tmp) );
-    if( !deleteWatchInfo( &gMemInfoTop, &gMemInfoCount, iPtr, &tmp ) ) {
+    if( !deleteWatchInfo( &gMemGrp, iPtr, &tmp ) ) {
         // 該当する情報がない＝二重解放の疑いが濃厚
         com_error( COM_ERR_DOUBLEFREE, "no meminfo to free(%p)", iPtr );
         com_setFuncTrace( true );
         return;
     }
-    gMemUsing -= tmp.size;
+    gMemGrp.using -= tmp.size;
     if( gSkipMemInfo && !gForceLog ) {gSkipMemInfoCount++;}
     else {dispMemInfo( "--M", iType, &tmp, gWatchMemInfoMode, COM_FILEVAR );}
     com_setFuncTrace( true );
@@ -1187,11 +1199,11 @@ void com_listMemInfo( void )
     if( !gWatchMemInfoMode ) {return;}
 
     com_setFuncTrace( false );
-    com_dbgCom( "\n### Using Memory MAX = %zu ###\n", gMemUsingMax );
-    if( !gMemInfoCount ) {com_setFuncTrace( true );  return;}
-    com_printf( "\n### not freed memory list (%ld) ###\n", gMemInfoCount );
+    com_dbgCom( "\n### Using Memory MAX = %zu ###\n", gMemGrp.usingMax );
+    if( !gMemGrp.count ) {com_setFuncTrace( true );  return;}
+    com_printf( "\n### not freed memory list (%ld) ###\n", gMemGrp.count );
     if( gMemoryFailure ) {com_printf( "### but not enough memory ###\n" );}
-    for( watchInfo_t* tmp = gMemInfoTop;  tmp;  tmp = tmp->next ) {
+    for( watchInfo_t* tmp = gMemGrp.top;  tmp;  tmp = tmp->next ) {
         // 強制画面出力する
         gNoComDebugLog = false;
         dispMemInfo( "? M", tmp->type, tmp, COM_DEBUG_ON,
@@ -1215,7 +1227,7 @@ void com_debugMemoryErrorOff( void )
 
 BOOL com_debugMemoryError( void )
 {
-    return judgeDebugError( gDebugMemMode, gDebugMemSeqno, gMemInfoSeqno );
+    return judgeDebugError( gDebugMemMode, gDebugMemSeqno, gMemGrp.seqno );
 }
 
 
@@ -1246,9 +1258,8 @@ void com_skipFileInfo( BOOL iMode )
 #endif
 }
 
-static watchInfo_t*  gFileInfoTop = NULL;
-static long  gFileInfoSeqno = 0;
-static long  gFileInfoCount = 0;
+// ファイル監視情報グループ
+static watchGroup_t  gFileGrp;
 
 static void dispFileInfo(
         const char *iPre, COM_FILE_OPR_t iType, const watchInfo_t *oInfo,
@@ -1259,7 +1270,7 @@ static void dispFileInfo(
     COM_CLEAR_BUF( gLogBuff );
     // iTypeだけは iIndo->typeと異なる可能性があるため、別入力
     MAKELOG( "%s%08ld com_f%-7s %12p (%5ld)\n",
-                 iPre, oInfo->seqno, type[iType], oInfo->ptr, gFileInfoCount );
+                 iPre, oInfo->seqno, type[iType], oInfo->ptr, gFileGrp.count );
     dispWatchInfo( iMode, iPre, oInfo->label, COM_FILEVAR );
 }
 
@@ -1270,10 +1281,7 @@ void com_addFileInfo(
 
     com_setFuncTrace( false );
     watchInfo_t*  new = NULL;
-    if( addWatchInfo( &gFileInfoTop, &new, iType,
-                      &gFileInfoSeqno, &gFileInfoCount, iFp, 0, iPath,
-                      COM_FILEVAR ) )
-    {
+    if( addWatchInfo( &gFileGrp, &new, iType, iFp, 0, iPath, COM_FILEVAR ) ) {
         if( !gSkipFileInfo ) {
             dispFileInfo( "++F", iType, new, gWatchFileInfoMode, COM_FILEVAR );
         }
@@ -1285,7 +1293,7 @@ BOOL com_checkFileInfo( const FILE *iFp )
 {
     if( !gWatchFileInfoMode ) {return true;}
     com_setFuncTrace( false );
-    BOOL  result = (checkWatchInfo( gFileInfoTop, iFp ) != NO_DEBUG_INFO );
+    BOOL  result = (checkWatchInfo( &gFileGrp, iFp ) != NO_DEBUG_INFO );
     com_setFuncTrace( true );
     return result;
 }
@@ -1297,7 +1305,7 @@ void com_deleteFileInfo( COM_FILEPRM, COM_FILE_OPR_t iType, const FILE *iFp )
     com_setFuncTrace( false );
     watchInfo_t  tmp;
     memset( &tmp, 0, sizeof(tmp) );
-    if( !deleteWatchInfo( &gFileInfoTop, &gFileInfoCount, iFp, &tmp ) ) {
+    if( !deleteWatchInfo( &gFileGrp, iFp, &tmp ) ) {
         // 該当する情報がない＝二重解放の疑いが濃厚
         com_error( COM_ERR_DOUBLEFREE, "no fileinfo to free(%p)", (void*)iFp );
         com_setFuncTrace( true );
@@ -1313,11 +1321,11 @@ void com_listFileInfo( void )
 {
     if( !gWatchFileInfoMode ) {return;}
 
-    if( !gFileInfoCount ) {return;}
+    if( !gFileGrp.count ) {return;}
     com_setFuncTrace( false );
-    com_printf( "\n### not closed file list (%ld) ###\n", gFileInfoCount );
+    com_printf( "\n### not closed file list (%ld) ###\n", gFileGrp.count );
     if( gMemoryFailure ) {com_printf( "### but not enough memory ###\n" );}
-    for( watchInfo_t* tmp = gFileInfoTop;  tmp;  tmp = tmp->next ) {
+    for( watchInfo_t* tmp = gFileGrp.top;  tmp;  tmp = tmp->next ) {
         // 強制画面出力する
         gNoComDebugLog = false;
         dispFileInfo( "? F", tmp->type, tmp, COM_DEBUG_ON,
@@ -1341,7 +1349,7 @@ void com_debugFopenErrorOff( void )
 
 BOOL com_debugFopenError( void )
 {
-    return judgeDebugError( gDebugFopenMode, gDebugFopenSeqno, gFileInfoSeqno );
+    return judgeDebugError( gDebugFopenMode, gDebugFopenSeqno, gFileGrp.seqno );
 }
 
 static BOOL  gDebugFcloseMode  = false;
@@ -1365,7 +1373,7 @@ BOOL com_debugFcloseError( const FILE *iFp )
     if( !gDebugFcloseMode ) {return false;}
     if( !gDebugFcloseSeqno ) {return true;}
     // カウント決め打ちでNGにする
-    long  infoSeqno = checkWatchInfo( gFileInfoTop, iFp );
+    long  infoSeqno = checkWatchInfo( &gFileGrp, iFp );
     if( infoSeqno == NO_DEBUG_INFO ) {return false;}
     if( infoSeqno != gDebugFcloseSeqno ) {return false;}
     return true;
