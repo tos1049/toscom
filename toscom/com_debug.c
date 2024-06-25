@@ -961,6 +961,7 @@ static void sortInsert( watchGroup_t *ioGrp, watchInfo_t *ioNew )
 //  シーケンス番号順で並べて出力する、ということが極端に苦手になる。
 //  当分は線形チェーン構造のままとするが、デバッグ情報を取得する必要性に
 //  駆られたとき、そのデータ構造を見直すべき状況になることはあり得る。
+    }
 
 static BOOL addWatchInfo(
         watchGroup_t *ioGrp, watchInfo_t **oNew, long iType,
