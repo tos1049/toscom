@@ -72,13 +72,6 @@ int main( int iArgc, char **iArgv )
     com_getOption( iArgc, iArgv, gOptions, &restArgc, &restArgv, NULL );
 
     /* 以後、必要な処理を記述 */
-    int* tmp = com_malloc( sizeof(int), "TEST" );
-    *tmp = 1;
-    com_free( tmp );
-
-    FILE* fp = com_fopen( "makefile", "r+" );
-    fgetc( fp );
-    com_fclose( fp );
 
     return EXIT_SUCCESS;
 }
