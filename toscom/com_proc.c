@@ -3795,6 +3795,7 @@ static void finalizeCom( void )
 void com_initialize( int iArgc, char **iArgv )
 {
     COM_DEBUG_AVOID_START( COM_NO_FUNCNAME | COM_NO_SKIPMEM );
+    com_setInitStage( COM_INIT_STAGE_PROCCESSING, true );
     atexit( finalizeCom );
     setCommandLine( iArgc, iArgv );
     com_initializeDebugMode();     // com_initializeSpec() はこの中で呼ぶ
@@ -3803,6 +3804,7 @@ void com_initialize( int iArgc, char **iArgv )
     com_registerErrorCode( gErrorNameCom );
     com_registerErrorCodeSpec();
     com_initializeThread();
+    com_setInitStage( COM_INIT_STAGE_FINISHED, true );
     COM_DEBUG_AVOID_END( COM_PROC_ALL );
 }
 

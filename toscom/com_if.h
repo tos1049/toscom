@@ -5845,8 +5845,10 @@ void com_registerErrorCode( const com_dbgErrName_t *iList );
  *
  * 一番最後に発生したエラーコードは保持しており、com_getLastError()で取得可能。
  *
- * 用法を理解しているなら、com_errorFunc()を直接利用しても特に問題は無いが、
- * 適切なマクロを使った方が記述は圧倒的に楽なはず。
+ * なお初期化処理が行われていない場合、本来のエラー管理は実施せず、
+ * printf()による単なるエラー出力のみの処理となる。つまりログ書き出しはなく、
+ * com_getLastError()でエラー値を後から取得することも出来ない。
+ * プログラムの最初に COM_INITIALIZE() を使用することを強く推奨する。
  */
 
 /*

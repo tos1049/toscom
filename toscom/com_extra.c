@@ -996,8 +996,10 @@ static void finalizeExtra( void )
 void com_initializeExtra( void )
 {
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
+    com_setInitStage( COM_INIT_STAGE_PROCCESSING, false );
     atexit( finalizeExtra );
     com_registerErrorCode( gErrorNameExtra );
+    com_setInitStage( COM_INIT_STAGE_FINISHED, false );
     COM_DEBUG_AVOID_END( COM_PROC_ALL );
 }
 

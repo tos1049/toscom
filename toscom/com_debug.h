@@ -18,6 +18,38 @@
 #pragma once
 
 /*
+ * 初期化処理ステージ設定  com_setInitStage()
+ * ---------------------------------------------------------------------------
+ * toscomの各機能初期化処理 com_initialize～()の開始と終了時に主に使い、
+ * 初期化処理のステージを変更する。
+ * iIsBase は基本機能の場合は true、それ以外は falseを指定する。
+ * 基本機能で COM_INIT_STAGE_FINISHED が設定されていない場合、
+ * それ以外の機能で COM_INIT_STAGE_FINISHED に変更することはできなくなる。
+ */
+typedef enum {
+    COM_INIT_STAGE_NOTEXEC = 0,    // 初期化処理 未実施
+    COM_INIT_STAGE_PROCCESSING,    // 初期化処理 実行中
+    COM_INIT_STAGE_FINISHED        // 初期化処理 実行済み
+} COM_INIT_STAGE_t;
+
+void com_setInitStage( COM_INIT_STAGE_t iStage, BOOL iIsBase );
+
+/*
+ * 初期化処理ステージ取得  com_getInitStage()
+ *   現在の初期化処理ステージを返す。
+ * ---------------------------------------------------------------------------
+ * toscomの各機能初期化処理 com_initialize～()の開始と終了時に主に使い、
+ * 初期化処理のステージを変更する。
+ *
+ * 現状、com_error()などのエラー出力処理は、初期化処理が終わっていない間に
+ * 呼び出されると、動作がうまくいかなくなることがあるため、本I/Fを使い、
+ * 初期化処理中は通常のエラー集計処理ではなく、単純なエラー表示のみを行う
+ * ように、処理を修正した。
+ */
+COM_INIT_STAGE_t com_getInitStage( void );
+
+
+/*
  * ログバッファ格納処理マクロ  COM_SET_FORMAT()
  * ---------------------------------------------------------------------------
  * 過変数引数で指定されたパラメータを読み取り、TARGETで指定したバッファに

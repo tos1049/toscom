@@ -17,7 +17,9 @@
 void com_initializeSigSet3( void )
 {
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
+    com_setInitStage( COM_INIT_STAGE_PROCCESSING, false );
     // まずは箱だけ
+    com_setInitStage( COM_INIT_STAGE_FINISHED, false );
     COM_DEBUG_AVOID_END( COM_PROC_ALL );
 }
 

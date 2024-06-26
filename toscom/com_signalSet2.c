@@ -1493,12 +1493,14 @@ static com_analyzeFuncList_t  gFuncSignal2[] = {
 void com_initializeSigSet2( void )
 {
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
+    com_setInitStage( COM_INIT_STAGE_PROCCESSING, false );
     atexit( finalizeSet2 );
     (void)com_registerAnalyzer( gFuncSignal2, COM_SCCPSSN );
     com_setPrtclType( COM_SCTPNEXT, gSctpNext2 );
     com_setPrtclType( COM_SIPNEXT, gSipNext2 );
     com_setPrtclType( COM_SCCPSSN, gSccpSsn2 );
     com_setPrtclType( COM_TCAPSSN, gTcapSsn2 );
+    com_setInitStage( COM_INIT_STAGE_FINISHED, false );
     COM_DEBUG_AVOID_END( COM_PROC_ALL );
 }
 

@@ -2065,10 +2065,12 @@ static void finalizeSelect( void )
 void com_initializeSelect( void )
 {
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
+    com_setInitStage( COM_INIT_STAGE_PROCCESSING, false );
     atexit( finalizeSelect );
     com_registerErrorCode( gErrorNameSelect );
     gRecvBuf = gDefaultRecvBuf;
     gRecvBufSize = sizeof(gDefaultRecvBuf);
+    com_setInitStage( COM_INIT_STAGE_FINISHED, false );
     COM_DEBUG_AVOID_END( COM_PROC_ALL );
 }
 

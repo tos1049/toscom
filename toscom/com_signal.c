@@ -1116,12 +1116,14 @@ static void finalizeSignal( void )
 void com_initializeSignal( void )
 {
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
+    com_setInitStage( COM_INIT_STAGE_PROCCESSING, false );
     atexit( finalizeSignal );
     com_registerErrorCode( gErrorNameSignal );
     com_initializeSortTable( &gAnalyzeList, COM_SORT_OVERWRITE );
     com_setPrtclType( COM_FILENEXT, gFileNext );
     com_initializeAnalyzer();
     com_initializeSigSet1();
+    com_setInitStage( COM_INIT_STAGE_FINISHED, false );
     COM_DEBUG_AVOID_END( COM_PROC_ALL );
 }
 

@@ -1005,8 +1005,10 @@ static void finalizeWindow( void )
 void com_initializeWindow( void )
 {
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
+    com_setInitStage( COM_INIT_STAGE_PROCCESSING, false );
     atexit( finalizeWindow );
     com_registerErrorCode( gErrorNameWindow );
+    com_setInitStage( COM_INIT_STAGE_FINISHED, false );
     COM_DEBUG_AVOID_END( COM_PROC_ALL );
 }
 

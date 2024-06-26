@@ -22,6 +22,34 @@
 #include <dlfcn.h>
 #endif
 
+
+// 初期化ステージ管理 --------------------------------------------------------
+
+// 現在の初期化処理ステージ
+static COM_INIT_STAGE_t  gInitStage = COM_INIT_STAGE_NOTEXEC;
+
+// 基本機能の初期化完了フラグ
+static BOOL gBaseInitFinished = false;
+
+COM_INIT_STAGE_t com_getInitStage( void )
+{
+    return gInitStage;
+}
+
+void com_setInitStage( COM_INIT_STAGE_t iStage, BOOL iIsBase )
+{
+    if( iIsBase ) {
+        if( iStage == COM_INIT_STAGE_FINISHED ) { gBaseInitFinished = true; }
+    }
+    else {
+        if( !gBaseInitFinished && iStage == COM_INIT_STAGE_FINISHED ) {
+            printf( "##### You need initialize base function\n" );
+            return;
+        }
+    }
+    gInitStage = iStage;
+}
+
 // デバッグログファイル関連 --------------------------------------------------
 
 static FILE*  gDebugLog = NULL;        // デバッグログファイルポインタ
@@ -833,10 +861,27 @@ static void setErrorInf( long iCode )
     gOutput = stdout;
 }
 
+static void onlyError( long iCode, COM_FILEPRM )
+{
+    printf( "##### ERROR OCCURED (code=%ld)\n", iCode );
+    printf( "#####   in %s:line %ld %s()\n", iFILE, iLINE, iFUNC );
+    printf( "#####   (warning: initialization " );
+    if( com_getInitStage() == COM_INIT_STAGE_PROCCESSING ) {
+        printf( "is proccessing)\n" );
+    }
+    if( com_getInitStage() == COM_INIT_STAGE_NOTEXEC ) {
+        printf( "is not executed)\n" );
+    }
+}
+
 void com_errorFunc(
         long iCode, BOOL iReturn, COM_FILEPRM, const char *iFormat, ... )
 {
     if( gNotProcError ) {return;}
+    if( gInitStage != COM_INIT_STAGE_FINISHED ) {
+        onlyError( iCode, COM_FILEVAR );
+        return;
+    }
     COM_DEBUG_LOCKOFF( &gMutexError, __func__ );
     SET_ERRORLOG;
     COM_HOOKERR_ACTION_t hookAct = hookExec( iCode, gErrorLogBuf, COM_FILEVAR );
@@ -938,10 +983,17 @@ static inline long increaseSeqno( watchGroup_t *ioGrp )
 
 #define IDXVAL( INDEX )   (const void*)ioGrp->ptrList[*oIdx + INDEX]->ptr
 
+static void adjustIndex(
+        watchGroup_t *ioGrp, const void *iPtr, size_t *oIdx )
+{
+    while( (*oIdx > 0) && (IDXVAL(0) > iPtr) ) {(*oIdx)--;}
+    while( (*oIdx < ioGrp->count - 1) && IDXVAL(0) < iPtr ) {(*oIdx)++;}
+}
+
 // ioGrp->count は既に変更後の値であり、
 // ioGrp->ptrListの要素数とは一致しない。そのため、iSizeで要素数を受け取る
 //
-static BOOL binsearch(
+static BOOL binSearch(
         watchGroup_t *ioGrp, const void *iPtr, size_t *oIdx, size_t iSize )
 {
     if( !(ioGrp->ptrList) ) {*oIdx = 0; return false;}
@@ -950,21 +1002,18 @@ static BOOL binsearch(
     *oIdx = iSize / 2;
     while(1) {
         if( iPtr > IDXVAL(0) ) {
-            if( binMin == iSize - 1) {break;}
+            if( *oIdx == iSize - 1 ) {break;}
             binMin = *oIdx + 1;
         }
         else if( iPtr < IDXVAL(0) ) {
-            if( binMax == 0 ) {break;}
+            if( *oIdx == 0 ) {break;}
             binMax = *oIdx - 1;
         }
         else {return true;}
         if( binMin > binMax ) {break;}
         *oIdx = binMin + (binMax - binMin) / 2;
     }
-    while( (*oIdx > 0) && (IDXVAL(0) > iPtr) ) {(*oIdx)--;}
-    while( (*oIdx < ioGrp->count - 1) && IDXVAL(0) < iPtr ) {
-        (*oIdx)++;
-    }
+    adjustIndex( ioGrp, iPtr, oIdx );
     return false;
 }
 
@@ -984,7 +1033,7 @@ static BOOL reallocInner( watchGroup_t *ioGrp )
 static void addWatchTable( watchGroup_t *ioGrp, watchInfo_t *iNew )
 {
     size_t  index = 0;
-    if( binsearch( ioGrp, iNew->ptr, &index, ioGrp->count - 1 ) ) {
+    if( binSearch( ioGrp, iNew->ptr, &index, ioGrp->count - 1 ) ) {
         com_error( COM_ERR_DEBUGNG,
               "##### same address(%p) already registered #####", iNew->ptr );
         return;
@@ -1042,7 +1091,7 @@ static BOOL searchWatchList(
         watchGroup_t *iGrp, const void *iPtr, watchInfo_t **oCur )
 {
     size_t  index = 0;
-    if( binsearch( iGrp, iPtr, &index, iGrp->count ) ) {
+    if( binSearch( iGrp, iPtr, &index, iGrp->count ) ) {
         *oCur = iGrp->ptrList[index];
         return true;
     }
@@ -1067,7 +1116,7 @@ static long getSeqno( watchGroup_t *iGrp, const void *iPtr )
 static void deleteWatchTable( watchGroup_t *ioGrp, watchInfo_t *iCur )
 {
     size_t  index = 0;
-    if( !binsearch( ioGrp, iCur->ptr, &index, ioGrp->count + 1 ) ) {
+    if( !binSearch( ioGrp, iCur->ptr, &index, ioGrp->count + 1 ) ) {
         com_error( COM_ERR_DEBUGNG,
               "##### address(%p) not registered #####", iCur->ptr );
         return;
