@@ -1422,6 +1422,7 @@ void com_addFileInfo(
     com_setFuncTrace( false );
     watchInfo_t*  new = NULL;
     if( addWatchInfo( &gFileGrp, &new, iType, iFp, 0, iPath, COM_FILEVAR ) ) {
+        if( iType == COM_FOPEN ) {(gFileGrp.using)++;}
         if( !gSkipFileInfo ) {
             dispFileInfo( "++F", iType, new, gWatchFileInfoMode, COM_FILEVAR );
         }
@@ -1464,6 +1465,7 @@ void com_listFileInfo( void )
 
     if( !gFileGrp.count ) {return;}
     com_setFuncTrace( false );
+    com_printf( "\n### total opened file count = %zu ###\n", gFileGrp.using );
     com_printf( "\n### not closed file list (%zu) ###\n", gFileGrp.count );
     if( gMemoryFailure ) {com_printf( "### but not enough memory ###\n" );}
     for( watchInfo_t* tmp = gFileGrp.top;  tmp;  tmp = tmp->next ) {
