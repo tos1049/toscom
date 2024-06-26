@@ -39,3 +39,13 @@ enum {
 // まだ処理は未実装のためダミー処理
 void com_initializeSigSet3( void );
 
+
+
+// シグナル機能セット3 導入フラグ ////////////////////////////////////////////
+#define USING_COM_SIGNAL3
+// シグナル機能セット3 初期化関数マクロ (COM_INITIALIZE()で使用 //////////////
+#ifdef COM_INIT_SIGNAL3
+#undef COM_INIT_SIGNAL3
+#endif
+#define COM_INIT_SIGNAL3  com_initializeSigSet3()
+

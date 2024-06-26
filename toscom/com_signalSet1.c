@@ -2814,7 +2814,7 @@ void com_freeDns( com_sigInf_t *oHead )
 
 // 初期化処理 ////////////////////////////////////////////////////////////////
 
-static void finalizeSigPrt1( void )
+static void finalizeSigSet1( void )
 {
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
     freeTcpNodeInf();
@@ -2865,7 +2865,7 @@ static com_analyzeFuncList_t  gFuncSignal1[] = {
 void com_initializeSigSet1( void )
 {
     // com_initializeSignal()から呼ばれる限り、COM_DEBUG_AVOID_～は不要
-    atexit( finalizeSigPrt1 );
+    atexit( finalizeSigSet1 );
     (void)com_registerAnalyzer( gFuncSignal1, COM_IPPORT );
     com_setPrtclType( COM_LINKNEXT, gLinkNext1 );
     com_setBoolTable( COM_VLANTAG, gVlanTag, COM_ELMCNT(gVlanTag) );

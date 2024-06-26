@@ -13,10 +13,16 @@
 #include "com_signal.h"
 #include "com_signalSet3.h"
 
+static void finalizeSigSet3( void )
+{
+    COM_DEBUG_AVOID_START( COM_PROC_ALL );
+    COM_DEBUG_AVOID_END( COM_PROC_ALL );
+}
 
 void com_initializeSigSet3( void )
 {
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
+    atexit( finalizeSigSet3 );
     com_setInitStage( COM_INIT_STAGE_PROCCESSING, false );
     // まずは箱だけ
     com_setInitStage( COM_INIT_STAGE_FINISHED, false );

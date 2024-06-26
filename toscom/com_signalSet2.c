@@ -1467,7 +1467,7 @@ char *com_getGsmmapOpName( ulong iOpcode )
 
 // 初期化処理 ////////////////////////////////////////////////////////////////
 
-static void finalizeSet2( void )
+static void finalizeSigSet2( void )
 {
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
     freeSccpConnInf();
@@ -1494,7 +1494,7 @@ void com_initializeSigSet2( void )
 {
     COM_DEBUG_AVOID_START( COM_PROC_ALL );
     com_setInitStage( COM_INIT_STAGE_PROCCESSING, false );
-    atexit( finalizeSet2 );
+    atexit( finalizeSigSet2 );
     (void)com_registerAnalyzer( gFuncSignal2, COM_SCCPSSN );
     com_setPrtclType( COM_SCTPNEXT, gSctpNext2 );
     com_setPrtclType( COM_SIPNEXT, gSipNext2 );
