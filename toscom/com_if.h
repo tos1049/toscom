@@ -6216,7 +6216,7 @@ const char *com_seekNameList( void *iAddr );
 void com_testCode( int iArgc, char **iArgv );
 
 /*
- * デバッグ時の各種アサート関数
+ * デバッグ時の各種アサート関数  com_assert*() <一覧は下記説明参照>
  *   いずれも返り値はなし。
  *   アサートNGの場合、そこでプログラムが落ちる。
  * ---------------------------------------------------------------------------
@@ -6251,7 +6251,7 @@ void com_testCode( int iArgc, char **iArgv );
  *
  *   com_assertEquals()
  *   com_assertNotEquals()
- *     iExpectedと iResultは long型。
+ *     iExpectedと iResultは long型(符号あり数値)。
  *     com_assertEquals()は iExpected と iResult が等しいことを確認。
  *     com_assertNotEquals()は iExpected と iResult が等しくないことを確認。
  *     引数は long型だが、int,short,char型を指定しても問題ない。
@@ -6260,7 +6260,7 @@ void com_testCode( int iArgc, char **iArgv );
  *
  *   com_assertEqualsU()
  *   com_assertNotEqualsU()
- *     iExpectedと iResultは ulong型。
+ *     iExpectedと iResultは ulong型(符号なし数値)。
  *     com_assertEqualsU()は iExpected と iResult が等しいことを確認。
  *     com_assertNotEqualsU()は iExpected と iResult が等しくないことを確認。
  *     引数は ulong型だが、uint,ushort,uchar型を指定しても問題ない。
@@ -6269,7 +6269,7 @@ void com_testCode( int iArgc, char **iArgv );
  *
  *   com_assertEqualsF()
  *   com_assertNotEqualsF()
- *     iExpectedと iResultは float型。
+ *     iExpectedと iResultは float型(単精度浮動小数点数値)。
  *     com_assertEqualsF()は iExpected と iResult が等しいことを確認。
  *     com_assertNotEqualsF()は iExpected と iResult が等しくないことを確認。
  *     double型を確認したい場合は、こちらではなく
@@ -6277,7 +6277,7 @@ void com_testCode( int iArgc, char **iArgv );
  *
  *   com_assertEqualsD()
  *   com_assertNotEqualsD()
- *     iExpectedと iResultは double型。
+ *     iExpectedと iResultは double型(倍精度浮動小数点数値)。
  *     com_assertEqualsD()は iExpected と iResult が等しいことを確認。
  *     com_assertNotEqualsD()は iExpected と iResult が等しくないことを確認。
  *     float型を確認したい場合は、こちらではなく
@@ -6285,7 +6285,7 @@ void com_testCode( int iArgc, char **iArgv );
  *
  *   com_assertString()
  *   com_assertStringLen()
- *     iExpectedと iResultは char*型
+ *     iExpectedと iResultは char*型(文字列)。
  *     どちらも iExpected と iResult が文字列として等しいことを確認。
  *     com_assertStringLen() は iLength を引数としてさらに持ち、
  *     先頭から指定した長さの文字列を互いに比較する。
@@ -6297,8 +6297,14 @@ void com_testCode( int iArgc, char **iArgv );
  *
  *   com_assertNull()
  *   com_assertNotNull()
- *     iExpectedは引数として持たず、iResultは void*型。
+ *     iExpectedは引数として持たず、iResultは void*型(ポインタ値)。
  *     iResultが NULL または 非NULL かを確認。
+ *
+ *   com_assertEqualsP()
+ *   com_assertNotEqualsP()
+ *     iExpectedと iResultは void*型(ポインタ値)。
+ *     com_assertEqualsP()は iExpected と iResult が等しいことを確認。
+ *     com_assertNotEqualsP()は iExpected と iResult が等しくないことを確認。
  */
 
 /*
@@ -6319,6 +6325,8 @@ void com_testCode( int iArgc, char **iArgv );
  *  void com_assertFalse( char *iLabel, BOOL iResult );
  *  void com_assertNull( char *iLabel, void *iResult );
  *  void com_assertNotNull( char *iLabel, void *iResult );
+ *  void com_assertEqualsP( char *iLabel, void* iExpected, void* iResult );
+ *  void com_assertNotEqualsP( char *iLabel, void* iExpected, void* iResult );
  */
 
 #ifndef NDEBUG
@@ -6350,6 +6358,10 @@ void com_testCode( int iArgc, char **iArgv );
     com_assertNullFunc( LABEL, RESULT, COM_FILELOC )
 #define com_assertNotNull( LABEL, RESULT ) \
     com_assertNotNullFunc( LABEL, RESULT, COM_FILELOC )
+#define com_assertEqualsP( LABEL, EXPECTED, RESULT ) \
+    com_assertEqualsPFunc( LABEL, (EXPECTED), (RESULT), COM_FILELOC )
+#define com_assertNotEqualsP( LABEL, EXPECTED, RESULT ) \
+    com_assertNotEqualsPFunc( LABEL, (EXPECTED), (RESULT), COM_FILELOC )
 #else   // NDEBUGがマクロ宣言されている場合 com_assert*()は動作しない
 #define com_assertEquals( LABEL, EXPECTED, RESULT )
 #define com_assertNotEquals( LABEL, EXPECTED, RESULT )
@@ -6365,6 +6377,8 @@ void com_testCode( int iArgc, char **iArgv );
 #define com_assertFalse( LABEL, RESULT )
 #define com_assertNull( LABEL, RESULT )
 #define com_assertNotNull( LABEL, RESULT )
+#define com_assertEqualsP( LABEL, EXPECTED, RESULT )
+#define com_assertNotEqualsP( LABEL, EXPECTED, RESULT )
 #endif   /* NDEBUG */
 
 void com_assertEqualsFunc(
@@ -6392,6 +6406,10 @@ void com_assertTrueFunc( char *iLabel, BOOL iResult, COM_FILEPRM );
 void com_assertFalseFunc( char *iLabel, BOOL iResult, COM_FILEPRM );
 void com_assertNullFunc( char *iLabel, void *iResult, COM_FILEPRM );
 void com_assertNotNullFunc( char *iLabel, void *iResult, COM_FILEPRM );
+void com_assertEqualsPFunc(
+        char *iLabel, void* iExpected, void* iResult, COM_FILEPRM );
+void com_assertNotEqualsPFunc(
+        char *iLabel, void* iExpected, void* iResult, COM_FILEPRM );
 
 
 /*****************************************************************************/

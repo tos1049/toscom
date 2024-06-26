@@ -1839,7 +1839,7 @@ void com_assertStringLenFunc(
 void com_assertTrueFunc( char *iLabel, BOOL iResult, COM_FILEPRM )
 {
     ASSERTSTART;
-    com_printf( "%ld is true)\n", iResult );
+    com_printf( "%ld is true )\n", iResult );
     dispAssertLocation( COM_FILEVAR );
     if( checkNDEBUG() ) {assert( iResult );}
 }
@@ -1847,7 +1847,7 @@ void com_assertTrueFunc( char *iLabel, BOOL iResult, COM_FILEPRM )
 void com_assertFalseFunc( char *iLabel, BOOL iResult, COM_FILEPRM )
 {
     ASSERTSTART;
-    com_printf( "%ld is false)\n", iResult );
+    com_printf( "%ld is false )\n", iResult );
     dispAssertLocation( COM_FILEVAR );
     if( checkNDEBUG() ) {assert( !iResult );}
 }
@@ -1855,7 +1855,7 @@ void com_assertFalseFunc( char *iLabel, BOOL iResult, COM_FILEPRM )
 void com_assertNullFunc( char *iLabel, void *iResult, COM_FILEPRM )
 {
     ASSERTSTART;
-    com_printf( "%p is NULL)\n", iResult );
+    com_printf( "%p is NULL )\n", iResult );
     dispAssertLocation( COM_FILEVAR );
     if( checkNDEBUG() ) {assert( !iResult );}
 }
@@ -1863,9 +1863,27 @@ void com_assertNullFunc( char *iLabel, void *iResult, COM_FILEPRM )
 void com_assertNotNullFunc( char *iLabel, void *iResult, COM_FILEPRM )
 {
     ASSERTSTART;
-    com_printf( "%p is not NULL)\n", iResult );
+    com_printf( "%p is not NULL )\n", iResult );
     dispAssertLocation( COM_FILEVAR );
     if( checkNDEBUG() ) {assert( iResult );}
+}
+
+void com_assertEqualsPFunc(
+        char *iLabel, void* iExpected, void* iResult, COM_FILEPRM )
+{
+    ASSERTSTART;
+    com_printf( "%p == %p )\n", iExpected, iResult );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( iExpected == iResult );}
+}
+
+void com_assertNotEqualsPFunc(
+        char *iLabel, void* iExpected, void* iResult, COM_FILEPRM )
+{
+    ASSERTSTART;
+    com_printf( "%p != %p )\n", iExpected, iResult );
+    dispAssertLocation( COM_FILEVAR );
+    if( checkNDEBUG() ) {assert( iExpected != iResult );}
 }
 
 
