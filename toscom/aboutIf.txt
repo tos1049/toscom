@@ -278,9 +278,12 @@ toscom grimoire Ver3.00
    com_debugFcloseErrorOff()   ファイルクローズNG発生OFF
 
    com_registerErrorCode()     エラーコード登録
-   com_error()                 エラーメッセージ出力
-   com_errorExit()             エラーメッセージ出力後 強制終了
-   com_errorSelect()           エラーメッセージ出力後 条件付き強制終了
+  @com_error()                 エラーメッセージ出力
+     初期化処理が完了していない場合、処理を簡略化するように修正。
+  @com_errorExit()             エラーメッセージ出力後 強制終了
+     初期化処理が完了していない場合、処理を簡略化するように修正。
+  @com_errorSelect()           エラーメッセージ出力後 条件付き強制終了
+     初期化処理が完了していない場合、処理を簡略化するように修正。
   +com_notifyError()           エラーメッセージ出力ON/OFF
    com_useStdErr()             エラー出力先切り替え
    com_getLastError()          最新エラーコード取得
@@ -311,6 +314,8 @@ toscom grimoire Ver3.00
   +com_assertFalse()           アサート関数(BOOL型)
   +com_assertNull()            アサート関数(ポインタ型)
   +com_assertNotNull()         アサート関数(ポインタ型)
+  +com_assertEqualsP()         アサート関数(ポインタ型)
+  +com_assertNotEqualsP()      アサート関数(ポインタ型)
 
 
 ===== 基本機能(個別) (com_spec.h) ============================================
@@ -342,7 +347,8 @@ toscom grimoire Ver3.00
     com_valLoadFileCondFree()   読込ファイル名チェック条件解放
 
    com_input()                 文字列入力
-   com_inputVar()              文字列入力(格納バッファ指定版)
+  @com_inputVar()              文字列入力(格納バッファ指定版)
+      格納バッファを 0クリアするように修正。
    com_inputMultiLine()        複数行テキスト入力
    com_isYes()                 Yes文字列判定
    com_askYesNo()              共通用Yes/No文字列入力
