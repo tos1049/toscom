@@ -975,11 +975,12 @@ static inline long increaseSeqno( watchGroup_t *ioGrp )
 }
 
 // 監視情報を watchGroup_t型に集約。
-// これに伴い .top から始まる線形リストは追加時は末尾追加のみの双方向リストに
-// 変更している。
+// .top から始まる線形リストは追加時は末尾追加のみの双方向リストに変更。
 // 更に .ptrList に 各要素の .ptr でソートした要素リストを作成するように修正。
+//
 // 以後 .ptrの検索をしたい時は .ptrList の方で検索して、要素のアドレスを受け
-// そのアドレスで処理を進めることとした。
+// そのアドレスで処理を進めることとした。二分探索で検索できるので、
+// 単純な線形リストよりは、検索が速くなるはず。
 
 #define IDXVAL( INDEX )   (const void*)ioGrp->ptrList[*oIdx + INDEX]->ptr
 
@@ -1328,7 +1329,7 @@ void com_deleteMemInfo( COM_FILEPRM, COM_MEM_OPR_t iType, const void *iPtr )
         com_setFuncTrace( true );
         return;
     }
-    gMemGrp.using -= tmp.size;
+    updateUsing( &gMemGrp, -(tmp.size) );
     if( gSkipMemInfo && !gForceLog ) {gSkipMemInfoCount++;}
     else {dispMemInfo( "--M", iType, &tmp, gWatchMemInfoMode, COM_FILEVAR );}
     com_setFuncTrace( true );
@@ -1422,7 +1423,7 @@ void com_addFileInfo(
     com_setFuncTrace( false );
     watchInfo_t*  new = NULL;
     if( addWatchInfo( &gFileGrp, &new, iType, iFp, 0, iPath, COM_FILEVAR ) ) {
-        if( iType == COM_FOPEN ) {(gFileGrp.using)++;}
+        if( iType == COM_FOPEN ) {updateUsing( &gFileGrp, 1 );}
         if( !gSkipFileInfo ) {
             dispFileInfo( "++F", iType, new, gWatchFileInfoMode, COM_FILEVAR );
         }
