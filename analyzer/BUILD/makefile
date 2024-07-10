@@ -276,8 +276,8 @@ checkf: init
 RELEASE := RELEASE
 RELDIR := $(RELEASE)_$(COMMAND)_$(VERSION)
 
-rel: CFLAGS += -Werror
-rel: CFLAGS += -Wmissing-declarations -O2
+rel: CFLAGS += -Werror -Winline
+rel: CFLAGS += -Wmissing-declarations -Wdisabled-optimization -O2
 rel: OPTION := $(RELOPT) -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3
 rel: OPTION += -DUSEDEBUGLOG
 rel: init
