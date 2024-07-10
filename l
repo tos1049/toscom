@@ -12,8 +12,6 @@
 #   １カラム目に { } は書いていなければ、行数カウントは難しい)
 #
 # ソースファイルが増えたときは checkSource() に既存と同じ形で追記する。
-# getFunctions()はワイルドカードも含めて、ファイルの複数指定には未対応なので、
-# *.c といった書き方は避けること。
 #
 
 # CTRL+C で中断時も一時ファイルを削除するようにする。
@@ -33,17 +31,18 @@ fi
 echo "check: $(date)"
 
 function getFuncName() {
-  local _line="$1"
-  GETLINE=$(echo "${_line}" | awk -F ":" '{print $1}')
-  #printf "%-5d : " "${GETLINE}"
-  # 関数名( の形になっている前提。関数名の前の * はあっても良い。
-  GETFUNC=$(echo "${_line}" | grep -o -E "[^[:space:]]+\(")
-  #echo "${GETFUNC}"
-  while [[ "${GETFUNC}" =~ \* ]]; do
-    GETFUNC="${GETFUNC/\*/}"
+  for _line; do
+    GETLINE=$(echo "${_line}" | awk -F ":" '{print $1}')
+    #printf "%-5d : " "${GETLINE}"
+    # 関数名( の形になっている前提。関数名の前の * はあっても良い。
+    GETFUNC=$(echo "${_line}" | grep -o -E "[^[:space:]]+\(")
+    #echo "${GETFUNC}"
+    while [[ "${GETFUNC}" =~ \* ]]; do
+      GETFUNC="${GETFUNC/\*/}"
+    done
+    GETFUNC="${GETFUNC/\(/}"
+    #echo "${GETFUNC}()"
   done
-  GETFUNC="${GETFUNC/\(/}"
-  #echo "${GETFUNC}()"
 }
 
 function searchLine() {
