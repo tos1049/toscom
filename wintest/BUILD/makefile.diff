@@ -4,11 +4,11 @@
 ---
 > COMMAND := wintest
 > VERSION := 1.0
-156c156
+164c164
 < OBJS = main.o com.o
 ---
 > OBJS = main.o com.o win.o
-192,194c192,194
+200,202c200,202
 < smpl.o: $(SRC)/smpl_*.c $(SRC)/smpl_*.h $(COMMON_HEAD)
 < 	$(CC) $(OPTION) -c $(wildcard $(SRC)/smpl_*.c) $(CFLAGS)
 < 	$(LD) $(LDFLAGS) smpl_*.o -o $@
@@ -16,7 +16,7 @@
 > win.o: $(SRC)/win_*.c $(SRC)/win_*.h $(COMMON_HEAD)
 > 	$(CC) $(OPTION) -c $(wildcard $(SRC)/win_*.c) $(CFLAGS)
 > 	$(LD) $(LDFLAGS) win_*.o -o $@
-352c352
+360c360
 < 	cd ..; ctags main*.? com_*.?
 ---
 > 	cd ..; ctags main*.? com_*.? win_*.?

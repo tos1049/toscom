@@ -2,6 +2,19 @@
 
 # NEWENVのリリース用ファイルを揃える (z から呼ばれる)
 
+rm -f  com_custom.h
+rm -f  com_spec.h
+rm -f  com_spec.c
+rm -f  com_test.c
+rm -f  main.c main.orig main.rej
+rm -f  BUILD/makefile BUILD/makefile.orig BUILD/makfile.rej
+rm -fr BUILD/.lib
+
+if [ "$1" = "--clean" ]; then
+  echo "...mpu cleaned"
+  exit 0
+fi
+
 # 個別ソースをコピー
 cp ../com_custom.h .
 cp ../com_spec.h .
@@ -11,11 +24,9 @@ cp ../com_test.c .
 # newenv と makefile を最新に保つパッチ処理
 # 元が変わったときに、アーカイブ(z)前に実施すること
 
-rm -fr main.orig main.rej
 cp ../main.c .
 patch main.c main.diff
 
-rm -fr BUILD/makefile.orig BUILD/makefile.rej
 cp ../BUILD/makefile BUILD/
 patch BUILD/makefile BUILD/makefile.diff
 

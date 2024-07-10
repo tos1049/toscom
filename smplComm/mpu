@@ -3,13 +3,19 @@
 # newenv と makefile を最新に保つパッチ処理
 # 元が変わったときに、アーカイブ(z)前に実施すること
 
-rm -fr newenv.orig newenv.rej
+rm -fr newenv newenv.orig newenv.rej
+rm -fr BUILD/makefile BUILD/makefile.orig BUILD/makefile.rej
+rm -fr .com_windowSpec.h
+
+if [ "$1" = "--clean" ]; then
+  echo "... mpu cleaned"
+  exit 0
+fi
+
 cp ../toscom/NEWENV/newenv .
 patch newenv newenv.diff
 
-rm -fr BUILD/makefile.orig BUILD/makefile.rej
 cp ../toscom/BUILD/makefile BUILD/
 patch BUILD/makefile BUILD/makefile.diff
 
-rm -fr .com_windowSpec.h
 
