@@ -28,6 +28,8 @@ CC := gcc
 CFLAGS := -std=c99 -g3
 
 
+
+
 # 緩やかチェック (最低限これで警告は出ないようにすること)
 # -pedantic
 #   gcc拡張構文は無効にして警告
@@ -45,9 +47,14 @@ CFLAGS := -std=c99 -g3
 #   K&Rスタイルの関数定義に対して警告
 # -Wstrict-prototypes
 #   引数の型が示されていない(＝K&Rスタイルの)プロトタイプ宣言に対して警告
+# -Wformat-security
+#   書式指定文字列でセキュリティ的に問題がある場合に警告
+# -Wconversion
+#   暗黙型変換で値が変わる可能性があるときに警告(明示キャストで抑止)
 #
 CFLAGS += -pedantic -Wall -Wextra -Wshadow -Wdisabled-optimization \
-          -Wfloat-equal -Wold-style-definition -Wstrict-prototypes
+          -Wfloat-equal -Wold-style-definition -Wstrict-prototypes \
+          -Wformat-security -Wconversion
 
 # 追加の厳し目チェック (これで警告が出るコードは基本的に避けたほうが良い)
 # -Waggregate-return
@@ -72,6 +79,7 @@ CFLAGS += -pedantic -Wall -Wextra -Wshadow -Wdisabled-optimization \
 CFLAGS += -Waggregate-return -Wbad-function-cast -Wcast-align -Winline \
           -Wlogical-op -Wmultichar -Wpadded -Wpointer-arith -Wsequence-point
 
+
 # 関数の未使用引数を警告されるのが鬱陶しい？
 #    警告オプション -Wno-unused-parameter を追加する前に
 #    com_if.h で宣言しているマクロ COM_UNUSED() の使用を検討して欲しい
@@ -86,8 +94,8 @@ CFLAGS += -lpthread -lm
 # Electric Fenceを使ったデバッグがしたい時のみ入れるオプション
 #CFLAGS += -lefence
 
-# 最新gccではセットされているコンパイルオプション
-CFLAGS += -Wformat-security -Wconversion
+
+
 
 
 
