@@ -29,7 +29,6 @@ CFLAGS := -std=c99 -g3
 
 
 
-
 # 緩やかチェック (最低限これで警告は出ないようにすること)
 # -pedantic
 #   gcc拡張構文は無効にして警告
@@ -56,6 +55,8 @@ CFLAGS += -pedantic -Wall -Wextra -Wshadow -Wdisabled-optimization \
           -Wfloat-equal -Wold-style-definition -Wstrict-prototypes \
           -Wformat-security -Wconversion
 
+
+
 # 追加の厳し目チェック (これで警告が出るコードは基本的に避けたほうが良い)
 # -Waggregate-return
 #   関数が配列や構造体を返すときに警告
@@ -80,6 +81,7 @@ CFLAGS += -Waggregate-return -Wbad-function-cast -Wcast-align -Winline \
           -Wlogical-op -Wmultichar -Wpadded -Wpointer-arith -Wsequence-point
 
 
+
 # 関数の未使用引数を警告されるのが鬱陶しい？
 #    警告オプション -Wno-unused-parameter を追加する前に
 #    com_if.h で宣言しているマクロ COM_UNUSED() の使用を検討して欲しい
@@ -87,8 +89,6 @@ CFLAGS += -Waggregate-return -Wbad-function-cast -Wcast-align -Winline \
 
 # 基本機能で使うライブラリ指定
 CFLAGS += -lpthread -lm
-
-
 # com_window.h(ウィンドウ機能）を使用する場合、このライブラリ使用が必要
 CFLAGS += -lpanel -lncursesw
 # Electric Fenceを使ったデバッグがしたい時のみ入れるオプション
