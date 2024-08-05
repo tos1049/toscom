@@ -13,6 +13,11 @@ if [ ! -e ${WORKDIR} ]; then
   mkdir ${WORKDIR}
 fi
 
+if [ ! -d ${WORKDIR} ]; then
+  echo "${WORKDIR} is not directory..."
+  exit 1
+fi
+
 mapfile -t TARLIST < <(ls -t toscom.*.tar.gz)
 TARFILE=${TARLIST[0]}
 

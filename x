@@ -5,7 +5,6 @@
 # 本スクリプトの shebang(ファイル冒頭) で統一する。
 #
 
-SHELL="bash"
 SHEBANG="$(head -n 1 x)"
 #echo -e "${SHEBANG}..."
 
@@ -13,7 +12,7 @@ function changeShebang() {
   for _file; do
     local _shebang="$(head -n 1 ${_file})"
     echo -n "${_file}  "
-    if [[ ! "${_shebang}" =~ \/${SHELL}$ ]]; then
+    if [[ ! "${_shebang}" =~ ^#! ]]; then
       echo -e "${_shebang}"
       echo "  ...shebang not descripted, maybe"
       continue
