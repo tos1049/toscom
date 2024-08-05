@@ -141,13 +141,19 @@ long com_checkMemInfo( const void *iPtr );
 void com_deleteMemInfo( COM_FILEPRM, COM_MEM_OPR_t iType, const void *iPtr );
 
 /*
- * メモリ監視情報出力  com_listMemInfo()
+ * メモリ監視情報出力  com_listMemInfo()・com_listMemInfoByAddr()
  * ---------------------------------------------------------------------------
  *   エラーは発生しない。
  * ===========================================================================
  * 現在保持しているメモリ監視情報を全て出力する。
+ * ・com_listFileInfo()は登録順(シーケンス番号順)
+ * ・com_listFileInfoByAddr()は捕捉したメモリのアドレス順
+ *
+ * メモリ監視機能がONになっていて、解放漏れメモリがあった場合は、
+ * プログラムの最後に com_listMemInfo()が呼ばれて、その一覧を出力する。
  */
 void com_listMemInfo( void );
+void com_listMemInfoByAddr( void );
 
 /*
  * メモリ捕捉デバッグNG判定  com_debugMemoryError()
@@ -256,13 +262,21 @@ long com_checkFileInfo( const FILE *iFp );
 void com_deleteFileInfo( COM_FILEPRM, COM_FILE_OPR_t iType, const FILE *iFp );
 
 /*
- * ファイル監視情報出力  com_listFileInfo()
+ * ファイル監視情報出力  com_listFileInfo()・com_listFileInfoByAddr()
  * ---------------------------------------------------------------------------
  *   エラーは発生しない。
  * ===========================================================================
  * 現在保持しているファイル監視情報を全て出力する。
+ * ・com_listFileInfo()は登録順(シーケンス番号順)
+ * ・com_listFileInfoByAddr()はファイルポインタのアドレス順
+ * ただファイルの場合は、ファイル名が分かれば良いので、アドレス順はそこまで
+ * 意味があるわけではない。
+ *
+ * ファイル監視機能がONになっていて、未クローズファイルがあった場合は、
+ * プログラムの最後に com_listFileInfo()が呼ばれて、その一覧を出力する。
  */
 void com_listFileInfo( void );
+void com_listFileInfoByAddr( void );
 
 /*
  * ファイルオープンデバッグNG判定  com_debugFopenError()

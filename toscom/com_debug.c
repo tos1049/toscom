@@ -1335,22 +1335,51 @@ void com_deleteMemInfo( COM_FILEPRM, COM_MEM_OPR_t iType, const void *iPtr )
     com_setFuncTrace( true );
 }
 
+// メモリ・ファイル どちらでも使えるようにマクロ化
+#define DISP_LIST_INFO( USING, LIST, DISPFUNC, GROUP ) \
+    com_dbgCom( "\n### %s = %zu ###\n", USING, GROUP.usingMax ); \
+    if( !GROUP.count ) {return;} \
+    com_printf( "\n### %s (%zu) ###\n", LIST, GROUP.count ); \
+    if( gMemoryFailure ) {com_printf( "### but not enough memory ###\n" );} \
+    if( iByAddr ) { \
+        for( size_t idx = 0;  idx < GROUP.count;  idx++ ) { \
+            DISPFUNC( GROUP.ptrList[idx] ); \
+        } \
+    } \
+    else { \
+        for( watchInfo_t* tmp = GROUP.top;  tmp;  tmp = tmp->next ) { \
+            DISPFUNC( tmp ); \
+        } \
+    }
+
+static void dispNotFreed( watchInfo_t *iInfo )
+{
+    // 強制画面出力する
+    gNoComDebugLog = false;
+    dispMemInfo( "? M", iInfo->type, iInfo, COM_DEBUG_ON,
+                        iInfo->file, iInfo->line, iInfo->func );
+}
+
+static void listMemInfo( BOOL iByAddr )
+{
+    DISP_LIST_INFO( "Using Memory MAX", "not freed memory list",
+                    dispNotFreed, gMemGrp );
+}
+
+#define LIST_MEM_INFO( BYADDR ) \
+    if( !gWatchMemInfoMode ) {return;} \
+    com_setFuncTrace( false ); \
+    listMemInfo( BYADDR ); \
+    com_setFuncTrace( true );
+
 void com_listMemInfo( void )
 {
-    if( !gWatchMemInfoMode ) {return;}
+    LIST_MEM_INFO( false )
+}
 
-    com_setFuncTrace( false );
-    com_dbgCom( "\n### Using Memory MAX = %zu ###\n", gMemGrp.usingMax );
-    if( !gMemGrp.count ) {com_setFuncTrace( true );  return;}
-    com_printf( "\n### not freed memory list (%zu) ###\n", gMemGrp.count );
-    if( gMemoryFailure ) {com_printf( "### but not enough memory ###\n" );}
-    for( watchInfo_t* tmp = gMemGrp.top;  tmp;  tmp = tmp->next ) {
-        // 強制画面出力する
-        gNoComDebugLog = false;
-        dispMemInfo( "? M", tmp->type, tmp, COM_DEBUG_ON,
-                     tmp->file, tmp->line, tmp->func );
-    }
-    com_setFuncTrace( true );
+void com_listMemInfoByAddr( void )
+{
+    LIST_MEM_INFO( true )
 }
 
 static BOOL  gDebugMemMode = false;
@@ -1460,23 +1489,36 @@ void com_deleteFileInfo( COM_FILEPRM, COM_FILE_OPR_t iType, const FILE *iFp )
     com_setFuncTrace( true );
 }
 
+static void dispNotClosed( watchInfo_t *iInfo )
+{
+    // 強制画面出力する
+    gNoComDebugLog = false;
+    dispFileInfo( "? F", iInfo->type, iInfo, COM_DEBUG_ON,
+                         iInfo->file, iInfo->line, iInfo->func );
+}
+
+static void listFileInfo( BOOL iByAddr )
+{
+    DISP_LIST_INFO( "total opened file count", "not closed file list",
+                    dispNotClosed, gFileGrp );
+}
+
+#define LIST_FILE_INFO( BYADDR ) \
+    if( !gWatchFileInfoMode ) {return;} \
+    com_setFuncTrace( false ); \
+    listFileInfo( BYADDR ); \
+    com_setFuncTrace( true );
+
 void com_listFileInfo( void )
 {
-    if( !gWatchFileInfoMode ) {return;}
-
-    if( !gFileGrp.count ) {return;}
-    com_setFuncTrace( false );
-    com_printf( "\n### total opened file count = %zu ###\n", gFileGrp.using );
-    com_printf( "\n### not closed file list (%zu) ###\n", gFileGrp.count );
-    if( gMemoryFailure ) {com_printf( "### but not enough memory ###\n" );}
-    for( watchInfo_t* tmp = gFileGrp.top;  tmp;  tmp = tmp->next ) {
-        // 強制画面出力する
-        gNoComDebugLog = false;
-        dispFileInfo( "? F", tmp->type, tmp, COM_DEBUG_ON,
-                      tmp->file, tmp->line, tmp->func );
-    }
-    com_setFuncTrace( true );
+    LIST_FILE_INFO( false )
 }
+
+void com_listFileInfoByAddr( void )
+{
+    LIST_FILE_INFO( true )
+}
+
 
 static BOOL  gDebugFopenMode  = false;
 static long  gDebugFopenSeqno = 0;
