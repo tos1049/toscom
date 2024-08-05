@@ -1,4 +1,6 @@
 #!/bin/bash
+APLVER=$1
+ISBETA=$2
 
 # toscomのアーカイブを作ったりするシェル
 #  toscom.*.tar.gz    リリースアーカイブ
@@ -13,8 +15,6 @@
 # 引数2はリリース版指定で REL を指定した場合、リリース版作成。
 # それ以外の指定あるいは省略時は、ベータ版作成として処理を進める。
 #
-APLVER=$1
-ISBETA=$2
 
 ##### バージョン指定
 SELFMOD="self modify line"
