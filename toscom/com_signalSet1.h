@@ -10,6 +10,12 @@
  *
  *   対応しているプロトコルについては PROTOCOL_AVAILABLE を参照。
  *
+ *   本ヘッダでは本来の命名ルールに従わず、com_ をつけない構造体宣言や、
+ *   COM_ をつけないマクロ宣言が存在する。
+ *   これは Linuxではヘッダに宣言されている構造体やマクロで、Cygwinには同名の
+ *   ヘッダが存在せずインクルードが出来なかったため、toscomで使用する構造体や
+ *   マクロを、独自で宣言する必要があった、という理由による。
+ *
  *****************************************************************************
  */
 
@@ -140,7 +146,7 @@ typedef struct {
  * ===========================================================================
  * com_analyzeSll()で ioHead->sigの信号データを SLLヘッダとして解析する。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .len       SLLヘッダサイズ (sizeof(com_sigSllHead_t))
  *     .ptype     COM_SIG_SLL
  *   .next
@@ -210,7 +216,7 @@ struct ether_header {
  * ===========================================================================
  * com_analyzeEth2()で ioHead->sigの信号データを Ether2ヘッダとして解析する。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .len       Ether2ヘッダサイズ (sizeof(struct ether_header))
  *     .ptype     COM_SIG_ETHER2
  *   .prm         VLANタグがあった場合、タグとその内容を格納
@@ -338,7 +344,7 @@ struct ip {
  * com_analyzeIpv4()で ioHead->sigの信号データを IPv4ヘッダとして解析する。
  * 参照勧告は RFC791(section 3.1)・RFC2113。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .top       IPフラグメント結合した場合、その結合結果に差し替わる
  *     .len       IPv4ヘッダサイズ (ipv4->ip_hl * 4)
  *     .ptype     COM_SIG_IPV4 (IPフラグメント断片だった場合 COM_SIG_FRAGMENT)
@@ -461,7 +467,7 @@ struct ip6_frag {
  * com_analyzeIpv6()で ioHead->sigの信号データを IPv6ヘッダとして解析する。
  * 参照勧告は RFC8200(section 3)。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .top       IPフラグメント結合した場合、その結合結果に差し替わる
  *     .len       IPv6ヘッダサイズ (拡張ヘッダも含めたサイズ)
  *     .ptype     COM_SIG_IPV6 (IPフラグメント断片だった場合 COM_SIG_FRAGMENT)
@@ -572,7 +578,7 @@ struct icmphdr {
  * com_analyzeIcmp()で ioHead->sigの信号データを ICMP信号として解析する。
  * 参照勧告は RFC792。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .len       ICMPヘッダサイズ (sizeof(struct icmphdr)
  *     .ptype     COM_SIG_ICMP
  *   .prm         ICMPオプションがあった場合、その内容を格納
@@ -664,7 +670,7 @@ struct icmp6_hdr {
  * com_analyzeIcmpv6()で ioHead->sigの信号データを ICMPv6信号として解析する。
  * 参照勧告は RFC4443/2461。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .len       ICMPv6ヘッダサイズ (sizeof(struct icmp6_hdr)
  *     .ptype     COM_SIG_ICMPV6
  *   .multi       ICMPv6基本ヘッダ(struct icmp6_hdr)以降のデータ
@@ -748,7 +754,7 @@ struct arphdr {
  * com_analyzeArp()で ioHead->sigの信号データを ARP信号として解析する。
  * 参照勧告は RFC826。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .len       ARPヘッダサイズ (sizeof(struct arphdr)
  *     .ptype     COM_SIG_ARP
  *   .multi       ARPヘッダ(struct arphdr)以降のデータ
@@ -876,7 +882,7 @@ struct tcphdr {
  * com_analyzeTcp()で ioHead->sigの信号データを TCP信号として解析する。
  * 参照勧告は RFC793(section 3.1)。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .len       TCPヘッダサイズ (sizeof(struct tcphdr)
  *     .ptype     COM_SIG_TCP
  *   .prm         TCPオプションがあれば格納
@@ -1068,7 +1074,7 @@ struct udphdr {
  * com_analyzeUdp()で ioHead->sigの信号データを UDP信号として解析する。
  * 参照勧告は RFC768。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .len       UDPヘッダサイズ (sizeof(struct udphdr)
  *     .ptype     COM_SIG_UDP
  *   .ext         次プロトコルを判定するために使用したポート番号(long*型)
@@ -1182,7 +1188,7 @@ typedef struct {
  * com_analyzeSctp()で ioHead->sigの信号データを SCTP信号として解析する。
  * 参照勧告は RFC4960(section 3)。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .len       SCTP共通ヘッダサイズ (sizeof(com_sigSctpCommonHdr_t)
  *     .ptype     COM_SIG_SCTP
  *   .multi
@@ -1308,7 +1314,7 @@ typedef enum {
  * com_analyzeSip()で ioHead->sigの信号データを SIP信号として解析する。
  * 参照勧告は RFC3261。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .len       先頭から、SIPヘッダとボディの間の改行までのサイズ
  *     .ptype     COM_SIG_SIP
  *   .prm         SIPヘッダ一覧
@@ -1388,7 +1394,7 @@ BOOL com_getSipName( void *iSigTop, const char **oLabel, long *oType );
  * com_analyzeSdp()で ioHead->sigの信号データを SDP記述として解析する。
  * 参照勧告は RFC4566。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .ptype     COM_SIG_SDP
  *   .prm         SDPディレクティブ一覧
  *                   .tagBin: ディレクティブ名(行頭から = までの文字列)
@@ -1474,7 +1480,7 @@ typedef struct {
  * com_analyzeRtp()で ioHead->sigの信号データを RTP信号として解析する。
  * 参照勧告は RFC3550。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     ,len       RTPヘッダサイズ
  *                (sizeof(com_sigRtpHdr_t) + CCRCサイズ + 拡張ヘッダサイズ)
  *     .ptype     COM_SIG_RTP
@@ -1609,7 +1615,7 @@ typedef struct {
  * com_analyzeRtcp()で ioHead->sigの信号データを RTCP信号として解析する。
  * 参照勧告は RFC3550。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .ptype     COM_SIG_RTCP
  *   .multi
  *     .cnt       RTCPパケット個数
@@ -1737,7 +1743,7 @@ typedef struct {
  * 参照勧告は RFC3588(Base)・TS29.229(Cx/Dx)・TS29.329(Sh/DH)
  * ・X.S0013-003(Tx)・X.S0013-014(Ty)。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .len       Diameter共通ヘッダサイズ (sizeof(com_sigDiamHdr_t)) 
  *     .ptype     COM_SIG_DIAMETER
  *   .prm         AVP一覧
@@ -1878,7 +1884,7 @@ typedef enum {
  * com_analyzeDhcp()で ioHead->sigの信号データを DHCP信号として解析する。
  * 参照勧告は RFC2131。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .len       DHCPヘッダサイズ (sizeof(com_sigDhcpHdr_t))
  *     .ptype     COM_SIG_DHCP
  *   .prm         オプション一覧
@@ -1972,7 +1978,7 @@ typedef enum {
  * com_analyzeDhcpv6()で ioHead->sigの信号データを DHCPv6信号として解析する。
  * 参照勧告は RFC8415。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .len       DHCPv6ヘッダサイズ (sizeof(com_sigDhcpv6Hdr_t))
  *     .ptype     COM_SIG_DHCPV6
  *   .prm         オプション一覧
@@ -2172,7 +2178,7 @@ typedef enum {
  * com_analyzeDns()で ioHead->sigの信号データを DNS信号として解析する。
  * 参照勧告は RFC1036。
  * 解析の結果、ioHeadで変動するのは以下となる：
- *   ,sig
+ *   .sig
  *     .len       DNSヘッダサイズ (sizeof(com_sigDnsHdr_t))
  *     .ptype     COM_SIG_DNS
  *   .ext         リソースレコード一覧 (com_sigDnsData_t*型)
