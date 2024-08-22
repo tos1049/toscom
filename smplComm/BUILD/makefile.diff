@@ -8,7 +8,7 @@
 < CFLAGS += -lpanel -lncursesw
 ---
 > #CFLAGS += -lpanel -lncursesw
-164c164
+166c166
 < OBJS = main.o com.o
 ---
 > OBJS = main.o com.o smpl.o

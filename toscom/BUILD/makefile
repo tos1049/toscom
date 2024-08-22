@@ -102,7 +102,7 @@ CFLAGS += -lpanel -lncursesw
 
 LDFLAGS := -r
 
-RELOPT := -DAPLNAME=\"$(COMMAND)\" -DVERSION=\"$(VERSION)\"
+RELOPT := -DMAKEFILE_COMMAND=\"$(COMMAND)\" -DMAKEFILE_VERSION=\"$(VERSION)\"
 RELOPT += -D_BSD_SOURCE
 RELOPT += -D_DEFAULT_SOURCE
 RELOPT += -D_POSIX_C_SOURCE=200809L
@@ -128,6 +128,8 @@ OPTION += -DUSEDEBUGLOG
 OPTION += -DUSE_TESTFUNC
 # 関数呼出トレース使用 (必要な時のみコメントを外す)
 #OPTION += -DUSE_FUNCTRACE -D_GNU_SOURCE -fPIC -finstrument-functions -ldl
+# ネームリストファイル名 (これは関数呼出トレース未使用でもコメントアウト不要)
+NAMELIST = .namelist.toscom
 #
 ##############################################################################
 ############ デバッグモードスイッチ(未指定時は COM_DEBUG_OFF扱い) ############
@@ -163,16 +165,16 @@ COMMON_HEAD := $(SRC)/com_*.h
 # オブジェクトファイル一式
 OBJS = main.o com.o
 
-# ネームリストファイル名 (com_custom.hの COM_NAMELISTと同じ内容にすること)
-NAMELIST = .namelist.toscom
-
-
 
 
 
 
 
 ########## コンパイル時はタグファイルも自動生成する ##########
+ifneq (,$(findstring USE_FUNCTRACE, $(OPTION)))
+OPTION += -DMAKEFILE_NAMELIST=\"$(NAMELIST)\"
+endif
+
 $(COMMAND): tags $(OBJS)
 	$(CC) $(OPTION) $(OBJS) -o $(CHECKF)$@ $(CFLAGS)
 ifneq (,$(findstring USE_FUNCTRACE, $(OPTION)))
@@ -200,8 +202,6 @@ com.o: $(SRC)/com_*.c $(SRC)/com_*.h
 smpl.o: $(SRC)/smpl_*.c $(SRC)/smpl_*.h $(COMMON_HEAD)
 	$(CC) $(OPTION) -c $(wildcard $(SRC)/smpl_*.c) $(CFLAGS)
 	$(LD) $(LDFLAGS) smpl_*.o -o $@
-
-
 
 
 

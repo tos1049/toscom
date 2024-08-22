@@ -55,7 +55,8 @@ void com_setInitStage( COM_INIT_STAGE_t iStage, BOOL iIsBase )
 static FILE*  gDebugLog = NULL;        // デバッグログファイルポインタ
 
 static char*  gLogFile = NULL;         // デバッグログファイル名
-static char*  gDefaultLogFile = "." APLNAME ".log";    // NULLは作成抑制の意味
+static char*  gDefaultLogFile = "." MAKEFILE_COMMAND ".log";
+                                       // NULLに設定したら作成抑制の意味となる
 
 void com_setLogFile( const char *iFileName )
 {
@@ -1601,6 +1602,7 @@ BOOL com_mutexUnlockCom( pthread_mutex_t *ioMutex, COM_FILEPRM, BOOL iResult )
 
 // 関数呼出トレース機能関連 --------------------------------------------------
 
+#ifdef USE_FUNCTRACE
 static __thread  char gFileNameBuf[COM_LINEBUF_SIZE];
 static __thread  char gFilePathBuf[COM_LINEBUF_SIZE];
 
@@ -1627,10 +1629,10 @@ static BOOL seekFuncName( com_seekFileResult_t *iInf )
 __attribute__((no_instrument_function))
 static const char *seekNameList( void *iFunc )
 {
-    if( !com_checkExistFile( COM_NAMELIST ) ) {return NULL;}
+    if( !com_checkExistFile( MAKEFILE_NAMELIST ) ) {return NULL;}
     funcName_t  data = { iFunc, NULL };
     char  nmBuf[COM_LINEBUF_SIZE];
-    (void)com_seekFile( COM_NAMELIST, seekFuncName, &data,
+    (void)com_seekFile( MAKEFILE_NAMELIST, seekFuncName, &data,
                         nmBuf, sizeof(nmBuf) );
     return data.name;
 }
@@ -1644,7 +1646,6 @@ const char *com_seekNameList( void *iAddr )
     return result;
 }
 
-#ifdef USE_FUNCTRACE
 static __thread BOOL  gFuncTraceMode = true;
 
 // デバッガでの確認用に呼び元情報を受け取る

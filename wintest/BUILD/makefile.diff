@@ -4,11 +4,11 @@
 ---
 > COMMAND := wintest
 > VERSION := 1.0
-164c164
+166c166
 < OBJS = main.o com.o
 ---
 > OBJS = main.o com.o win.o
-200,202c200,202
+202,204c202,204
 < smpl.o: $(SRC)/smpl_*.c $(SRC)/smpl_*.h $(COMMON_HEAD)
 < 	$(CC) $(OPTION) -c $(wildcard $(SRC)/smpl_*.c) $(CFLAGS)
 < 	$(LD) $(LDFLAGS) smpl_*.o -o $@

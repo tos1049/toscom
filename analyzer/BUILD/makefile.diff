@@ -8,7 +8,7 @@
 < CFLAGS += -lpanel -lncursesw
 ---
 > #CFLAGS += -lpanel -lncursesw
-149,155c149,155
+151,157c151,157
 < 
 < 
 < 
@@ -24,19 +24,11 @@
 > #OPTION += -DANLZ_USE_SEEKFILE
 > # Analyzerデバッグモード
 > #OPTION += -DANLZ_DEBUG
-164c164
+166c166
 < OBJS = main.o com.o
 ---
 > OBJS = main.o com.o anlz.o
-169,171c169,171
-< 
-< 
-< 
----
-> OPTION += -DANLZ_DECODE
-> #OPTION += -DANLZ_USE_SEEKFILE
-> #OPTION += -DANLZ_DEBUG
-200,202c200,202
+202,204c202,204
 < smpl.o: $(SRC)/smpl_*.c $(SRC)/smpl_*.h $(COMMON_HEAD)
 < 	$(CC) $(OPTION) -c $(wildcard $(SRC)/smpl_*.c) $(CFLAGS)
 < 	$(LD) $(LDFLAGS) smpl_*.o -o $@

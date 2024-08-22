@@ -62,14 +62,6 @@ enum {
     COM_FUNCTRACE_MAX = 1000
 };
 
-// 関数名解析用のネームリストファイル名
-//  実行用バイナリのあるディレクトリで
-//    nm -nl 実行用ファイル名 > 以下で宣言するファイル名
-//  のコマンドによりファイルを作っておく必要がある。
-//  添付の makefile使用時は、-DUSE_FUNCTRACE を指定してビルドすると自動で作る。
-//  下記ファイル名を変更した場合、makefileの方の変数 NAMELIST も併せて修正する。
-#define COM_NAMELIST  ".namelist.toscom"
-
 /*
  * ＜ウィンドウ機能で使用するマクロ宣言＞
  * com_inoutWindow()で使用される特殊キーのキーコード

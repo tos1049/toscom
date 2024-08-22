@@ -100,8 +100,8 @@ void com_finalizeSpec( void )
 
 /* makefile のコンパイルオプション APLNAMEで指定された文字列 */
 static char  gAPLNAME[] =
-#ifdef APLNAME    // "アプリ名" の形式で宣言すること
-    APLNAME;
+#ifdef MAKEFILE_COMMAND    // "アプリ名" の形式で宣言すること
+    MAKEFILE_COMMAND;
 #else
     "";    // 定義がないときは空文字とする
 #endif
@@ -113,8 +113,8 @@ const char *com_getAplName( void )
 
 /* makefile のコンパイルオプション VERSIONで指定された文字列 */
 static char  gVERSION[] =
-#ifdef VERSION    // "バージョン" の形式で宣言すること
-    VERSION;
+#ifdef MAKEFILE_VERSION    // "バージョン" の形式で宣言すること
+    MAKEFILE_VERSION;
 #else
     "0";   // 定義がないときは "0" とする
 #endif
