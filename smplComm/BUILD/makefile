@@ -46,6 +46,8 @@ CFLAGS := -std=c99 -g3
 #   K&Rスタイルの関数定義に対して警告
 # -Wstrict-prototypes
 #   引数の型が示されていない(＝K&Rスタイルの)プロトタイプ宣言に対して警告
+# -Wlogical-op
+#   論理演算子の間違っているかもしれない使用に対して警告
 # -Wformat-security
 #   書式指定文字列でセキュリティ的に問題がある場合に警告
 # -Wconversion
@@ -53,7 +55,7 @@ CFLAGS := -std=c99 -g3
 #
 CFLAGS += -pedantic -Wall -Wextra -Wshadow -Wdisabled-optimization \
           -Wfloat-equal -Wold-style-definition -Wstrict-prototypes \
-          -Wformat-security -Wconversion
+          -Wlogical-op -Wformat-security -Wconversion
 
 
 
@@ -66,8 +68,6 @@ CFLAGS += -pedantic -Wall -Wextra -Wshadow -Wdisabled-optimization \
 #   アライメントが変わるようなポインタのキャストに警告
 # -Winline
 #   inline指定関数が、長過ぎる等の理由でインライン展開しなかった場合に警告
-# -Wlogical-op
-#   論理演算子の間違っているかもしれない使用に対して警告
 # -Wmultichar
 #   複数の文字を含む文字リテラルに対して警告
 # -Wpadded
@@ -78,7 +78,7 @@ CFLAGS += -pedantic -Wall -Wextra -Wshadow -Wdisabled-optimization \
 #   C言語で規定されていない計算の順序などで問題が起こりそうなら警告
 #
 CFLAGS += -Waggregate-return -Wbad-function-cast -Wcast-align -Winline \
-          -Wlogical-op -Wmultichar -Wpadded -Wpointer-arith -Wsequence-point
+          -Wmultichar -Wpadded -Wpointer-arith -Wsequence-point
 
 
 
