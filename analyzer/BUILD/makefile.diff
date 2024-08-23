@@ -41,6 +41,6 @@
 ---
 > rel: OPTION += -DUSEDEBUGLOG
 360c360
-< 	cd ..; ctags main*.? com_*.?
+< 	cd $(SRC); ctags main*.? com_*.?
 ---
-> 	cd ..; ctags main*.? com_*.? anlz_*.?
+> 	cd $(SRC); ctags main*.? com_*.? anlz_*.?

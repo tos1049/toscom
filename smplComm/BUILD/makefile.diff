@@ -21,6 +21,6 @@
 < 
 < 
 360c360
-< 	cd ..; ctags main*.? com_*.?
+< 	cd $(SRC); ctags main*.? com_*.?
 ---
-> 	cd ..; ctags main*.? com_*.? smpl_*.?
+> 	cd $(SRC); ctags main*.? com_*.? smpl_*.?

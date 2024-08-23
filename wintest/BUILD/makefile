@@ -317,12 +317,12 @@ lib: rel
 	mkdir $(LIBDIR)/lib
 	cp $(LIBFILE)*.a $(LIBDIR)/lib
 	mkdir $(LIBDIR)/include
-	$(LIB)/collectLibFiles .. $(LIBDIR)/include
+	$(LIB)/collectLibFiles $(SRC) $(LIBDIR)/include
 	mkdir ${LIBDIR}/files
 	cp $(LIB)/gcc_sample $(LIBDIR)/files
-	cp ../com_spec.* ${LIBDIR}/files
-	cp ../com_test*.c ${LIBDIR}/files
-	cp ../main.c     ${LIBDIR}/files
+	cp $(SRC)/com_spec.* ${LIBDIR}/files
+	cp $(SRC)/com_test*.c ${LIBDIR}/files
+	cp $(SRC)/main.c     ${LIBDIR}/files
 	cp ${LIB}/ready  ${LIBDIR}
 	tar cvfz ${LIBDIR}.tar.gz $(LIBDIR)
 
@@ -335,7 +335,7 @@ init: clean $(COMMAND)
 ########## ビルドによる直接的生成物の削除 (make clean) #######################
 clean:
 	$(RM) -fr $(COMMAND) $(COMMAND).exe $(CHECKF_PRE)$(COMMAND)
-	$(RM) -fr *.o ../tags $(RELEASE)* $(COMMAND)*.tar.gz $(NAMELIST)
+	$(RM) -fr *.o ${SRC}/tags $(RELEASE)* $(COMMAND)*.tar.gz $(NAMELIST)
 	$(RM) -fr *.a ${LIBDIR}*
 
 ########## ログファイルやコアファイルを削除 (make logclean) ##################
@@ -347,7 +347,7 @@ logclean: specclean
 specclean:
 
 ########## 生成物やログを全て削除 (make allclean) ############################
-allclean: clean logclean specclean
+allclean: clean logclean
 	$(RM) -fr ../NEWENV/*.tar.gz
 
 
@@ -357,5 +357,5 @@ allclean: clean logclean specclean
 
 ########## タグ生成 (make tags) ##############################################
 tags:
-	cd ..; ctags main*.? com_*.? win_*.?
+	cd $(SRC); ctags main*.? com_*.? win_*.?
 
