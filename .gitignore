@@ -12,8 +12,8 @@ newenv.tar.gz
 NEWENVTMP*
 newtest*
 libtest
-LIB_*
-*.a
+libtoscom*
+toscom/BUILD/*.tar.gz
 chatlog.*
 toscom/com_test.c
 .tmpgrep*
