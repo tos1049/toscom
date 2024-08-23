@@ -1,6 +1,6 @@
 #!/bin/bash
 
-WORKDIR=".."
+WORKDIR="sample"
 LIBDIR="libtoscom"
 
 _dir=${WORKDIR}/${LIBDIR}
@@ -13,7 +13,7 @@ if [ "${_dir}" != "../toscom_lib" ]; then
   else
     echo "..create ${_dir}"
   fi
-  mkdir ${WORKDIR}/${LIBDIR}
+  mkdir -p ${WORKDIR}/${LIBDIR}
   cp -r lib ${WORKDIR}/${LIBDIR}
   cp -r include ${WORKDIR}/${LIBDIR}
 else
