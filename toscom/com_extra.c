@@ -261,6 +261,11 @@ static char  gMenuBuff[COM_DATABUF_SIZE];
 static size_t  gMenuCount = 0;     // メニューリストバッファのカウント
 static long*   gMenuList = NULL;   // メニューリストバッファ(終了処理で解放)
 
+static long gSelecetedCode = 0;    // 実際に入力されたメニュー番号
+
+enum { NO_DEFAULT = 0 };
+static long gDefaultCode = NO_DEFAULT;   // Enterのみの入力時のデフォルト番号
+
 static void setListBuffer( const com_selector_t *iSelector )
 {
     size_t  count = 0;
@@ -305,7 +310,7 @@ static BOOL judgeLf( long iCode, long iBorderLf )
 
 static void addMenu(
         const com_selector_t *iMenu, long *ioCount, long iBorderLf,
-        const char *iPrompt )
+        const char *iPrompt, BOOL *oDefaultExist )
 {
     long  code = iMenu->code;
     // 作業データ初期化
@@ -322,6 +327,7 @@ static void addMenu(
         ADD_MENU_BUFF( "  %2ld:%s", code, iMenu->label );
         checkList( *ioCount, code );
         gMenuList[(*ioCount)++] = code;
+        if( gDefaultCode == code ) { *oDefaultExist = true; }
     }
     else {ADD_MENU_BUFF( "     %*s", (int)strlen( iMenu->label ), " " );}
     gPrevCode = code;
@@ -333,20 +339,28 @@ static void makeMenu(
 {
     COM_CLEAR_BUF( gMenuBuff );
     gPrevCode = INIT_MENU;    // addMenu()に初期化を促す
+    BOOL defExist = false;
 
     if( iPrompt->head ) {(void)com_strcat( gMenuBuff, iPrompt->head );}
     setListBuffer( iSelector );
     for( const com_selector_t* tmp = iSelector;  tmp->code > 0;  tmp++ ) {
-        addMenu( tmp, oCount, iPrompt->borderLf, iPrompt->prompt );
+        addMenu( tmp, oCount, iPrompt->borderLf, iPrompt->prompt, &defExist );
     }
+    // メニューにない番号をデフォルトにしても無効にする
+    if( !defExist ) { gDefaultCode = NO_DEFAULT; }
     if( iPrompt->foot ) {(void)com_strcat( gMenuBuff, iPrompt->foot );}
 }
 
+
 static BOOL callMenuFunc( long iCode, const com_selector_t *iSelector )
 {
+    if( !iCode ) { iCode = gDefaultCode; }  // 0=Enterのみ押下時
     while( iSelector->code != iCode ) {iSelector++;}
     BOOL  result = true;
-    if( iSelector->func ) {result = (iSelector->func)( iCode );}
+    if( iSelector->func ) {
+        result = (iSelector->func)( iCode );
+        gSelecetedCode = iCode;
+    }
     return result;
 }
 
@@ -360,10 +374,20 @@ BOOL com_execSelector(
     com_valCondDgtList_t  cond = { count, gMenuList };
     com_valFunc_t  val = { .func = com_valDgtList,  .cond = &cond };
     char  key[10] = {0};
+    gSelecetedCode = 0;
     com_inputVar( key, sizeof(key), &val, iFlag, gMenuBuff );
     return callMenuFunc( com_atol(key), iSelector );
 }
 
+long com_getSelectedMenu( void )
+{
+    return gSelecetedCode;
+}
+
+void com_setDefaultMenu( long iCode )
+{
+    gDefaultCode = iCode;
+}
 
 
 // 統計情報計算処理 ----------------------------------------------------------

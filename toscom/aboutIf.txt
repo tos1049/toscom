@@ -354,7 +354,12 @@ toscom grimoire Ver3.00
    com_askYesNo()              共通用Yes/No文字列入力
    com_waitEnter()             共通用エンター待機
    com_askFile()               共通用ファイル入力とオープン
-   com_execSelector()          セレクター動作
+  @com_execSelector()          セレクター動作
+     本I/F使用後、プログラム終了時に落ちる問題に対処。
+     第2引数 iPromptの .borderLf の扱いを少し修正し、改行タイミングを改善。
+     またメニューを非表示にした時の、改行処理が異常だった問題に対処。
+  +com_getSelecetedMenu()      セレクター入力メニュー番号取得
+  +com_setDefaultMenu()        セレクターデフォルトメニュー番号設定
 
    ********** COMEXSTAT:統計情報・数学計算I/F **********
    com_readyStat()             統計データ計算開始
