@@ -295,6 +295,7 @@ static void addWithPrompt( const char *iText, const char *iPrompt )
 }
 
 static long gPrevCode = 0;
+enum { INIT_MENU = -1 };
 
 static BOOL judgeLf( long iCode, long iBorderLf )
 {
@@ -308,7 +309,7 @@ static void addMenu(
 {
     long  code = iMenu->code;
     // 作業データ初期化
-    if( gPrevCode < 0 ) {
+    if( gPrevCode == INIT_MENU ) {
         addWithPrompt( "", iPrompt );
         gPrevCode = code;
     }
@@ -331,7 +332,7 @@ static void makeMenu(
         long *oCount )
 {
     COM_CLEAR_BUF( gMenuBuff );
-    gPrevCode = -1;    // 負数を入れて addMenu()に初期化を促す
+    gPrevCode = INIT_MENU;    // addMenu()に初期化を促す
 
     if( iPrompt->head ) {(void)com_strcat( gMenuBuff, iPrompt->head );}
     setListBuffer( iSelector );
