@@ -257,7 +257,6 @@ FILE *com_askFile( const com_actFlag_t *iFlags, const com_askFile_t *iAskCond,
 
 // 入力メニュー共通ルーチン処理
 static char  gMenuBuff[COM_DATABUF_SIZE];
-static long  gTimingLf = -1;
 
 static size_t  gMenuCount = 0;     // メニューリストバッファのカウント
 static long*   gMenuList = NULL;   // メニューリストバッファ(終了処理で解放)
@@ -295,27 +294,36 @@ static void addWithPrompt( const char *iText, const char *iPrompt )
     if( iPrompt ) {ADD_MENU_BUFF( iPrompt );}
 }
 
+static long gPrevCode = 0;
+
+static BOOL judgeLf( long iCode, long iBorderLf )
+{
+    if( (iCode - 1) / iBorderLf != (gPrevCode - 1) / iBorderLf ) {return true;}
+    return false;
+}
+
 static void addMenu(
         const com_selector_t *iMenu, long *ioCount, long iBorderLf,
         const char *iPrompt )
 {
+    long  code = iMenu->code;
     // 作業データ初期化
-    if( gTimingLf < 0 ) {
+    if( gPrevCode < 0 ) {
         addWithPrompt( "", iPrompt );
-        gTimingLf = 0;
+        gPrevCode = code;
     }
     // 改行タイミングか判定
-    long  code = iMenu->code;
-    if( gTimingLf != (code / iBorderLf) ) {addWithPrompt( "\n", iPrompt );}
+    if( judgeLf( code, iBorderLf ) ) {addWithPrompt( "\n", iPrompt );}
     // メニューを実際に出すかチェック
-    if( iMenu->check ) {if( !(iMenu->check)( code ) ) {code = 0;}}
-    if( code > 0 ) {
+    BOOL dispFlag = true;
+    if( iMenu->check ) { dispFlag = (iMenu->check)( code ); }
+    if( dispFlag ) {
         ADD_MENU_BUFF( "  %2ld:%s", code, iMenu->label );
         checkList( *ioCount, code );
         gMenuList[(*ioCount)++] = code;
     }
     else {ADD_MENU_BUFF( "     %*s", (int)strlen( iMenu->label ), " " );}
-    gTimingLf = code / iBorderLf;
+    gPrevCode = code;
 }
 
 static void makeMenu(
@@ -323,7 +331,7 @@ static void makeMenu(
         long *oCount )
 {
     COM_CLEAR_BUF( gMenuBuff );
-    gTimingLf = -1;    // 負数を入れて addMenu()に初期化を促す
+    gPrevCode = -1;    // 負数を入れて addMenu()に初期化を促す
 
     if( iPrompt->head ) {(void)com_strcat( gMenuBuff, iPrompt->head );}
     setListBuffer( iSelector );
