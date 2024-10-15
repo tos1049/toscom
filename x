@@ -4,6 +4,10 @@
 # リポジトリ内のシェルスクリプトの shebangを書き換える。
 # 本スクリプトの shebang(ファイル冒頭) で統一する。
 #
+# which bash では /bin/usr/bash と出る可能性がある。
+# 基本的には /bin/bash で問題ないはずなので、ls /bin/bash で確認する。
+# これでエラーにならなければ、/bin/bash のままで問題ない。
+#
 
 SHEBANG="$(head -n 1 x)"
 #echo -e "${SHEBANG}..."
