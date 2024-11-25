@@ -1611,13 +1611,16 @@ typedef struct {
     char*   name;
 } funcName_t;
 
+enum { NEED_DATA_COUNT = 2 };
+
 __attribute__((no_instrument_function))
 static BOOL seekFuncName( com_seekFileResult_t *iInf )
 {
     funcName_t*  data = iInf->userData;
     ulong  addr = com_strtoul( iInf->line, 16, false );
     if( addr != (ulong)(data->addr) ) {return true;}
-    (void)sscanf( iInf->line, "%*s %*s %s %s", gFileNameBuf, gFilePathBuf );
+    int cnt = sscanf( iInf->line, "%*s %*s %s %s", gFileNameBuf, gFilePathBuf );
+    if( cnt != NEED_DATA_COUNT ) {return true;}
     if( !strcmp( gFileNameBuf, ".text" ) ) {return true;}
     char  fileName[COM_WORDBUF_SIZE] = {0};
     com_getFileName( fileName, sizeof(fileName), gFilePathBuf );
