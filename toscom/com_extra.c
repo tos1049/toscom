@@ -272,7 +272,7 @@ static void setListBuffer( const com_selector_t *iSelector )
     for( ;  iSelector->code > 0;  iSelector++ ) {count++;}
     // 確保済みサイズに足りるなら何もしない
     if( count <= gMenuCount ) {return;}
-    gMenuList = com_reallocf( gMenuList, sizeof(long) * count, "gMenuList" );
+    gMenuList = com_reallocf(gMenuList,sizeof(*gMenuList) * count,"gMenuList");
     // メモリ不足の場合、処理続行不可能
     if( !gMenuList ) {com_exit( COM_ERR_NOMEMORY );}
     gMenuCount = count;
